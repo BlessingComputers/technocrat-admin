@@ -40,10 +40,12 @@ here. If start order ever makes 3001/3002 ambiguous, pin those too.
 
 ## Branching
 
-- Branches: `main` (pristine clone baseline) and `dev` (working branch).
-- **No remote.** GitHub, CI, and deploy are deliberately deferred. The inherited
-  cPanel deploy scripts (`zip`/`upload`/`restart`/`deploy`, hardcoded to
-  Blessing's box) were **removed**, not repointed.
+- **Remote:** `origin` → `https://github.com/BlessingComputers/technocrat-admin.git`
+- Branches: `main` (pristine clone baseline) and `dev` (working branch — all
+  new work is committed here).
+- **CI and deploy are still deferred.** The inherited cPanel deploy scripts
+  (`zip`/`upload`/`restart`/`deploy`, hardcoded to Blessing's box) were
+  **removed**, not repointed.
 
 ## Docs
 
