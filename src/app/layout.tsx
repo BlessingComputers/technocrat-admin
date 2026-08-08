@@ -28,7 +28,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL("https://admin.blessingcomputers.com"),
   title: {
-    default: "Admin · Blessing Computers",
+    default: "Admin · Technocrat",
     template: "%s · Admin",
   },
   description: "Internal staff dashboard.",
