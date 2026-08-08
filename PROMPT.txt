@@ -1,0 +1,772 @@
+Parts
+
+
+POST
+/api/v1/products/parts
+Create a new part
+
+
+Creates a standalone part that can later be linked to one or more products.
+
+Image upload (optional, multipart/form-data)
+Same convention as POST /products:
+
+Field	Type	Description
+name, partCategory, ...	string	All JSON fields as form-data fields
+specifications	JSON string	[{"name":"Material","value":"Glass"}]
+images[]	file	jpeg/png/webp, max 10MB each, max 10 files
+imageAlt_0	string	Alt text for file at index 0
+imagePrimary_0	"true"	Mark file at index 0 as primary
+imageSortOrder_0	number	Sort position for file at index 0
+Images upload synchronously before the 201 response.
+
+Rate limit: 30 part creates / hour per staff member.
+
+Parameters
+Try it out
+No parameters
+
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "slug": "5d5k6smtw4yf0clgfwkxqki0h3qggk39xefaltb2y26oacq7ybwrdhe46cv4ol2ylt7u7tdse8kynmaxhxk201y2-vkh3hbssbcecc6thgsn4z5pxrau0k1dpxqy8m7p20uyk4uul9wdnwxj08bfhatbryzyxvgzh1f86bbcgbiqczv37dww2i1ixhc-0xrthdiw4ze8e8964d-vexhtvkz921tp971vbnl75z0o7wxlkbz5mukm28ydlxwnnm7t-va5f-g1h0g4yei76w5yjspv",
+  "partNumber": "string",
+  "partType": "string",
+  "description": "string",
+  "categoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "brandId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "price": 1,
+  "compareAtPrice": 1,
+  "costPrice": 1,
+  "stockQuantity": 0,
+  "isInStock": true,
+  "isActive": true,
+  "isFeatured": false,
+  "sortOrder": 0,
+  "specifications": []
+}
+Responses
+Code	Description	Links
+201	
+Part created
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "partId": "PRT-A1B2C3D4",
+    "message": "Part created with images."
+  }
+}
+No links
+400	
+Validation error or duplicate partNumber
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission (requires products:write)
+
+No links
+429	
+Rate limit exceeded
+
+GET
+/api/v1/products/parts
+List all parts (staff)
+
+
+Paginated, filterable list of all parts. Requires products:read.
+
+Parameters
+Try it out
+Name	Description
+categoryId
+string($uuid)
+(query)
+categoryId
+brandId
+string($uuid)
+(query)
+brandId
+partType
+string
+(query)
+partType
+isActive
+string
+(query)
+isActive
+isInStock
+string
+(query)
+isInStock
+q
+string
+(query)
+q
+page
+integer
+(query)
+Default value : 1
+
+1
+limit
+integer
+(query)
+Default value : 20
+
+20
+Responses
+Code	Description	Links
+200	
+Paginated parts list
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "partId": "PRT-A1B2C3D4",
+        "name": "Front Screen Assembly – iPhone 15 Pro",
+        "partNumber": "IP15P-SCRN-001",
+        "partCategory": "Display",
+        "description": "OEM-grade OLED display with digitizer, compatible with iPhone 15 Pro.",
+        "price": 45000,
+        "compareAtPrice": 55000,
+        "stockQuantity": 12,
+        "isInStock": true,
+        "isActive": true,
+        "isFeatured": true,
+        "sortOrder": 0,
+        "specifications": [
+          {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "name": "Material",
+            "value": "Gorilla Glass 5",
+            "sortOrder": 0
+          }
+        ],
+        "images": [
+          {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "url": "https://res.cloudinary.com/technocrat/image/upload/v1/part.jpg",
+            "altText": "Front display glass panel",
+            "isPrimary": true,
+            "sortOrder": 0
+          }
+        ],
+        "createdAt": "2026-06-29T07:31:37.189Z",
+        "updatedAt": "2026-06-29T07:31:37.189Z"
+      }
+    ],
+    "meta": {
+      "total": 0,
+      "page": 0,
+      "limit": 0,
+      "totalPages": 0,
+      "hasNextPage": true,
+      "hasPrevPage": true
+    }
+  }
+}
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+GET
+/api/v1/products/parts/{partId}
+Get a single part
+
+Public. Accepts either a DB UUID or human-readable PRT-XXXXXXXX display ID.
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Responses
+Code	Description	Links
+200	
+Part returned
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "success": true,
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "partId": "PRT-A1B2C3D4",
+    "name": "Front Screen Assembly – iPhone 15 Pro",
+    "partNumber": "IP15P-SCRN-001",
+    "partCategory": "Display",
+    "description": "OEM-grade OLED display with digitizer, compatible with iPhone 15 Pro.",
+    "price": 45000,
+    "compareAtPrice": 55000,
+    "stockQuantity": 12,
+    "isInStock": true,
+    "isActive": true,
+    "isFeatured": true,
+    "sortOrder": 0,
+    "specifications": [
+      {
+        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "name": "Material",
+        "value": "Gorilla Glass 5",
+        "sortOrder": 0
+      }
+    ],
+    "images": [
+      {
+        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "url": "https://res.cloudinary.com/technocrat/image/upload/v1/part.jpg",
+        "altText": "Front display glass panel",
+        "isPrimary": true,
+        "sortOrder": 0
+      }
+    ],
+    "createdAt": "2026-06-29T07:32:18.481Z",
+    "updatedAt": "2026-06-29T07:32:18.481Z"
+  }
+}
+No links
+404	
+Part not found
+
+PATCH
+/api/v1/products/parts/{partId}
+Update a part
+
+
+Partial update. If specifications is provided it fully replaces the existing set (same behaviour as product specifications).
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "name": "string",
+  "slug": "zxfc-3ltnaha36erm70xntasqyx8ee1u1fg4daen2wi8t4y",
+  "partNumber": "string",
+  "partType": "string",
+  "description": "string",
+  "categoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "brandId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "price": 1,
+  "compareAtPrice": 1,
+  "costPrice": 1,
+  "stockQuantity": 0,
+  "isInStock": true,
+  "isActive": true,
+  "isFeatured": false,
+  "sortOrder": 0,
+  "specifications": [
+    {
+      "name": "string",
+      "value": "string",
+      "sortOrder": 0
+    }
+  ]
+}
+Responses
+Code	Description	Links
+200	
+Part updated
+
+No links
+400	
+Validation error or duplicate partNumber
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part not found
+
+
+DELETE
+/api/v1/products/parts/{partId}
+Deactivate a part
+
+
+Soft-delete (isActive = false). All product links are preserved. The part stops appearing to customers but remains in the DB for staff. Requires products:delete.
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Responses
+Code	Description	Links
+200	
+Part deactivated
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part not found
+
+
+POST
+/api/v1/products/parts/{partId}/images
+Upload part images
+
+
+Upload up to 10 images for a part. Max 10MB each. Rate limit: 50 uploads/hour per staff member (shared with product image upload quota).
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Responses
+Code	Description	Links
+200	
+Images uploaded
+
+No links
+400	
+No files provided or too many files
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part not found
+
+No links
+429	
+Upload rate limit exceeded
+
+
+DELETE
+/api/v1/products/parts/{partId}/images/{imageId}
+Delete a part image
+
+
+Queues Cloudinary/S3 deletion + DB removal. Requires storagePublicId and storageProvider from the part's images array.
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+imageId *
+string($uuid)
+(path)
+imageId
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "storagePublicId": "parts/prt-a1b2c3d4/img001",
+  "storageProvider": "cloudinary"
+}
+Responses
+Code	Description	Links
+200	
+Image deletion queued
+
+No links
+400	
+Missing storagePublicId or storageProvider
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part or image not found
+
+
+PATCH
+/api/v1/products/parts/{partId}/images/{imageId}/primary
+Set primary part image
+
+
+Promotes one image to primary and demotes all others.
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+imageId *
+string($uuid)
+(path)
+imageId
+Responses
+Code	Description	Links
+200	
+Primary image updated
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part or image not found
+
+
+PATCH
+/api/v1/products/parts/{partId}/images/{imageId}/primary
+Set primary part image
+
+
+Promotes one image to primary and demotes all others.
+
+Parameters
+Try it out
+Name	Description
+partId *
+string
+(path)
+PRT-A1B2C3D4
+imageId *
+string($uuid)
+(path)
+imageId
+Responses
+Code	Description	Links
+200	
+Primary image updated
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Part or image not found
+
+
+POST
+/api/v1/products/{productId}/parts
+Link a part to a product
+
+
+Idempotent — linking the same part twice updates compatNote and sortOrder instead of throwing an error.
+
+Parameters
+Try it out
+Name	Description
+productId *
+string($uuid)
+(path)
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "partId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "compatNote": "string",
+  "sortOrder": 0
+}
+Responses
+Code	Description	Links
+201	
+Part linked
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "success": true,
+  "data": {
+    "linkId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "message": "string"
+  }
+}
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Product or part not found
+
+
+POST
+/api/v1/products/{productId}/parts/bulk
+Bulk-link parts to a product
+
+
+Link up to 50 parts to a product in one call. Each link is upserted independently — partial success is returned, failed links do not roll back successful ones.
+
+Parameters
+Try it out
+Name	Description
+productId *
+string($uuid)
+(path)
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "parts": [
+    {
+      "partId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "compatNote": "string",
+      "sortOrder": 0
+    }
+  ]
+}
+Responses
+Code	Description	Links
+200	
+Bulk link result
+
+Media type
+
+application/json
+Controls Accept header.
+Example Value
+Schema
+{
+  "success": true,
+  "data": {
+    "linked": 4,
+    "results": [
+      {
+        "partId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "linkId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "status": "linked",
+        "error": "string"
+      }
+    ]
+  }
+}
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Product not found
+
+
+PATCH
+/api/v1/products/{productId}/parts/reorder
+Reorder a product's parts list
+
+
+Updates sortOrder on the product↔part join rows. Only affects ordering within this product — does not change the part's global sortOrder.
+
+Parameters
+Try it out
+Name	Description
+productId *
+string($uuid)
+(path)
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "order": [
+    {
+      "partId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "sortOrder": 0
+    }
+  ]
+}
+Responses
+Code	Description	Links
+200	
+Parts reordered
+
+No links
+400	
+One or more partIds not linked to this product
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Product not found
+
+
+PATCH
+/api/v1/products/{productId}/parts/{partId}
+Update a product↔part link
+
+
+Updates only the per-link metadata (compatNote, sortOrder) without touching the part's own data. Use PATCH /parts/:partId to update the part itself.
+
+Parameters
+Try it out
+Name	Description
+productId *
+string($uuid)
+(path)
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Request body
+
+application/json
+Example Value
+Schema
+{
+  "compatNote": "string",
+  "sortOrder": 0
+}
+Responses
+Code	Description	Links
+200	
+Link metadata updated
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Product or part link not found
+
+
+DELETE
+/api/v1/products/{productId}/parts/{partId}
+Unlink a part from a product
+
+
+Removes the product↔part association. Does not delete the part itself — it remains in the system and can still be linked to other products.
+
+Parameters
+Try it out
+Name	Description
+productId *
+string($uuid)
+(path)
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+partId *
+string
+(path)
+PRT-A1B2C3D4
+Responses
+Code	Description	Links
+200	
+Part unlinked
+
+No links
+401	
+Authentication required
+
+No links
+403	
+Insufficient permission
+
+No links
+404	
+Link not found
