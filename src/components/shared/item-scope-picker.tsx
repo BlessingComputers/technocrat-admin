@@ -81,7 +81,7 @@ export function ItemScopePicker({
           <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
             <AppIcon
               icon="solar:box-linear"
-              className="size-4 shrink-0 text-primary"
+              className="size-4 shrink-0 text-primary-ink"
             />
             <span className="truncate">{selected.name}</span>
           </span>
@@ -186,7 +186,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+      <Label className="text-xs font-semibold text-muted-foreground ml-1">
         {label}
       </Label>
       {children}

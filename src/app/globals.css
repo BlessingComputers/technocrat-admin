@@ -47,6 +47,17 @@
   --color-warning-ink: var(--warning-ink);
   --color-info-ink: var(--info-ink);
   --color-destructive-ink: var(--destructive-ink);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-foreground: var(--whatsapp-foreground);
+  --color-whatsapp-ink: var(--whatsapp-ink);
+  --color-tier-bronze: var(--tier-bronze);
+  --color-tier-bronze-ink: var(--tier-bronze-ink);
+  --color-tier-silver: var(--tier-silver);
+  --color-tier-silver-ink: var(--tier-silver-ink);
+  --color-tier-gold: var(--tier-gold);
+  --color-tier-gold-ink: var(--tier-gold-ink);
+  --color-tier-platinum: var(--tier-platinum);
+  --color-tier-platinum-ink: var(--tier-platinum-ink);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -172,6 +183,40 @@
   /* 4.67:1. `--warning` as text measured 2.35:1 — the worst in the set. */
   --warning-ink: oklch(0.5 0.134 65);
 
+  /* WhatsApp's own channel green — a third-party MARK, not a palette role.
+     ⚠️ This is the one sanctioned exception to the Green-Does-Double-Duty Rule:
+     it is a third green, and it is allowed only because it identifies WhatsApp,
+     which loses its meaning if recoloured. Never reach for it as an accent, a
+     status, or a stand-in for `--primary`; the WhatsApp slice and the chat
+     popup's channel badge are its whole surface area. Ported from the
+     storefront (`blessingcomputers/src/app/globals.css`), which measured it.
+     `--whatsapp` is 2.01:1 on white, so it is a SURFACE only and can never be
+     the text token — hence the -ink role. */
+  --whatsapp: oklch(0.76 0.17 152);
+  --whatsapp-foreground: oklch(0.29 0.08 152);
+  --whatsapp-ink: oklch(0.5 0.13 152); /* 5.26:1 at its worst light surface */
+
+  /* Loyalty-tier metals — REFERENTS, not palette roles.
+     ⚠️ Second sanctioned exception, on the same argument as `--whatsapp`: a
+     bronze medal recoloured to a brand hue stops reading as bronze. Before this
+     existed the tiers borrowed STATUS tones, and BRONZE was mapped to `danger`
+     — a customer's loyalty tier rendered in error red. That is the bug these
+     tokens exist to fix, and the reason they are not `--warning`/`--muted`.
+     Fenced to `loyaltyTierClasses()`; never an accent, never a status.
+     Each base is a SURFACE only (used at /15), hence the paired -ink roles.
+     Measured OKLCH -> sRGB -> WCAG, alpha composited on gamma-encoded sRGB;
+     ratios below are ink on the metal's own 15% tint over `--accent`, the
+     worst realistic pairing (hover). */
+  --tier-bronze: oklch(0.63 0.115 55); /* #be753f */
+  --tier-bronze-ink: oklch(0.45 0.1 52); /* 5.74:1 */
+  --tier-silver: oklch(0.78 0.008 255); /* #b4b8bc */
+  --tier-silver-ink: oklch(0.48 0.008 255); /* 5.24:1 */
+  --tier-gold: oklch(0.8 0.13 88); /* #e1b850 */
+  --tier-gold-ink: oklch(0.5 0.1 80); /* 4.89:1 */
+  --tier-platinum: oklch(0.86 0.025 240); /* #c3d4e0 — cool, to stay legibly
+                                             apart from neutral silver */
+  --tier-platinum-ink: oklch(0.47 0.03 245); /* 5.65:1 */
+
   /* Approximates the frame's Grey/03 border #E9ECEF. */
   --border: oklch(0.925 0.002 150);
   --input: oklch(0.925 0.002 150);
@@ -291,6 +336,21 @@
   --warning: oklch(0.78 0.15 70);
   --warning-foreground: oklch(0.2 0.04 65);
   --warning-ink: oklch(0.8 0.147 70); /* 4.67:1 */
+  --whatsapp: oklch(0.78 0.16 152);
+  --whatsapp-foreground: oklch(0.29 0.08 152);
+  --whatsapp-ink: oklch(0.76 0.13 152); /* 8.39:1 on the page */
+
+  /* Loyalty-tier metals, dark. Bases lift slightly so the metal still reads as
+     metal on a dark card; inks flip to light per the -ink rule. Ratios are
+     ink on the 15% tint over dark `--accent` (the worst pairing). */
+  --tier-bronze: oklch(0.68 0.115 55);
+  --tier-bronze-ink: oklch(0.78 0.1 58); /* 4.68:1 */
+  --tier-silver: oklch(0.8 0.008 255);
+  --tier-silver-ink: oklch(0.84 0.008 255); /* 5.27:1 */
+  --tier-gold: oklch(0.82 0.13 88);
+  --tier-gold-ink: oklch(0.86 0.11 88); /* 5.59:1 */
+  --tier-platinum: oklch(0.88 0.025 240);
+  --tier-platinum-ink: oklch(0.9 0.025 240); /* 6.03:1 */
 
   /* The border, not a shadow, is what defines a surface at rest in dark.
      Carries the graphite cast so it doesn't read as a cool-grey line. */

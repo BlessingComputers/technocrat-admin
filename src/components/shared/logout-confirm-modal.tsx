@@ -29,10 +29,10 @@ export function LogoutConfirmModal({
       <DialogContent className="sm:max-w-[420px] rounded-2xl p-0 overflow-hidden border-none shadow-soft-lg">
         <div className="bg-destructive/5 p-6 pb-0">
           <div className="size-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-            <AppIcon icon="solar:danger-triangle-bold" className="size-6 text-destructive" />
+            <AppIcon icon="solar:danger-triangle-bold" className="size-6 text-destructive-ink" />
           </div>
           <DialogHeader className="text-left">
-            <DialogTitle className="text-xl font-bold">Confirm Logout</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Confirm Logout</DialogTitle>
             <DialogDescription className="text-muted-foreground pt-1 text-sm leading-relaxed">
               Are you sure you want to log out? You will need to re-authenticate to access the management portal.
             </DialogDescription>

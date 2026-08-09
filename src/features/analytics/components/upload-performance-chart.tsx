@@ -87,8 +87,8 @@ export function UploadPerformanceChart({
   return (
     <div className="border-b border-border px-6 py-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <AppIcon icon="solar:chart-square-bold" className="size-4 text-primary" />
+        <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <AppIcon icon="solar:chart-square-bold" className="size-4 text-primary-ink" />
           Team Uploads · Last {rows.length} {rows.length === 1 ? "day" : "days"}
         </h3>
         <span className="text-xs font-medium text-muted-foreground tabular-nums">

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AppIcon } from "@/components/shared/app-icon";
+import { MetaLabel } from "@/components/shared/meta-label";
 import {
   ItemScopePicker,
   ScopeModeToggle,
@@ -195,9 +196,9 @@ export function MarkupRuleFormDialog({
           <DialogTitle className="text-xl font-semibold tracking-tight">
             {isEditing ? "Edit Markup Rule" : "New Markup Rule"}
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             Product, category &amp; brand pricing
-          </p>
+          </MetaLabel>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -392,7 +393,7 @@ export function MarkupRuleFormDialog({
                           <span className="text-muted-foreground line-through mr-1.5">
                             {formatPrice(v.currentPrice)}
                           </span>
-                          <span className="font-bold text-foreground">
+                          <span className="font-semibold text-foreground">
                             {formatPrice(v.projectedPrice)}
                           </span>
                         </span>
@@ -423,7 +424,7 @@ export function MarkupRuleFormDialog({
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
 
-          {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+          {error && <p className="text-xs font-medium text-destructive-ink">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <Button
@@ -484,14 +485,14 @@ function ModeButton({
           "block text-sm font-semibold",
           active
             ? discount
-              ? "text-destructive"
-              : "text-primary"
+              ? "text-destructive-ink"
+              : "text-primary-ink"
             : "text-foreground",
         )}
       >
         {label}
       </span>
-      <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="block text-xs font-medium text-muted-foreground">
         {hint}
       </span>
     </button>
@@ -507,7 +508,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+      <Label className="text-xs font-semibold text-muted-foreground ml-1">
         {label}
       </Label>
       {children}

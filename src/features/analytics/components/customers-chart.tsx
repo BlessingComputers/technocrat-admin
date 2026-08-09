@@ -17,6 +17,7 @@ import {
   humanizeLabel,
 } from "../utils/format-chart";
 import type { AnalyticsPeriod } from "../types/chart-analytics";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const chartConfig = {
   count: { label: "New customers", color: "var(--chart-3)" },
@@ -43,15 +44,15 @@ export function CustomersChart({ period }: { period: AnalyticsPeriod }) {
       title="Customers"
       subtitle={`${(data?.totalCustomers ?? 0).toLocaleString()} total`}
       icon="solar:users-group-rounded-bold"
-      iconClass="bg-info/10 text-info"
+      iconClass="bg-info/10 text-info-ink"
       headerRight={
         <div className="text-right">
-          <p className="text-2xl font-bold tracking-tight tabular-nums">
+          <p className="text-2xl font-semibold tracking-tight tabular-nums">
             +{(data?.newCustomers ?? 0).toLocaleString()}
           </p>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             New · {period.toUpperCase()}
-          </p>
+          </MetaLabel>
         </div>
       }
       href="/customers"

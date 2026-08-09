@@ -9,7 +9,7 @@ export function Path({ items }: { items: string[] }) {
     <div className="flex flex-wrap items-center gap-1.5">
       {items.map((item, i) => (
         <span key={item} className="flex items-center gap-1.5">
-          <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-[11px] font-bold text-foreground">
+          <span className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-semibold text-foreground">
             {item}
           </span>
           {i < items.length - 1 && (

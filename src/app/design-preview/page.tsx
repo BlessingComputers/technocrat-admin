@@ -70,7 +70,7 @@ function Rail({ hue, label, note }: { hue: string; label: string; note?: string 
       <div className="flex items-baseline gap-2 px-1">
         <span className="text-sm font-semibold text-neutral-800">{label}</span>
         {note && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
             {note}
           </span>
         )}
@@ -94,7 +94,7 @@ function Rail({ hue, label, note }: { hue: string; label: string; note?: string 
 
         {GROUPS.map((group) => (
           <div key={group.label} className="py-2">
-            <div className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            <div className="mb-1 px-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
               {group.label}
             </div>
             <div className="flex flex-col gap-1">
@@ -130,7 +130,7 @@ function Rail({ hue, label, note }: { hue: string; label: string; note?: string 
 export default function DesignPreviewPage() {
   return (
     <main className="min-h-screen bg-neutral-100 p-10">
-      <h1 className="mb-1 text-2xl font-bold text-neutral-900">Sidebar tint</h1>
+      <h1 className="mb-1 text-2xl font-semibold text-neutral-900">Sidebar tint</h1>
       <p className="mb-8 text-sm text-neutral-500">
         Same rail, three values of <code>--tint-hue</code>. Active item + dot stay
         maroon (primary) in all three. Pick one.

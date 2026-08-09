@@ -142,9 +142,9 @@ export function BulkImagesSection({
           icon={isConverting ? "solar:refresh-linear" : "solar:gallery-add-linear"}
           className={cn(
             "size-7",
-            isConverting && "animate-spin text-primary",
+            isConverting && "animate-spin text-primary-ink",
             !isConverting &&
-              (isDragging ? "text-primary" : "text-muted-foreground/50"),
+              (isDragging ? "text-primary-ink" : "text-muted-foreground/50"),
           )}
         />
         <p className="text-xs font-medium text-foreground">
@@ -215,7 +215,7 @@ export function BulkImagesSection({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 shrink-0 text-muted-foreground hover:text-primary"
+                className="size-7 shrink-0 text-muted-foreground hover:text-primary-ink"
                 title="Set as primary"
                 onClick={() => setPrimary(img.id)}
                 disabled={img.isPrimary}
@@ -228,7 +228,7 @@ export function BulkImagesSection({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                className="size-7 shrink-0 text-muted-foreground hover:text-destructive-ink hover:bg-destructive/10"
                 title="Remove image"
                 onClick={() => removeImage(img.id)}
               >

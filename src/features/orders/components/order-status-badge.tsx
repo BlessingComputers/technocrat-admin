@@ -19,7 +19,7 @@ export function OrderStatusBadge({ status, variant }: OrderStatusBadgeProps) {
     status?.replace(/_/g, " ") || (variant === "order" ? "UNKNOWN" : "PENDING");
 
   return (
-    <Badge variant={tone} className="uppercase tracking-wide">
+    <Badge variant={tone}>
       {label}
     </Badge>
   );

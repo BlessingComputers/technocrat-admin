@@ -35,9 +35,9 @@ export function PaymentReconcileCard({
   const tone = reconcileOutcomeTone(payment.lastReconcileOutcome);
 
   return (
-    <Card className="p-6 border bg-card space-y-4">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:radar-2-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-4">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:radar-2-linear" className="w-4 h-4 text-primary-ink" />
         Reconciliation Sweep
       </h3>
 
@@ -47,7 +47,7 @@ export function PaymentReconcileCard({
           {new Date(payment.lastReconcileAt).toLocaleString(undefined, DATE_OPTS)}
         </span>
         {payment.lastReconcileOutcome && (
-          <Badge variant={tone} className="uppercase tracking-wide">
+          <Badge variant={tone}>
             {payment.lastReconcileOutcome.replace(/_/g, " ")}
           </Badge>
         )}
@@ -60,7 +60,7 @@ export function PaymentReconcileCard({
       </p>
 
       {payment.lastReconcileError && (
-        <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive font-mono">
+        <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive-ink font-mono">
           {payment.lastReconcileError}
         </div>
       )}

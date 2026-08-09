@@ -15,7 +15,7 @@ export default function PartsBrowseLoading() {
       />
       <SkeletonStatCards count={4} />
       <SkeletonFilterBar />
-      <Card className="gap-0 overflow-hidden border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <PartsTableSkeleton />
       </Card>
     </div>

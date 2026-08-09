@@ -37,7 +37,7 @@ export function DocHero({
   const content = (
     <div className={cn("relative", aside ? "max-w-2xl" : "max-w-3xl")}>
       {eyebrow && <Eyebrow className="mb-4">{eyebrow}</Eyebrow>}
-      <h1 className="text-pretty text-3xl font-black leading-[1.05] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+      <h1 className="text-pretty text-3xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
         {title}
       </h1>
       {lead && (
@@ -61,7 +61,7 @@ export function DocHero({
         <AppIcon
           icon={bgIcon}
           aria-hidden
-          className="pointer-events-none absolute -bottom-10 -right-8 size-72 text-primary/[0.06]"
+          className="pointer-events-none absolute -bottom-10 -right-8 size-72 text-primary-ink/[0.06]"
         />
       )}
 

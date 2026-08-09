@@ -36,7 +36,7 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         <div className="flex flex-col gap-0.5">
           <Link
             href={href}
-            className="w-fit rounded-sm text-sm font-semibold tabular-nums text-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="w-fit rounded-sm text-sm font-semibold tabular-nums text-foreground outline-none hover:text-primary-ink focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             {order.reference}
           </Link>
@@ -96,7 +96,7 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
               {order.firstItemName}
             </p>
             {order.itemCount > 1 && (
-              <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+              <span className="text-xs bg-primary/10 text-primary-ink px-1.5 py-0.5 rounded font-medium">
                 +{order.itemCount - 1} more
               </span>
             )}
@@ -148,7 +148,7 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         <Button
           asChild
           variant="ghost"
-          className="rounded-md h-10 w-10 p-0 text-muted-foreground hover:text-primary hover:bg-primary/5"
+          className="rounded-md h-10 w-10 p-0 text-muted-foreground hover:text-primary-ink hover:bg-primary/5"
         >
           <Link href={href} aria-label={`View order ${order.reference}`}>
             <AppIcon icon="solar:eye-linear" className="w-4 h-4" />

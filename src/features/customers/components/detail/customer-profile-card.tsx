@@ -3,21 +3,27 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { LoyaltyTierBadge } from "../loyalty-tier-badge";
 import { fullName, initials, formatDate } from "../../utils/customer-utils";
 import type { CustomerDetail } from "../../types/customers";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface CustomerProfileCardProps {
   customer: CustomerDetail;
 }
 
 export function CustomerProfileCard({ customer }: CustomerProfileCardProps) {
+  // Inverted panel: `bg-foreground` flips with the theme, so it is near-black in
+  // light mode and near-WHITE in dark. No hue role survives that — `-ink` and the
+  // raw token are both light in dark mode (measured 1.8-2.6:1 on this panel, both
+  // apps, both themes). Text here uses the background family only; the accent
+  // survives as a tint fill, never as text. Do not "restore" -ink here.
   return (
-    <Card className="p-8 border bg-foreground text-background">
+    <Card className="p-8 bg-foreground text-background">
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-14 h-14 rounded-full bg-primary/20 text-primary flex items-center justify-center text-lg font-black shrink-0">
+        <div className="w-14 h-14 rounded-full bg-primary/20 text-background flex items-center justify-center text-lg font-semibold shrink-0">
           {initials(customer)}
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-black truncate">{fullName(customer)}</p>
-          <p className="text-xs font-mono text-primary font-bold truncate">
+          <p className="text-lg font-semibold truncate">{fullName(customer)}</p>
+          <p className="text-xs font-mono text-background/90 font-semibold truncate">
             {customer.customerId}
           </p>
         </div>
@@ -30,7 +36,7 @@ export function CustomerProfileCard({ customer }: CustomerProfileCardProps) {
           {customer.isEmailVerified && (
             <AppIcon
               icon="solar:verified-check-bold"
-              className="w-3.5 h-3.5 text-success shrink-0"
+              className="w-3.5 h-3.5 text-background/80 shrink-0"
             />
           )}
         </div>
@@ -41,7 +47,7 @@ export function CustomerProfileCard({ customer }: CustomerProfileCardProps) {
             {customer.isPhoneVerified && (
               <AppIcon
                 icon="solar:verified-check-bold"
-                className="w-3.5 h-3.5 text-success shrink-0"
+                className="w-3.5 h-3.5 text-background/80 shrink-0"
               />
             )}
           </div>
@@ -50,33 +56,33 @@ export function CustomerProfileCard({ customer }: CustomerProfileCardProps) {
 
       <div className="mt-8 pt-6 border-t border-background/10 space-y-4">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase tracking-widest text-background/40">
+          <MetaLabel tone="inverted">
             Loyalty Tier
-          </span>
+          </MetaLabel>
           <LoyaltyTierBadge tier={customer.loyaltyTier} />
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase tracking-widest text-background/40">
+          <MetaLabel tone="inverted">
             Loyalty Points
-          </span>
-          <span className="text-sm font-black">
+          </MetaLabel>
+          <span className="text-sm font-semibold">
             {customer.loyaltyPoints ?? 0}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase tracking-widest text-background/40">
+          <MetaLabel tone="inverted">
             Joined
-          </span>
-          <span className="text-sm font-bold">
+          </MetaLabel>
+          <span className="text-sm font-semibold">
             {formatDate(customer.createdAt)}
           </span>
         </div>
         {customer.lastLoginAt && (
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-background/40">
+            <MetaLabel tone="inverted">
               Last Login
-            </span>
-            <span className="text-sm font-bold">
+            </MetaLabel>
+            <span className="text-sm font-semibold">
               {formatDate(customer.lastLoginAt)}
             </span>
           </div>

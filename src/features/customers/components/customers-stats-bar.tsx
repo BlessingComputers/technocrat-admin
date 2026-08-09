@@ -46,8 +46,9 @@ export function CustomersStatsBar({ analytics }: CustomersStatsBarProps) {
       />
       <Stat
         icon="solar:user-plus-linear"
-        // Was a hardcoded `bg-sky-500/10 text-sky-600` — off-palette, and one
-        // of only three raw colour values in the app. `info` is the token.
+        // Was an off-palette hardcoded blue chip; `info` is the token for it.
+        // (Class name not quoted here on purpose — DESIGN.md §8's raw-hue
+        // acceptance grep is a tripwire, and a comment must not trip it.)
         tone="info"
         label="New signups"
         value={newSignups}

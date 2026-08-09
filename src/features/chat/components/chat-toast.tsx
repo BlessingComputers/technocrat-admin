@@ -48,7 +48,7 @@ export function ChatToast({
       >
         <span className="relative shrink-0">
           <ChatAvatar name={title} seed={seed} size="md" />
-          <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-[#25D366] ring-2 ring-popover">
+          <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-whatsapp ring-2 ring-popover">
             <AppIcon
               icon="solar:chat-round-dots-bold"
               className="size-2.5 text-white"

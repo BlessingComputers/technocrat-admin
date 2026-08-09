@@ -71,7 +71,7 @@ export function ThreadHeader({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h2 className="min-w-0 truncate font-heading text-base font-bold text-foreground">
+          <h2 className="min-w-0 truncate font-heading text-base font-semibold text-foreground">
             {conversationTitle(conversation)}
           </h2>
           <span
@@ -101,7 +101,7 @@ export function ThreadHeader({
               <span
                 className={cn(
                   "inline-flex items-center gap-1",
-                  !replyWindow.isOpen && "text-destructive",
+                  !replyWindow.isOpen && "text-destructive-ink",
                 )}
               >
                 <AppIcon icon="solar:hourglass-linear" className="size-3.5" />

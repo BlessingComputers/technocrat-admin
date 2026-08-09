@@ -35,12 +35,12 @@ export function BulkProgress({
       ? Math.round((imageProgress.completed / imageProgress.total) * 100)
       : 0;
     return (
-      <Card className="border border-primary/30 bg-primary/2">
+      <Card className="border-primary/30 bg-primary/2">
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-3">
             <AppIcon
               icon="solar:refresh-linear"
-              className="size-5 animate-spin text-primary"
+              className="size-5 animate-spin text-primary-ink"
             />
             <div>
               <p className="text-sm font-semibold text-foreground">
@@ -85,13 +85,13 @@ export function BulkProgress({
   const results = batch.results ?? [];
 
   return (
-    <Card className="border">
+    <Card>
       <CardContent className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Upload Progress</h3>
           <Badge
             variant={STATUS_VARIANT[batch.status] ?? "muted"}
-            className="text-xs uppercase tracking-wide font-semibold"
+            className="text-xs font-semibold"
           >
             {batch.status}
           </Badge>
@@ -130,14 +130,14 @@ export function BulkProgress({
                   }
                   className={cn(
                     "size-4 shrink-0",
-                    r.success ? "text-success" : "text-destructive",
+                    r.success ? "text-success-ink" : "text-destructive-ink",
                   )}
                 />
-                <span className="font-bold text-foreground truncate flex-1">
+                <span className="font-semibold text-foreground truncate flex-1">
                   {r.productName || `Row ${r.row}`}
                 </span>
                 {!r.success && r.error && (
-                  <span className="text-destructive truncate max-w-[50%]">
+                  <span className="text-destructive-ink truncate max-w-[50%]">
                     {humanizeBulkRowError(r.error)}
                   </span>
                 )}

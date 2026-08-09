@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils/cn";
  *  original two; `jewel`/`navy` extend the palette for newer guides.
  *  `jewel` is decorative only — never use it to signal state. */
 const TILE_TONE = {
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/15 text-success",
-  jewel: "bg-jewel/15 text-jewel",
-  navy: "bg-secondary/10 text-secondary",
+  primary: "bg-primary/10 text-primary-ink",
+  success: "bg-success/15 text-success-ink",
+  jewel: "bg-jewel/15 text-jewel-ink",
+  navy: "bg-secondary/10 text-secondary-ink",
 } as const;
 
 /**
@@ -28,7 +28,7 @@ export function Tile({
   tone?: keyof typeof TILE_TONE;
 }) {
   return (
-    <Card className="border p-5">
+    <Card className="p-5">
       <div
         className={cn(
           "mb-3 flex size-10 items-center justify-center rounded-lg",
@@ -37,7 +37,7 @@ export function Tile({
       >
         <AppIcon icon={icon} className="size-5" />
       </div>
-      <h3 className="text-sm font-black text-foreground">{title}</h3>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{body}</p>
     </Card>
   );

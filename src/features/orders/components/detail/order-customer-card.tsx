@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { OrderCustomerInfo } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderCustomerCardProps {
   customer: OrderCustomerInfo;
@@ -18,10 +19,15 @@ export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
   const name = customer.name?.trim();
   const hasContact = Boolean(customer.email || customer.phone);
 
+  // Inverted panel: `bg-foreground` flips with the theme, so it is near-black in
+  // light mode and near-WHITE in dark. No hue role survives that — `-ink` and the
+  // raw token are both light in dark mode (measured 1.8-2.6:1 on this panel, both
+  // apps, both themes). Text here uses the background family only; the accent
+  // survives as a tint fill, never as text. Do not "restore" -ink here.
   return (
-    <Card className="p-6 border bg-foreground text-background">
-      <h3 className="text-sm font-black uppercase tracking-widest mb-5 flex items-center gap-2 text-background/70">
-        <AppIcon icon="solar:user-rounded-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 bg-foreground text-background">
+      <h3 className="text-base font-semibold mb-5 flex items-center gap-2 text-background">
+        <AppIcon icon="solar:user-rounded-linear" className="w-4 h-4 text-background/80" />
         Customer
       </h3>
 
@@ -29,9 +35,9 @@ export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
         <div>
           {name ? (
             <>
-              <p className="text-lg font-black leading-tight">{name}</p>
+              <p className="text-lg font-semibold leading-tight">{name}</p>
               {customer.customerId && (
-                <p className="text-xs font-mono text-primary/90 font-bold mt-1">
+                <p className="text-xs font-mono text-background/90 font-semibold mt-1">
                   {customer.customerId}
                 </p>
               )}
@@ -40,15 +46,15 @@ export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
             // Gateway orders carry only an id — make it the hero rather than
             // showing an empty "unnamed" line.
             <>
-              <p className="text-[10px] font-black uppercase tracking-widest text-background/40">
+              <MetaLabel tone="inverted" className="block">
                 Customer ID
-              </p>
-              <p className="text-base font-mono font-black text-primary/90 leading-tight mt-1 break-all">
+              </MetaLabel>
+              <p className="text-base font-mono font-semibold text-background/90 leading-tight mt-1 break-all">
                 {customer.customerId}
               </p>
             </>
           ) : (
-            <p className="text-lg font-black leading-tight text-background/60">
+            <p className="text-lg font-semibold leading-tight text-background/60">
               Unknown customer
             </p>
           )}

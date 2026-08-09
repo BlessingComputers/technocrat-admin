@@ -47,7 +47,7 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
           <div className="min-w-0">
             <Link
               href={`/users/uploads/${staff.id}`}
-              className="block truncate text-sm font-semibold hover:text-primary hover:underline"
+              className="block truncate text-sm font-semibold hover:text-primary-ink hover:underline"
             >
               {staff.name}
             </Link>
@@ -65,13 +65,13 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
           isCustom={targetIsCustom}
         />
       </TableCell>
-      <TableCell className="text-right font-bold tabular-nums">
+      <TableCell className="text-right font-semibold tabular-nums">
         {totals.products}
       </TableCell>
-      <TableCell className="text-right font-bold tabular-nums">
+      <TableCell className="text-right font-semibold tabular-nums">
         {totals.parts}
       </TableCell>
-      <TableCell className="text-right font-bold tabular-nums">
+      <TableCell className="text-right font-semibold tabular-nums">
         {totals.total}
       </TableCell>
       <TableCell className="pr-6 text-right font-medium tabular-nums text-muted-foreground">

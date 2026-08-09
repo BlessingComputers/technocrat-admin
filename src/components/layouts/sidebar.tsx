@@ -215,7 +215,7 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
             <ConditionalDropdownTrigger asTrigger={railCollapsed}>
               <Avatar className="size-9 shrink-0 rounded-full border border-sidebar-border">
                 <AvatarImage src={staffSession?.avatarUrl || undefined} />
-                <AvatarFallback className="rounded-full bg-primary/10 text-xs font-semibold uppercase text-primary">
+                <AvatarFallback className="rounded-full bg-primary/10 text-xs font-semibold uppercase text-primary-ink">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -226,7 +226,7 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
                 {superAdmin && (
                   <AppIcon
                     icon="solar:shield-user-bold"
-                    className="size-3.5 shrink-0 text-primary"
+                    className="size-3.5 shrink-0 text-primary-ink"
                     aria-label="Super admin"
                   />
                 )}
@@ -278,7 +278,7 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="cursor-pointer gap-2 py-2.5 text-destructive focus:bg-destructive/10 focus:text-destructive"
+                className="cursor-pointer gap-2 py-2.5 text-destructive-ink focus:bg-destructive/10 focus:text-destructive-ink"
                 disabled={isLoggingOut}
                 onClick={() => setIsLogoutModalOpen(true)}
               >

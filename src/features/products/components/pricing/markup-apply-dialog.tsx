@@ -13,12 +13,14 @@ import { ApiError } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { formatPrice } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { metaLabelVariants } from "@/components/shared/meta-label";
 import {
   useApplyMarkupRule,
   usePreviewMarkupRule,
 } from "../../api/pricing.queries";
 import type { MarkupRule } from "../../types/pricing";
 import { ruleScopeLabel } from "./markup-rule-utils";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface MarkupApplyDialogProps {
   /** The rule to preview/apply. Null keeps the dialog closed. */
@@ -85,9 +87,9 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
           <DialogTitle className="text-xl font-semibold tracking-tight">
             Apply Markup Rule
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             {rule ? ruleScopeLabel(rule) : ""}
-          </p>
+          </MetaLabel>
         </div>
 
         <div className="p-6 space-y-4">
@@ -96,9 +98,9 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <AppIcon
                 icon="solar:refresh-linear"
-                className="size-7 animate-spin text-primary"
+                className="size-7 animate-spin text-primary-ink"
               />
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 Calculating projected prices…
               </p>
             </div>
@@ -135,11 +137,11 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
               <div className="max-h-[320px] overflow-y-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-muted/60 backdrop-blur">
-                    <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="text-left font-semibold px-3 py-2">Variant</th>
-                      <th className="text-right font-semibold px-3 py-2">Current</th>
-                      <th className="text-right font-semibold px-3 py-2">Projected</th>
-                      <th className="text-right font-semibold px-3 py-2 pr-4">Margin</th>
+                    <tr className="text-xs text-muted-foreground">
+                      <th className={cn(metaLabelVariants(), "text-left px-3 py-2")}>Variant</th>
+                      <th className={cn(metaLabelVariants(), "text-right px-3 py-2")}>Current</th>
+                      <th className={cn(metaLabelVariants(), "text-right px-3 py-2")}>Projected</th>
+                      <th className={cn(metaLabelVariants(), "text-right px-3 py-2 pr-4")}>Margin</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -151,7 +153,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
                           className="border-t border-border/50"
                         >
                           <td className="px-3 py-2">
-                            <p className="font-bold text-foreground leading-tight line-clamp-1">
+                            <p className="font-semibold text-foreground leading-tight line-clamp-1">
                               {v.productName}
                             </p>
                             <p className="text-xs text-muted-foreground font-mono">
@@ -163,8 +165,8 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
                           </td>
                           <td
                             className={cn(
-                              "px-3 py-2 text-right font-mono tabular-nums font-bold",
-                              up ? "text-success" : "text-destructive",
+                              "px-3 py-2 text-right font-mono tabular-nums font-semibold",
+                              up ? "text-success-ink" : "text-destructive-ink",
                             )}
                           >
                             {formatPrice(v.projectedPrice)}
@@ -222,9 +224,9 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2.5 py-1">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+      <MetaLabel>
         {label}
-      </span>
+      </MetaLabel>
       <span className="font-semibold text-foreground tabular-nums">{value}</span>
     </span>
   );
@@ -247,7 +249,7 @@ function EmptyState({
         className={cn(
           "size-14 rounded-full flex items-center justify-center",
           destructive
-            ? "bg-destructive/10 text-destructive"
+            ? "bg-destructive/10 text-destructive-ink"
             : "bg-muted text-muted-foreground",
         )}
       >

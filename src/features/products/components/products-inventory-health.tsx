@@ -11,6 +11,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { ProductStats } from "../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const chartConfig = {
   healthy: { label: "Healthy", color: "var(--success)" },
@@ -38,13 +39,13 @@ export function ProductsInventoryHealth({ stats }: { stats: ProductStats }) {
   const healthyPct = stats.total > 0 ? Math.round((healthy / stats.total) * 100) : 0;
 
   return (
-    <Card className="flex h-full flex-col gap-5 border bg-card p-6">
+    <Card className="flex h-full flex-col gap-5 p-6">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success-ink">
           <AppIcon icon="solar:chart-2-bold" className="size-5" />
         </span>
         <div className="space-y-0.5">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+          <h3 className="text-base font-semibold text-foreground">
             Inventory Health
           </h3>
           <p className="text-xs text-muted-foreground">
@@ -85,12 +86,12 @@ export function ProductsInventoryHealth({ stats }: { stats: ProductStats }) {
               </PieChart>
             </ChartContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+              <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
                 {healthyPct}%
               </span>
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <MetaLabel>
                 Healthy
-              </span>
+              </MetaLabel>
             </div>
           </div>
 

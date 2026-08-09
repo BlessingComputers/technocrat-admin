@@ -28,10 +28,10 @@ export function FeaturePlaceholder({
     <div>
       <PageHeader title={title} description={description} />
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-20 text-center">
-        <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary-ink">
           <AppIcon icon={icon} className="size-7" />
         </div>
-        <h2 className="font-heading text-lg font-bold text-foreground">
+        <h2 className="font-heading text-lg font-semibold text-foreground">
           Coming soon
         </h2>
         <p className="mt-1.5 max-w-md text-sm text-muted-foreground">{note}</p>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { metaLabelVariants } from "@/components/shared/meta-label";
 import { cn } from "@/lib/utils/cn";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
@@ -77,7 +78,10 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 px-3 text-left align-middle text-xs font-semibold whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // A column head IS the Label role — 12/500/0.01em — so it takes the
+        // primitive's classes rather than a hand-spelled near-copy.
+        metaLabelVariants(),
+        "h-11 px-3 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
       )}
       {...props}

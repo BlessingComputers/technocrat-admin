@@ -63,7 +63,7 @@ export function BulkSelectionBar({
           size="sm"
           onClick={onDelete}
           disabled={disabled}
-          className="h-9 rounded-md border-destructive/30 font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="h-9 rounded-md border-destructive/30 font-medium text-destructive-ink hover:bg-destructive/10 hover:text-destructive-ink"
         >
           <AppIcon icon="solar:trash-bin-trash-linear" className="mr-1.5 size-4" />
           Delete

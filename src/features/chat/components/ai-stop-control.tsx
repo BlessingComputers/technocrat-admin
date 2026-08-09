@@ -54,7 +54,7 @@ export function AiStopControl({
       disabled={isPending}
       aria-label="Stop AI on this conversation"
       title="Stop AI on this conversation"
-      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:opacity-50"
+      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive-ink disabled:opacity-50"
     >
       <AppIcon icon="solar:stop-circle-linear" className="size-5" />
     </button>

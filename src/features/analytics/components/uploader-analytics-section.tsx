@@ -12,6 +12,7 @@ import { UploaderAnalyticsEmpty } from "./uploader-analytics-empty";
 import { SetTargetDialog } from "./set-target-dialog";
 import type { AppliedDateRange } from "../types/analytics";
 import type { UploaderSummary } from "../types/upload-analytics";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface UploaderAnalyticsSectionProps {
   period: string;
@@ -35,13 +36,13 @@ export function UploaderAnalyticsSection({
   const [editing, setEditing] = useState<UploaderSummary | null>(null);
 
   return (
-    <Card className="overflow-hidden border bg-card">
+    <Card className="overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/5 px-6 py-4">
         <div className="space-y-0.5">
           <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
             <AppIcon
               icon="solar:cloud-upload-bold"
-              className="size-4.5 text-primary"
+              className="size-4.5 text-primary-ink"
             />
             Upload Performance
           </h2>
@@ -50,9 +51,9 @@ export function UploaderAnalyticsSection({
           </p>
         </div>
         {data && (
-          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="shrink-0">
             {data.period.start} — {data.period.end}
-          </span>
+          </MetaLabel>
         )}
       </div>
       {data && data.uploaders.length > 0 && (

@@ -70,7 +70,7 @@ export function ProductsStatsBar({
       </StatsBar>
 
       {stats.needsRestock > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm text-warning-ink">
           <AppIcon
             icon="solar:danger-circle-linear"
             className="size-4 shrink-0"
@@ -80,7 +80,7 @@ export function ProductsStatsBar({
             stock.{" "}
             <Link
               href={lowStockHref}
-              className="font-medium underline underline-offset-2 hover:text-warning/80"
+              className="font-medium underline underline-offset-2 hover:text-warning-ink/80"
             >
               View affected
             </Link>

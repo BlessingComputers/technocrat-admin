@@ -94,22 +94,22 @@ export function BulkPartCard({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex flex-1 items-center gap-2">
           {isValid ? (
-            <AppIcon icon="solar:check-circle-bold" className="size-4 shrink-0 text-success" />
+            <AppIcon icon="solar:check-circle-bold" className="size-4 shrink-0 text-success-ink" />
           ) : (
-            <AppIcon icon="solar:danger-triangle-linear" className="size-4 shrink-0 text-warning" />
+            <AppIcon icon="solar:danger-triangle-linear" className="size-4 shrink-0 text-warning-ink" />
           )}
           <Input
             value={row.name}
             onChange={(e) => set({ name: e.target.value })}
             placeholder="Part name"
-            className="h-9 flex-1 font-bold"
+            className="h-9 flex-1 font-semibold"
           />
         </div>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive-ink"
           onClick={() => onRemove(row.id)}
         >
           <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />
@@ -235,7 +235,7 @@ export function BulkPartCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.preview} alt="" className="h-full w-full object-cover" />
               {img.isPrimary && (
-                <span className="absolute inset-x-0 bottom-0 bg-primary/80 text-center text-xs font-semibold uppercase tracking-wide text-primary-foreground">
+                <span className="absolute inset-x-0 bottom-0 bg-primary/80 text-center text-xs font-semibold text-primary-foreground">
                   Main
                 </span>
               )}
@@ -244,7 +244,7 @@ export function BulkPartCard({
                   <button
                     type="button"
                     onClick={() => setPrimaryImage(img.id)}
-                    className="text-warning"
+                    className="text-warning-ink"
                     title="Set primary"
                   >
                     <AppIcon icon="solar:star-bold" className="size-3" />
@@ -253,7 +253,7 @@ export function BulkPartCard({
                 <button
                   type="button"
                   onClick={() => removeImage(img.id)}
-                  className="text-destructive"
+                  className="text-destructive-ink"
                   title="Remove"
                 >
                   <AppIcon icon="solar:close-circle-bold" className="size-3" />

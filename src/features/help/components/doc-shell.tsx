@@ -25,7 +25,7 @@ export function DocShell({
     <div className="mx-auto max-w-6xl space-y-8 pb-16">
       <Link
         href="/help"
-        className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary motion-reduce:transition-none"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink motion-reduce:transition-none"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Help Center
@@ -35,26 +35,26 @@ export function DocShell({
       <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-8">
         <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" />
         <div className="relative flex items-start gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary-ink">
             <AppIcon icon={doc.icon} className="size-7" />
           </div>
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Badge variant="muted" className="text-[10px] uppercase tracking-widest">
+              <Badge variant="muted" className="text-xs">
                 {category.label}
               </Badge>
-              <Badge variant="outline" className="text-[10px] uppercase tracking-widest">
+              <Badge variant="outline" className="text-xs">
                 {HELP_TYPE_LABEL[doc.type]}
               </Badge>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {doc.title}
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               {doc.description}
             </p>
             {doc.updated && (
-              <p className="mt-3 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <p className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <AppIcon icon="solar:clock-circle-linear" aria-hidden className="size-3" />
                 Updated {formatUpdated(doc.updated)}
               </p>
@@ -66,12 +66,12 @@ export function DocShell({
       <article className="space-y-10">{children}</article>
 
       <div className="rounded-xl border border-border bg-muted/20 p-5 text-center">
-        <p className="text-sm font-bold text-foreground">{HELP_SUPPORT.title}</p>
+        <p className="text-sm font-semibold text-foreground">{HELP_SUPPORT.title}</p>
         <p className="mt-1 text-xs text-muted-foreground">{HELP_SUPPORT.body}</p>
         {HELP_SUPPORT.href && HELP_SUPPORT.cta && (
           <Link
             href={HELP_SUPPORT.href}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-primary transition-colors hover:underline motion-reduce:transition-none"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary-ink transition-colors hover:underline motion-reduce:transition-none"
           >
             <AppIcon icon="solar:chat-round-linear" className="size-4" />
             {HELP_SUPPORT.cta}

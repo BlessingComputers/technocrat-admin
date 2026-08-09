@@ -29,7 +29,7 @@ export function StaffInventoryHealthChart({
       title="Inventory"
       subtitle={`${(inventory.activeVariants ?? 0).toLocaleString()} active variants`}
       icon="solar:box-minimalistic-bold"
-      iconClass="bg-success/15 text-success"
+      iconClass="bg-success/15 text-success-ink"
       href="/inventories"
       linkLabel="Manage inventory"
       centerValue={total}

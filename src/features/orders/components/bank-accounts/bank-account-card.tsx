@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
 import type { AdminBankAccount } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface BankAccountCardProps {
   account: AdminBankAccount;
@@ -29,7 +30,7 @@ export function BankAccountCard({
         "p-8 border-2 transition-all relative overflow-hidden group",
         account.isPrimary
           ? "border-primary bg-primary/[0.03]"
-          : "bg-card",
+          : "",
       )}
     >
       {account.isPrimary && <PrimaryBadge />}
@@ -45,20 +46,20 @@ export function BankAccountCard({
       </div>
 
       <div className="space-y-1">
-        <h3 className="font-black text-foreground text-xl truncate">
+        <h3 className="font-semibold text-foreground text-xl truncate">
           {account.bankName}
         </h3>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+        <MetaLabel className="block">
           {account.accountName}
-        </p>
+        </MetaLabel>
       </div>
 
       <div className="mt-6 pt-6 border-t border-border flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
+          <MetaLabel className="block mb-1">
             Account Number
-          </p>
-          <p className="font-black text-foreground text-lg tracking-tighter">
+          </MetaLabel>
+          <p className="font-semibold text-foreground text-lg tracking-tighter">
             {account.accountNumber}
           </p>
         </div>
@@ -67,7 +68,7 @@ export function BankAccountCard({
             variant="ghost"
             size="sm"
             onClick={() => onMakePrimary(account)}
-            className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5"
+            className="text-xs font-medium text-primary-ink hover:bg-primary/5"
           >
             Make Primary
           </Button>
@@ -79,7 +80,7 @@ export function BankAccountCard({
 
 function PrimaryBadge() {
   return (
-    <div className="absolute top-0 right-0 px-6 py-2 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest rounded-bl-3xl">
+    <div className="absolute top-0 right-0 px-6 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-bl-3xl">
       Primary
     </div>
   );
@@ -117,7 +118,7 @@ function BankAccountCardActions({
         variant="ghost"
         size="icon"
         onClick={() => onEdit(account)}
-        className="rounded-lg hover:bg-muted hover:text-primary"
+        className="rounded-lg hover:bg-muted hover:text-primary-ink"
       >
         <AppIcon icon="solar:pen-2-linear" className="w-4 h-4" />
       </Button>
@@ -128,7 +129,7 @@ function BankAccountCardActions({
         className={cn(
           "rounded-lg",
           account.isActive
-            ? "text-success hover:text-success/80"
+            ? "text-success-ink hover:text-success-ink/80"
             : "text-muted-foreground/60 hover:text-muted-foreground",
         )}
       >
@@ -138,7 +139,7 @@ function BankAccountCardActions({
         variant="ghost"
         size="icon"
         onClick={() => onDelete(account)}
-        className="rounded-lg text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+        className="rounded-lg text-destructive-ink hover:text-destructive-ink/80 hover:bg-destructive/10"
       >
         <AppIcon icon="solar:trash-bin-trash-linear" className="w-4 h-4" />
       </Button>

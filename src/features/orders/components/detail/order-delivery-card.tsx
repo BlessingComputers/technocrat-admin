@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { OrderAddress } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderDeliveryCardProps {
   deliveryMethod: string;
@@ -28,9 +29,9 @@ export function OrderDeliveryCard({
   const icon = isDispatch ? "solar:delivery-linear" : "solar:shop-linear";
 
   return (
-    <Card className="p-6 border bg-card">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-        <AppIcon icon={icon} className="w-4 h-4 text-primary" />
+    <Card className="p-6">
+      <h3 className="text-base font-semibold text-foreground mb-5 flex items-center gap-2">
+        <AppIcon icon={icon} className="w-4 h-4 text-primary-ink" />
         Delivery
       </h3>
 
@@ -40,10 +41,10 @@ export function OrderDeliveryCard({
             <AppIcon icon={icon} className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <MetaLabel className="block">
               Method
-            </p>
-            <p className="text-sm font-bold text-foreground">
+            </MetaLabel>
+            <p className="text-sm font-semibold text-foreground">
               {isDispatch ? "Home Delivery" : "Store Pick-up"}
             </p>
           </div>
@@ -51,10 +52,10 @@ export function OrderDeliveryCard({
 
         {isDispatch && shippingAddress && (
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <MetaLabel className="flex items-center gap-2">
               <AppIcon icon="solar:map-point-linear" className="w-3 h-3" />
               Shipping Address
-            </p>
+            </MetaLabel>
             <p className="text-sm text-muted-foreground font-medium leading-relaxed">
               {[
                 shippingAddress.street ?? shippingAddress.addressLine1,
@@ -70,11 +71,11 @@ export function OrderDeliveryCard({
 
         {(riderName || riderPhone) && (
           <div className="space-y-2 pt-4 border-t border-border">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <MetaLabel className="flex items-center gap-2">
               <AppIcon icon="solar:scooter-linear" className="w-3 h-3" />
               Rider
-            </p>
-            <p className="text-sm font-bold text-foreground">{riderName}</p>
+            </MetaLabel>
+            <p className="text-sm font-semibold text-foreground">{riderName}</p>
             {riderPhone && (
               <p className="text-xs text-muted-foreground font-medium">
                 {riderPhone}
@@ -85,10 +86,10 @@ export function OrderDeliveryCard({
 
         {notes && (
           <div className="pt-4 border-t border-border">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <MetaLabel className="mb-2 flex items-center gap-2">
               <AppIcon icon="solar:document-text-linear" className="w-3 h-3" />
               Notes
-            </p>
+            </MetaLabel>
             <p className="text-xs text-muted-foreground italic leading-relaxed">
               &ldquo;{notes}&rdquo;
             </p>

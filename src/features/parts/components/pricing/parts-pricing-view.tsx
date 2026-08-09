@@ -154,7 +154,7 @@ export function PartsPricingView() {
         </Button>
       </PageHeader>
 
-      <Card className="gap-0 overflow-hidden border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <MarkupRulesTable
           rules={rules}
           isLoading={isLoading}

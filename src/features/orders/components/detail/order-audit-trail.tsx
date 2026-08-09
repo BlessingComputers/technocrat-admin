@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
 import type { OrderTimelineEntry } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderAuditTrailProps {
   entries: OrderTimelineEntry[];
@@ -17,9 +18,9 @@ interface OrderAuditTrailProps {
  */
 export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
   return (
-    <Card className="p-8 sm:p-10 border bg-card">
-      <h3 className="text-xl font-black text-foreground mb-8 flex items-center gap-3">
-        <AppIcon icon="solar:clock-circle-linear" className="w-6 h-6 text-primary" />
+    <Card className="p-8 sm:p-10">
+      <h3 className="text-xl font-semibold text-foreground mb-8 flex items-center gap-3">
+        <AppIcon icon="solar:clock-circle-linear" className="w-6 h-6 text-primary-ink" />
         Audit Trail
       </h3>
 
@@ -29,7 +30,7 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
             icon="solar:history-linear"
             className="w-10 h-10 text-muted-foreground/40 mb-3"
           />
-          <p className="text-sm font-bold text-muted-foreground">
+          <p className="text-sm font-semibold text-muted-foreground">
             No history recorded yet
           </p>
           <p className="text-xs text-muted-foreground/70 mt-1">
@@ -59,12 +60,12 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
               </div>
               <div className="pt-1">
                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                  <h4 className="font-black text-foreground text-sm tracking-tight">
+                  <h4 className="font-semibold text-foreground text-sm tracking-tight">
                     {entry.status.replace(/_/g, " ")}
                   </h4>
-                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest tabular-nums">
+                  <MetaLabel className="tabular-nums">
                     {new Date(entry.createdAt).toLocaleString()}
-                  </span>
+                  </MetaLabel>
                 </div>
                 {(entry.actorName || entry.actorId) && (
                   <div className="flex items-center gap-1.5 mt-1">
@@ -72,11 +73,11 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
                       icon="solar:user-linear"
                       className="w-3 h-3 text-muted-foreground/60"
                     />
-                    <span className="text-[10px] text-muted-foreground font-bold tracking-wide">
+                    <span className="text-xs text-muted-foreground font-semibold tracking-wide">
                       {entry.actorName ?? `Staff ${entry.actorId}`}
                     </span>
                     {entry.actorName && entry.actorId && (
-                      <span className="text-[10px] text-muted-foreground/60 font-medium">
+                      <span className="text-xs text-muted-foreground/60 font-medium">
                         ({entry.actorId})
                       </span>
                     )}

@@ -9,6 +9,16 @@ colors:
   warning: "oklch(0.68 0.16 65)"
   info: "oklch(0.55 0.13 245)"
   destructive: "oklch(0.577 0.245 27.325)"
+  primary-ink: "oklch(0.455 0.183 145)"
+  secondary-ink: "oklch(0.2795 0.0296 264)"
+  jewel-ink: "oklch(0.485 0.107 275)"
+  success-ink: "oklch(0.47 0.146 149)"
+  warning-ink: "oklch(0.5 0.134 65)"
+  info-ink: "oklch(0.48 0.122 245)"
+  destructive-ink: "oklch(0.467 0.221 27.325)"
+  whatsapp: "oklch(0.76 0.17 152)"
+  whatsapp-foreground: "oklch(0.29 0.08 152)"
+  whatsapp-ink: "oklch(0.5 0.13 152)"
   canvas: "oklch(0.972 0.002 150)"
   card: "oklch(1 0 0)"
   ink: "oklch(0.145 0 0)"
@@ -231,6 +241,45 @@ carrying both meanings, form is the only thing keeping them apart.
 **The Status-Token Rule.** Status uses `success` / `warning` / `destructive` /
 `info`, always. Never hardcode an off-palette color for a state.
 
+**The `-ink` Rule (text vs surface).** Every brand and status role exists twice:
+**`-foreground`** is text ON that color as a solid surface — pinned, does **not**
+flip between themes. **`-ink`** is that color used AS text, on the page, a card, or
+a low-alpha tint — it **must** flip. The test is not which color it is, it is what
+the text sits **on**. `bg-destructive text-white` does not flip;
+`text-destructive-ink` on a form does.
+
+Every `-ink` value in the front-matter is measured against the role's own 15% tint
+over `--accent` (the hover surface — the lightest thing a chip can land on) and
+clears 4.5:1. Before they existed, every status role failed AA as text: 2.35:1 to
+4.30:1 in light, 2.81:1 to 3.37:1 in dark.
+
+⚠️ **`--success-ink` sits only 4.2 OKLab units from `--primary-ink`**, and that is
+deliberate — it is the Green-Does-Double-Duty Rule at the text layer. Status green
+only ever appears inside a **labelled chip**; primary green as text is a link or an
+emphasis. **Do not pull them apart by shifting the hue** — that reintroduces a second
+brand green, which is exactly what the one-hue system forbids. Form separates them,
+not hue.
+
+⚠️ **A third case the two-name model does not cover: the *inverting* panel.**
+`bg-foreground text-background` — the customer profile card and the order customer
+card — is near-black in light mode and near-**white** in dark. No hue role can serve
+it: `-ink` and the raw token are *both* light in dark mode, so in dark they land on a
+white panel. Measured on that panel: `primary-ink` 3.04:1 light / **1.89:1** dark, `success-ink` 3.14:1 / **1.87:1**, and raw `primary` no better at 2.22:1 dark. **On an
+inverting panel, text uses the background family only** (`text-background`, `/90`,
+`/80`); the accent survives as a **tint fill** (`bg-primary/20`), never as text. Both
+cards carry a comment. This is the mirror of the `DoDontColumn` case: pinned surface
+→ raw token; inverting surface → no hue at all.
+
+**The WhatsApp Mark — the one sanctioned third green.** `--whatsapp` is WhatsApp's
+own channel green, a third-party **mark** rather than a palette role. It is the
+single exception to the Green-Does-Double-Duty Rule above, and it earns that only
+because recolouring it destroys what it communicates. It is a **surface** only
+(2.01:1 on white): text on it is `-whatsapp-foreground`, WhatsApp-as-text is
+`-whatsapp-ink`. Its whole surface area is the WhatsApp slice and the chat popup's
+channel badge. Never reach for it as an accent, a status, or a stand-in for
+`--primary` — at h 152 against primary's h 145 it will read as a botched brand
+green, not as WhatsApp, anywhere it isn't clearly identifying the channel.
+
 **The No-Jewel-Tier Rule.** There is no gold, and amber is not decorative — it
 means "needs attention" and nothing else. When a KPI or highlight wants to
 stand out, it earns it through weight, size, or position, not a fourth color.
@@ -294,6 +343,11 @@ Carried from Blessing unchanged except where noted.
   shadow**, 24px padding. Call sites must not re-specify radius, border or
   shadow: ticket 07 stripped 91 such overrides precisely so the primitive stays
   the single place card shape is decided.
+  ⚠️ The same defect also wears a **raw div**: surface + hairline + radius
+  spelled out by hand is a card the primitive can't reach. Reach for `<Card>`.
+  Legitimate exceptions only *look* like cards — floating menus, input chrome,
+  full-height **grid** shells (`<Card>` is flex, so it cannot host
+  `lg:grid-cols-[22rem_1fr]`) and anchor tiles. Checked as 3d in §8.
 - **KPIs — `<StatsBar>` + `<Stat>`** (`components/shared/stats-bar.tsx`).
   **This is the default look for every KPI surface in the app**, not just list
   pages. A KPI row is **one ruled panel**, never N floating cards: cells butt
@@ -321,6 +375,42 @@ Carried from Blessing unchanged except where noted.
 - **Inputs** — full-opacity hairline, faint muted fill at rest, 4.8px radius,
   36px height. Focus lifts to white with a soft green ring. The crisp border is
   what makes a field read as a slot cut into the panel.
+- **Labels — `<MetaLabel>`** (`components/shared/meta-label.tsx`). The Label
+  role as a primitive: 12px / 500 / `0.01em`, sentence case. Every standalone
+  caption — a key in a key/value row, a section kicker, a KPI cell's label —
+  goes through it, including `<Stat>`'s. `tone` covers the pinned surfaces
+  (`pinned` on `bg-primary`, `inverted` on the `bg-foreground` profile cards);
+  `metaLabelVariants()` covers sites that must keep their element. ⚠️ It is
+  **not** a form-control label — `components/ui/field.tsx` owns `FieldLabel`,
+  which is `htmlFor`-bound. A status chip is a `<Badge>`, an empty state is body
+  copy, and a heading is a heading: none of those are captions.
+  **Label is a name, not a sentence.** Helper prose, empty states, timestamps
+  and values that merely happen to be small and muted stay body copy —
+  `MetaLabel` ships `leading-[1.2]`, a single-line device that turns wrapped
+  prose cramped. ~26 sites per app match by class string and are deliberately
+  left alone: **"its classes match" is not the test, "it names something" is.**
+- **Column heads** — `<TableHead>` and every raw `<th>` take their type from
+  `metaLabelVariants()` and add only padding and alignment. ⚠️ The primitive
+  used to spell the role out by hand at **600**, and six call sites re-spelled
+  it again on top — the same call-site-fighting-the-primitive defect the weight
+  sweep found on `<Button>`. Column heads are 500 now; a header that looks light
+  is the scale, not a regression.
+- **12px is the floor.** No `text-[8px]`/`[9px]`/`[10px]`/`[11px]` anywhere.
+  Checked as 6d in §8.
+- **Filter bars — `<FilterBar>` / `<FilterSearch>`**
+  (`components/shared/filter-bar.tsx`). Eight list pages had each rolled their
+  own row, search field and status select, in three inconsistent spellings.
+  ⚠️ **Every copy overrode the shape of the controls inside it** —
+  `h-12 rounded-md border border-border bg-card focus:ring-primary/20` — which
+  is the Card-override defect wearing a different tag, and `bg-card` at rest
+  additionally cancels the input behaviour described just above. Filter controls
+  now take their shape from `<Input>` / `<SelectTrigger>` and nothing else, so a
+  filter field is **36px like every other field**, not 48px. `filterControlClass`
+  sets width rhythm only.
+  ⚠️ **Three copies lived outside any `*filter-bar.tsx` file** — inline
+  `<SelectTrigger>`s in the monitor anomalies, monitor stats and payments DLQ
+  list views — so the original filter-bar-scoped grep read clean while the drift
+  was live. The check in §8 (3e) now scans all of `src`.
 - **Page header** (`components/shared/page-header.tsx`) — title + description,
   **ruled off with a bottom hairline**. Appears on all 62 routes, so it is the
   most-repeated piece of the surface language.
@@ -377,16 +467,28 @@ Carried from Blessing unchanged except where noted.
 ## 7. Known debt, inherited
 
 The dark theme carries Blessing's measured lightness ladder verbatim, and with
-it four AA failures that are **pre-existing, not introduced here**:
+it four AA failures that were **pre-existing, not introduced here**:
 `text-primary`, `text-destructive` on solid fills, `text-info`, and status
-colors used as text on their own 10% tint. The fix is the `-ink` text-only
-token pattern (see the customer app's `globals.css`), which is a component-level
-change rather than a token swap. Deliberately out of scope for this ticket —
-it belongs with the restyle sweep, and it should be filed as its own ticket
-when [Restyle batching](../issues/09-restyle-batching.md) cuts the work up.
+colors used as text on their own tint.
 
-**Status:** ticket 07 adopted the `-ink` model and made it sweep ticket #1.
-See §8.
+**Status: three of the four are fixed** (2026-08-09, sweep class B). The `-ink`
+token layer landed in `globals.css` with measured values — see the `-ink` Rule
+in §2 — and the call-site migration followed the same day: **409 sites across
+183 files**.
+
+Two sites are deliberately **not** migrated, and they are the rule's edge:
+`DoDontColumn` in `help/components/help-index-view.tsx` sits inside a
+`bg-secondary` panel, which is graphite in *both* themes. Raw `--success` /
+`--destructive` stay bright either way (L 0.63 / 0.72) and read on graphite;
+`-ink` (L 0.47 light) would go muddy. **On a pinned surface the raw token is the
+correct choice, not the defect** — the component carries a comment saying so.
+The other 3 residual hits are in `app/design-preview/`, the stale scratch route
+§8 says to delete rather than fix.
+
+**Still open, and it is not an `-ink` problem:** `bg-destructive text-white`
+measures 2.89:1. Fixing it means moving `--destructive` **as a fill**, which
+moves every destructive button and badge in the app. That is a deliberate design
+change, not a token addition, and it needs its own decision.
 
 ## 8. Scope of the restyle
 
@@ -426,9 +528,24 @@ defect class, not by slice or route.**
 | 2 | Strip local Card shape overrides | 91 tags / 72 files | **done (07)** |
 | 3 | `gold` → `jewel`, repointed to chart-4 | 15 sites | **done (07)** |
 | 4 | `<StatsBar>` as the app-wide KPI default | 9 implementations → 1 | **done (07)** |
-| 5 | `-ink` migration (4 roles) | ~401 sites + 8 pinned | open |
-| 6 | `<FieldLabel>` (kill tracked-caps eyebrows) | 294 sites / 138 files | open |
-| 7 | `<FilterBar>` extraction + dock into table surface | 8 copies / 1166 lines | open |
+| 5a | `-ink` **token layer** (7 roles, measured) | `globals.css` | **done (2026-08-09)** |
+| 5b | `-ink` **call-site migration** | 409 sites / 183 files | **done (2026-08-09)** |
+| 5c | `--whatsapp` triple (retires the literal `#25D366`) | `globals.css` + 1 site | **done (2026-08-09)** |
+| 5d | Weight discipline — nothing above 600 | 216 + 188 sites | **done (2026-08-09)** |
+| 6a | Kill the eyebrow device (caps + tracking, sub-12px sizes) | 263 class strings / 124 files | **done (2026-08-09)** |
+| 6b | Headings dressed as eyebrows → the **Title** role | 30 sites / 26 files | **done (2026-08-09)** |
+| 6c | `<MetaLabel>` adoption for the caption sites | 86 sites (71 + column heads + 2 pinned) | **done (2026-08-09)** |
+| 6d | 12px floor — untracked sub-12px sizes 6a could not see | 44 sizes / 30 files | **done (2026-08-09)** |
+| 7 | Hand-rolled card surfaces → `<Card>` | 40 divs / 29 files | **done (2026-08-09)** |
+| 8a | `<FilterBar>` / `<FilterSearch>` extraction | 8 copies | **done (2026-08-09)** |
+| 8b | Dock the filter bar into the table surface | 6 list views + 6 tables | open |
+
+⚠️ Class 6 was specified as one primitive and is **three units**, because
+surveying by enclosing tag showed six devices, not one. The dangerous third is
+6b: 25 of those 30 are **card titles** that had merely been *styled* as
+eyebrows. Wrapping them in a label primitive would have demoted every card title
+in the app to 12px muted. **A heading that has been styled as an eyebrow is
+still a heading** — it goes to Title (16px / 600 / `--foreground`), not to Label.
 
 ### Is DESIGN.md enforced or aspirational?
 
@@ -484,22 +601,101 @@ PY
 #      excluded. Check 3 only sees <Card> tags; this catches the bare divs.)
 grep -rEn 'className="[^"]*bg-card[^"]*shadow-soft(-lg)?[^"]*"' src --include=*.tsx | grep -v "shadow-soft-lg"
 
+# 3d. A <Card> spelled out by hand — surface + hairline + radius on a raw div.
+#     EXPECT 16, none of them content cards. The scan is deliberately WIDER than
+#     a card hunt: it matches any element (div, Input, SelectTrigger, Link) that
+#     paints surface + hairline + radius itself, because that is the shape a
+#     hand-rolled card takes. The 16 survivors are, by kind:
+#       - 3 floating menus  (item-scope-picker, existing-customer-select,
+#                            tax-rule-form-dialog) — overlays, not cards.
+#       - 3 form fields     (dashboard-date-filter, manual-field,
+#                            manual-charges-summary) — input chrome.
+#       - 2 workspace shells (chat-workspace-view, whatsapp-workspace-view) —
+#                            full-height **grid** frames; <Card> is flex and
+#                            cannot host `lg:grid-cols-[22rem_1fr]`.
+#       - 2 link tiles      (quick-links-grid, help-index-view) — anchors.
+#       - 6 small parts     (composer pill, invoice tab strip, delivery icon
+#                            tile, product-parts row, bulk-parts progress
+#                            strip, promotion-slide row).
+#     ⚠️ A count of 9 was recorded here earlier in ticket 11 from a narrower
+#     ACCEPT list; the number below is the one this exact script prints.
+#     Anything ABOVE 16 is a new hand-roll — reach for <Card>.
+python - <<'PY'
+import re, pathlib
+n = 0
+for p in sorted(pathlib.Path("src").rglob("*.tsx")):
+    if "design-preview" in p.as_posix() or p.name == "card.tsx":
+        continue
+    t = p.read_text(encoding="utf-8")
+    for m in re.finditer(r'className="([^"]*)"', t):
+        c = m.group(1)
+        if "bg-card" in c and re.search(r"\bborder\b", c) and "rounded" in c:
+            n += 1
+            print(f"{p.as_posix()}:{t[:m.start()].count(chr(10))+1}  {c[:70]}")
+print("hand-rolled surfaces:", n)
+PY
+
+# 3e. Filter controls must not re-specify their own shape.  EXPECT 0.
+#     (`h-12` on a filter field was the app's most-copied primitive override.)
+#     ⚠️ Scan ALL of src, not just *filter-bar.tsx: three copies of this exact
+#     trigger lived in list views (monitor-anomalies, monitor-stats, payments
+#     dlq), so a filter-bar-only grep reported 0 while the defect was live.
+#     Use `filterControlClass` from components/shared/filter-bar.
+grep -rn 'h-12! data-\[size=default\]:h-12' src --include=*.tsx
+
 # 4. Raw colour values.  EXPECT 3 hits across 2 files, both known:
 grep -rEn "#[0-9a-fA-F]{6}|oklch\(" src --include=*.tsx
 #    - app/design-preview/page.tsx — stale Blessing-era scratch route; its
 #      purpose (locking the sidebar) closed with ADR-0016. Delete it, don't fix it.
-#    - chat/components/chat-toast.tsx — `#25D366` is WhatsApp's brand mark.
-#      Legitimately off-palette, but it wants a `--whatsapp` token like the
-#      customer app has. Currently untokenised.
+#    - chat/components/chat-toast.tsx — `#25D366` was WhatsApp's brand mark;
+#      retired 2026-08-09 into the `--whatsapp` triple (see the WhatsApp Mark
+#      rule in §2). If this hex reappears here, the token was bypassed.
 
-# 5. Named Tailwind palette hues.  EXPECT 14 — open debt, must not RISE.
-grep -rEn "\b(bg|text|border)-(sky|amber|emerald|rose|slate|zinc|indigo)-[0-9]" src --include=*.tsx
+# 5. Named Tailwind palette hues.  EXPECT 4 — all in app/design-preview/, the
+#    stale scratch route §8 says to delete rather than fix. Swept 2026-08-09
+#    (class A): was 14. Must not RISE.
+grep -rEn "\b(bg|text|border)-(sky|amber|emerald|rose|slate|zinc|indigo|violet)-[0-9]" src --include=*.tsx
 
-# 6. Eyebrows outside the sidebar.  EXPECT 280 — sweep ticket 6; must not RISE.
+# 6a. Eyebrows outside the sidebar.  EXPECT 2 — both in app/design-preview/, the
+#     stale scratch route. Was 263 before the 2026-08-09 sweep. Must not RISE.
 grep -rEn "uppercase[^\"]*tracking|tracking[^\"]*uppercase" src --include=*.tsx | grep -v "components/layouts/sidebar"
 
-# 7. Brand hue as text, pending -ink.  EXPECT ~396 — sweep ticket 5; must not RISE.
-grep -rEn "text-(primary|destructive|info)\b" src --include=*.tsx
+# 6b. A heading still dressed as a caption (small + muted).  EXPECT 0.
+#     Single-line tags only — a tag split across lines hides from this. The
+#     authoritative pass is the parser in issues/11-restyle-sweep.md.
+#     ⚠️ Do NOT widen this to `text-(xs|sm)` alone: ~31 sub-headings sit at
+#     `text-sm font-semibold text-foreground` deliberately — a sub-heading
+#     *inside* an already-titled surface, one step under Title. That is a
+#     device, not debt.
+grep -rEn '<(h[1-4]|CardTitle)[^>]*text-(xs|sm)[^>]*text-muted-foreground' src --include=*.tsx | grep -v design-preview
+
+# 6c. Weight: nothing above 600.  EXPECT 2 — design-preview, plus the prose in
+#     shared/meta-label.tsx's doc comment (it *describes* the dead device).
+grep -rnE 'font-(black|extrabold|bold)|font-\[(7|8|9)00\]' src --include=*.tsx --include=*.ts
+
+# 6d. The 12px floor.  EXPECT 1 — meta-label.tsx's doc comment, which *names*
+#     the retired spellings. ⚠️ 6a only lifted sub-12px sizes inside class
+#     strings that ALSO paired uppercase with tracking-*, so 44 untracked ones
+#     survived every grep above. Same failure shape as the font-black-only and
+#     filter-bar-scoped checks: a check scoped to where the defect was FOUND,
+#     rather than where it can OCCUR, goes green by construction.
+grep -rEn 'text-\[(8|9|10|11)px\]' src --include=*.tsx --include=*.ts | grep -v design-preview
+
+# 6e. A column head spelling out the Label role instead of taking it.  EXPECT 0.
+#     <TableHead> and every raw <th> use metaLabelVariants(); they add padding
+#     and alignment only.
+grep -rEn '<(th|TableHead)[^>]*className="[^"]*(text-xs|font-(medium|semibold)|text-muted-foreground)' src --include=*.tsx | grep -v design-preview
+
+# 7. Brand/status hue as RAW text (the -ink Rule).  EXPECT 7 and no more:
+#    3 in app/design-preview (stale scratch route — delete, don't fix), 4 in
+#    help-index-view's DoDontColumn (pinned graphite panel — raw is CORRECT there).
+#    ⚠️ This grep cannot see the opposite defect: an `-ink` on an INVERTING
+#    (`bg-foreground text-background`) panel, where no hue works at all. See the
+#    inverting-panel note in §2; the two cards involved carry comments.
+#    Anything else is a regression. Note `-P`, not `-E`: a `\b` after the role
+#    also matches `text-primary-ink` and `text-primary-foreground` and will
+#    silently report ~400 successes as failures.
+grep -rnoP 'text-(primary|secondary|destructive|info|success|warning|jewel)(?![-\w])' src --include=*.tsx
 
 # 8. Gates that must be green.
 npm run build     # 62/62 pages

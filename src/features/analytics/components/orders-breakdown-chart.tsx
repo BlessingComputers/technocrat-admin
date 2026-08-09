@@ -31,7 +31,7 @@ export function OrdersBreakdownChart({ period }: { period: AnalyticsPeriod }) {
       title="Orders"
       subtitle="Status breakdown"
       icon="solar:cart-large-2-bold"
-      iconClass="bg-jewel/15 text-jewel"
+      iconClass="bg-jewel/15 text-jewel-ink"
       href="/orders"
       linkLabel="Manage orders"
       centerValue={data?.totalOrders ?? 0}

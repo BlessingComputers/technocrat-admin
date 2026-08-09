@@ -17,7 +17,7 @@ export function ProductOverviewTab({ product }: ProductOverviewTabProps) {
     <div className="space-y-8">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <AppIcon icon="solar:info-circle-linear" className="size-5 text-primary" />
+          <AppIcon icon="solar:info-circle-linear" className="size-5 text-primary-ink" />
           About this Product
         </h3>
         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -61,10 +61,10 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="border bg-muted/5">
+    <Card className="bg-muted/5">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-          <AppIcon icon={icon} className="size-3.5" />
+        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+          <AppIcon icon={icon} className="size-4" />
           {title}
         </CardTitle>
       </CardHeader>
@@ -90,7 +90,7 @@ function InfoRow({
           {value}
         </span>
       ) : (
-        <span className="font-bold text-foreground text-right truncate">
+        <span className="font-semibold text-foreground text-right truncate">
           {value}
         </span>
       )}

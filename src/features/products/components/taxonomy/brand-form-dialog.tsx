@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { slugify } from "../../schemas/product-form";
 import type { BrandInput, ProductBrand } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface BrandFormDialogProps {
   isOpen: boolean;
@@ -55,9 +56,9 @@ export function BrandFormDialog({
           <DialogTitle className="text-xl font-semibold tracking-tight">
             {isEditing ? "Edit Brand" : "Add Brand"}
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             Product manufacturer
-          </p>
+          </MetaLabel>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -136,7 +137,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+      <Label className="text-xs font-semibold text-muted-foreground ml-1">
         {label}
       </Label>
       {children}

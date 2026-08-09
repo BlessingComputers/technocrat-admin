@@ -20,7 +20,7 @@ export function PaymentDetailHeader({
     <PageHeader title={paymentId} description="Gateway transaction detail">
       <Link
         href="/payments"
-        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors pr-6 border-r border-border"
+        className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors pr-6 border-r border-border"
       >
         <AppIcon icon="solar:arrow-left-linear" className="w-3 h-3" />
         Back to Payments

@@ -21,11 +21,11 @@ export function CircuitStatusCard() {
   const { data, isLoading } = useCircuitHealth();
 
   return (
-    <Card className="p-6 border bg-card space-y-4">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+    <Card className="p-6 space-y-4">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
         <AppIcon
           icon="solar:pulse-2-linear"
-          className="w-4 h-4 text-primary"
+          className="w-4 h-4 text-primary-ink"
         />
         Payment Circuit
       </h3>
@@ -34,7 +34,7 @@ export function CircuitStatusCard() {
         <p className="text-sm text-muted-foreground">Checking...</p>
       ) : (
         <div className="space-y-2">
-          <Badge variant={circuitTone(data.circuit)} className="uppercase tracking-wide">
+          <Badge variant={circuitTone(data.circuit)}>
             {data.circuit}
           </Badge>
           <p className="text-sm text-foreground">{COPY[data.circuit]}</p>

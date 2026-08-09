@@ -7,6 +7,7 @@ import { ConversationTabs } from "./conversation-tabs";
 import { ConversationListItem } from "./conversation-list-item";
 import { STAFF_ROOM_ID } from "../store/chat.store";
 import { splitQueueByAiState } from "../utils/chat-ai-state";
+import { MetaLabel } from "@/components/shared/meta-label";
 import type {
   ConversationSummary,
   ConversationTab,
@@ -101,11 +102,11 @@ function QueueGroup({
   if (conversations.length === 0) return null;
   return (
     <div>
-      <div className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <MetaLabel className="flex items-center gap-1.5 px-2 pb-1 pt-2">
         <AppIcon icon={icon} className={cn("size-3.5", iconClassName)} />
         {label}
         <span className="text-muted-foreground/70">({conversations.length})</span>
-      </div>
+      </MetaLabel>
       {conversations.map((c) => (
         <Row key={c.id} conversation={c} {...rowProps} />
       ))}
@@ -212,7 +213,7 @@ export function ConversationList({
               <QueueGroup
                 label="AI handling"
                 icon="solar:magic-stick-3-linear"
-                iconClassName="text-jewel"
+                iconClassName="text-jewel-ink"
                 conversations={queueSplit.aiHandling}
                 {...rowProps}
               />

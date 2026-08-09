@@ -30,12 +30,12 @@ export function TaxSettingPanel() {
 
   if (isError || !setting) {
     return (
-      <Card className="border bg-card p-6">
+      <Card className="p-6">
         <div className="flex flex-col items-center justify-center gap-3 text-center py-6">
-          <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+          <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive-ink">
             <AppIcon icon="solar:danger-circle-linear" className="size-6" />
           </div>
-          <p className="text-sm font-bold text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             Couldn’t load the store tax setting
           </p>
           <Button variant="outline" onClick={() => refetch()}>
@@ -78,16 +78,16 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
   };
 
   return (
-    <Card className="border bg-card p-6 gap-0">
+    <Card className="p-6 gap-0">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <h2 className="text-lg font-black tracking-tight text-foreground">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
               Store tax
             </h2>
             <Badge
               variant={enabled ? "success" : "muted"}
-              className="font-black text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full"
+              className="font-medium text-xs px-2.5 py-1 rounded-full"
             >
               <AppIcon
                 icon={
@@ -105,7 +105,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
           </p>
         </div>
         {setting.updatedAt && (
-          <p className="text-[11px] font-bold text-muted-foreground">
+          <p className="text-xs font-semibold text-muted-foreground">
             Updated {formatDate(setting.updatedAt)}
           </p>
         )}
@@ -125,10 +125,10 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
           )}
         >
           <div className="space-y-0.5">
-            <p className="text-sm font-black text-foreground">
+            <p className="text-sm font-semibold text-foreground">
               Tax {enabled ? "enabled" : "disabled"}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {enabled
                 ? "Customers are charged tax at checkout."
                 : "No tax is charged. Scoped rules stay paused."}
@@ -146,7 +146,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
           <div className="space-y-1.5">
             <Label
               htmlFor="tax-rate"
-              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1"
+              className="text-xs font-medium text-muted-foreground ml-1"
             >
               Store rate
             </Label>
@@ -166,10 +166,10 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
                 onChange={(e) =>
                   setRate(e.target.value.replace(/[^0-9.]/g, ""))
                 }
-                className="w-28 pr-8 font-mono font-bold tabular-nums"
+                className="w-28 pr-8 font-mono font-semibold tabular-nums"
                 aria-invalid={!!error}
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
                 %
               </span>
             </div>
@@ -177,7 +177,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
           <Button
             onClick={handleSave}
             disabled={!isDirty || updateSetting.isPending}
-            className="rounded-lg bg-primary text-primary-foreground font-black h-9 px-5"
+            className="rounded-lg bg-primary text-primary-foreground font-medium h-9 px-5"
           >
             {updateSetting.isPending ? "Saving…" : "Save"}
           </Button>
@@ -185,11 +185,11 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
       </div>
 
       {error ? (
-        <p className="mt-3 text-xs font-bold text-destructive" role="alert">
+        <p className="mt-3 text-xs font-semibold text-destructive-ink" role="alert">
           {error}
         </p>
       ) : isDirty ? (
-        <p className="mt-3 text-xs font-bold text-muted-foreground">
+        <p className="mt-3 text-xs font-semibold text-muted-foreground">
           You have unsaved changes.
         </p>
       ) : null}
@@ -199,7 +199,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
 
 function TaxSettingSkeleton() {
   return (
-    <Card className="border bg-card p-6 gap-0">
+    <Card className="p-6 gap-0">
       <div className="space-y-2">
         <div className="h-5 w-40 rounded bg-muted animate-pulse" />
         <div className="h-4 w-80 max-w-full rounded bg-muted/70 animate-pulse" />

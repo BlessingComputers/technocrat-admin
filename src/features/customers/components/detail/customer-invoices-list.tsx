@@ -25,15 +25,15 @@ export function CustomerInvoicesList({
   isLoading,
 }: CustomerInvoicesListProps) {
   return (
-    <Card className="p-8 border bg-card">
-      <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-3">
+    <Card className="p-8">
+      <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-3">
         <AppIcon
           icon="solar:bill-list-linear"
-          className="w-5 h-5 text-primary"
+          className="w-5 h-5 text-primary-ink"
         />
         Invoice History
         {!isLoading && (
-          <span className="ml-auto text-xs font-black text-muted-foreground">
+          <span className="ml-auto text-xs font-semibold text-muted-foreground">
             {invoices.length}
           </span>
         )}
@@ -58,10 +58,10 @@ export function CustomerInvoicesList({
               className="flex items-center justify-between gap-4 py-4 -mx-2 px-2 rounded-lg hover:bg-muted/40 transition-colors group"
             >
               <div className="min-w-0">
-                <p className="font-black text-foreground text-sm tracking-tight truncate group-hover:text-primary transition-colors">
+                <p className="font-semibold text-foreground text-sm tracking-tight truncate group-hover:text-primary-ink transition-colors">
                   {invoice.invoiceNumber || invoiceRef(invoice)}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-bold mt-0.5">
+                <p className="text-xs text-muted-foreground font-semibold mt-0.5">
                   {formatDate(invoice.createdAt)}
                   {invoice.invoiceType && (
                     <span> · {invoice.invoiceType}</span>
@@ -72,19 +72,19 @@ export function CustomerInvoicesList({
                 {invoice.status && (
                   <span
                     className={cn(
-                      "px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest",
+                      "px-2.5 py-1 rounded-full border text-xs font-medium",
                       invoiceStatusClasses(invoice.status),
                     )}
                   >
                     {invoice.status.replace(/_/g, " ")}
                   </span>
                 )}
-                <p className="font-black text-foreground text-sm tracking-tighter w-24 text-right">
+                <p className="font-semibold text-foreground text-sm tracking-tighter w-24 text-right">
                   {formatPrice(toAmount(invoice.totalAmount))}
                 </p>
                 <AppIcon
                   icon="solar:alt-arrow-right-linear"
-                  className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors"
+                  className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary-ink transition-colors"
                 />
               </div>
             </Link>

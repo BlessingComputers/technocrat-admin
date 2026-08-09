@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/utils/format";
 
 import { OrderStatusBadge } from "../order-status-badge";
 import type { OrderMoney } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderSummaryCardProps {
   money: OrderMoney;
@@ -26,9 +27,9 @@ export function OrderSummaryCard({
 }: OrderSummaryCardProps) {
   const isDispatch = deliveryMethod === "DISPATCH";
   return (
-    <Card className="p-6 border bg-card space-y-5">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:bill-list-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-5">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:bill-list-linear" className="w-4 h-4 text-primary-ink" />
         Order Summary
       </h3>
 
@@ -37,7 +38,7 @@ export function OrderSummaryCard({
           <OrderStatusBadge status={paymentStatus} variant="payment" />
         </SummaryRow>
         <SummaryRow label="Delivery">
-          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-foreground">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
             <AppIcon
               icon={isDispatch ? "solar:delivery-linear" : "solar:shop-linear"}
               className="w-4 h-4 text-muted-foreground"
@@ -57,10 +58,10 @@ export function OrderSummaryCard({
         )}
         <AmountRow label="Shipping" value={money.shipping} />
         <div className="flex items-center justify-between border-t border-border/60 pt-3 mt-1">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <MetaLabel>
             Total
-          </span>
-          <span className="text-xl font-black tabular-nums tracking-tighter text-primary">
+          </MetaLabel>
+          <span className="text-xl font-semibold tabular-nums tracking-tighter text-primary-ink">
             {formatPrice(money.total)}
           </span>
         </div>
@@ -99,7 +100,7 @@ function AmountRow({
       <span
         className={
           tone === "success"
-            ? "text-sm font-semibold tabular-nums text-success"
+            ? "text-sm font-semibold tabular-nums text-success-ink"
             : "text-sm font-semibold tabular-nums text-foreground"
         }
       >

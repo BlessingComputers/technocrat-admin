@@ -23,18 +23,18 @@ export function CustomersPagination({
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
         variant="outline"
-        className="rounded-md font-bold text-xs"
+        className="rounded-md font-medium text-xs"
       >
         Previous
       </Button>
-      <div className="flex items-center px-4 font-black text-muted-foreground text-sm">
+      <div className="flex items-center px-4 font-semibold text-muted-foreground text-sm">
         Page {page} of {totalPages}
       </div>
       <Button
         disabled={!hasNextPage}
         onClick={() => onPageChange(page + 1)}
         variant="outline"
-        className="rounded-md font-bold text-xs"
+        className="rounded-md font-medium text-xs"
       >
         Next
       </Button>

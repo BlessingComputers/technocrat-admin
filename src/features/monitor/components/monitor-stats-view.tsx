@@ -21,6 +21,7 @@ import { StatsKpiCard } from "./stats-kpi-card";
 import { RequestsPerMinuteChart } from "./stats/requests-per-minute-chart";
 import { TopRoutesList } from "./stats/top-routes-list";
 import type { MonitorStatsParams } from "../types/monitor";
+import { filterControlClass } from "@/components/shared/filter-bar";
 
 const WINDOW_OPTIONS: { value: string; label: string }[] = [
   { value: "1", label: "Last hour" },
@@ -48,10 +49,10 @@ export function MonitorStatsView() {
           value={String(hours)}
           onValueChange={(val) => setHours(Number(val))}
         >
-          <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[200px]">
+          <SelectTrigger className={filterControlClass}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+          <SelectContent>
             {WINDOW_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
@@ -66,14 +67,14 @@ export function MonitorStatsView() {
           isMonitorUnavailableError(error) ? (
             <MonitorUnavailable onRetry={() => refetch()} />
           ) : (
-            <div className="py-20 text-center bg-card rounded-lg border border-border">
+            <Card className="gap-0 py-20 text-center">
               <h3 className="text-lg font-semibold text-foreground">
                 Stats unavailable
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 We hit an error loading stats. Please try again shortly.
               </p>
-            </div>
+            </Card>
           )
         ) : !data ? null : (
           <div className="space-y-8">
@@ -112,7 +113,7 @@ export function MonitorStatsView() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide">
+                <CardTitle className="text-base font-semibold">
                   Requests — last 60 minutes
                 </CardTitle>
               </CardHeader>
@@ -124,7 +125,7 @@ export function MonitorStatsView() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide">
+                  <CardTitle className="text-base font-semibold">
                     Top Slow Routes
                   </CardTitle>
                 </CardHeader>
@@ -134,7 +135,7 @@ export function MonitorStatsView() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide">
+                  <CardTitle className="text-base font-semibold">
                     Top Error Routes
                   </CardTitle>
                 </CardHeader>

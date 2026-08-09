@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PermissionGate } from "@/lib/auth/permission-gate";
 import { usePromotions } from "../api/promotions.queries";
 import { PromotionCard } from "./promotion-card";
+import { Card } from "@/components/ui/card";
 
 export function PromotionsListView() {
   const { data, isLoading, isError, refetch } = usePromotions();
@@ -31,32 +32,32 @@ export function PromotionsListView() {
       {isLoading && <PromotionsGridSkeleton />}
 
       {isError && !isLoading && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <Card className="items-center justify-center gap-3 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
             <AppIcon icon="solar:danger-circle-linear" className="size-6" />
           </div>
-          <p className="text-sm font-bold text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             Couldn&apos;t load promotions
           </p>
           <Button variant="outline" onClick={() => refetch()}>
             Retry
           </Button>
-        </div>
+        </Card>
       )}
 
       {!isLoading && !isError && promotions.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card py-16 text-center">
+        <Card className="items-center justify-center gap-3 border-dashed py-16 text-center">
           <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <AppIcon icon="solar:share-linear" className="size-6" />
           </div>
-          <p className="text-sm font-bold text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             No promotions yet
           </p>
           <p className="max-w-sm text-xs text-muted-foreground">
             Create one, upload a few 16:9 banner images, then publish — it
             shows up on the homepage carousel right below the hero.
           </p>
-        </div>
+        </Card>
       )}
 
       {!isLoading && !isError && promotions.length > 0 && (

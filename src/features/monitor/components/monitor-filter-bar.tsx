@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AppIcon } from "@/components/shared/app-icon";
+import { FilterBar, FilterSearch } from "@/components/shared/filter-bar";
 import type { MonitorRequestsParams } from "../types/monitor";
 
 interface MonitorFilterBarProps {
@@ -43,25 +43,18 @@ export function MonitorFilterBar({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1 group">
-          <AppIcon
-            icon="solar:magnifer-linear"
-            className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-          />
-          <Input
-            placeholder="Filter by path (e.g. /api/v1/orders)..."
-            className="pl-12 h-12 rounded-md border border-border bg-card focus:ring-primary/20 font-medium"
-            value={pathDraft}
-            onChange={(e) => setPathDraft(e.target.value)}
-            onBlur={commitPath}
-            onKeyDown={(e) => e.key === "Enter" && commitPath()}
-          />
-        </div>
+      <FilterBar>
+        <FilterSearch
+          placeholder="Filter by path (e.g. /api/v1/orders)..."
+          value={pathDraft}
+          onChange={(e) => setPathDraft(e.target.value)}
+          onBlur={commitPath}
+          onKeyDown={(e) => e.key === "Enter" && commitPath()}
+        />
 
         <Input
           placeholder="Method (GET, POST...)"
-          className="h-12 md:w-40 rounded-md border border-border bg-card font-medium"
+          className="sm:w-40"
           value={params.method ?? ""}
           onChange={(e) =>
             onParamsChange({
@@ -74,7 +67,7 @@ export function MonitorFilterBar({
         <Input
           placeholder="Min duration (ms)"
           type="number"
-          className="h-12 md:w-44 rounded-md border border-border bg-card font-medium"
+          className="sm:w-44"
           value={params.minDuration ?? ""}
           onChange={(e) =>
             onParamsChange({
@@ -83,7 +76,7 @@ export function MonitorFilterBar({
             })
           }
         />
-      </div>
+      </FilterBar>
 
       <div className="flex flex-wrap gap-2">
         {TAG_OPTIONS.map((tag) => {

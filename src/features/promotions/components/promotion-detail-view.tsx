@@ -34,17 +34,17 @@ export function PromotionDetailView({ id }: { id: string }) {
 
   if (isError || !promotion) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+      <Card className="items-center justify-center gap-3 py-16 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-6" />
         </div>
-        <p className="text-sm font-bold text-foreground">
+        <p className="text-sm font-semibold text-foreground">
           Couldn&apos;t load this promotion
         </p>
         <Button variant="outline" onClick={() => refetch()}>
           Retry
         </Button>
-      </div>
+      </Card>
     );
   }
 
@@ -111,7 +111,7 @@ export function PromotionDetailView({ id }: { id: string }) {
         <PermissionGate permission="promotions:delete">
           <Button
             variant="outline"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive-ink hover:text-destructive-ink"
             onClick={() => setConfirmDelete(true)}
           >
             <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />
@@ -121,14 +121,14 @@ export function PromotionDetailView({ id }: { id: string }) {
       </PageHeader>
 
       {promotion.status === "DRAFT" && promotion.slides.length === 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning-ink">
           <AppIcon icon="solar:info-circle-bold" className="size-5 shrink-0" />
           Add at least one slide below before publishing.
         </div>
       )}
 
-      <Card className="border p-6">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-semibold text-foreground">
           Details
         </h2>
         <PromotionForm
@@ -139,8 +139,8 @@ export function PromotionDetailView({ id }: { id: string }) {
         />
       </Card>
 
-      <Card className="border p-6">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-semibold text-foreground">
           Slides
         </h2>
         <PromotionSlideManager promotionId={id} slides={promotion.slides} />

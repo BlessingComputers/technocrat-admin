@@ -14,8 +14,8 @@ const HEADERS = ["Product", "SKU", "Variant", "QTY", "Unit price", "Total"];
 
 export function InvoiceItemsCard({ items }: InvoiceItemsCardProps) {
   return (
-    <Card className="gap-0 border bg-card p-8">
-      <h3 className="text-base font-bold text-foreground">Items</h3>
+    <Card className="gap-0 p-8">
+      <h3 className="text-base font-semibold text-foreground">Items</h3>
 
       <div className="mt-5 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left">

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils/format";
 import type { ManualOrder } from "../../types/orders";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderPaymentVerificationProps {
   order: ManualOrder;
@@ -54,17 +55,17 @@ export function OrderPaymentVerification({
   if (!order.proofOfPaymentUrl) return null;
 
   return (
-    <Card className="border bg-card overflow-hidden">
+    <Card className="overflow-hidden">
       <div className="p-8 sm:p-10 border-b border-border flex items-center justify-between">
-        <h3 className="text-xl font-black text-foreground flex items-center gap-3">
-          <AppIcon icon="solar:shield-check-linear" className="w-6 h-6 text-primary" />
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-3">
+          <AppIcon icon="solar:shield-check-linear" className="w-6 h-6 text-primary-ink" />
           Payment Verification
         </h3>
         <a
           href={order.proofOfPaymentUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 hover:underline"
+          className="text-xs font-medium text-primary-ink flex items-center gap-2 hover:underline"
         >
           View Original{" "}
           <AppIcon icon="solar:square-arrow-right-up-linear" className="w-3 h-3" />
@@ -73,9 +74,9 @@ export function OrderPaymentVerification({
       <div className="p-8 sm:p-10 bg-muted/30">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="space-y-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <MetaLabel className="block">
               Customer Proof
-            </p>
+            </MetaLabel>
             <div
               className="aspect-4/5 rounded-lg border border-border overflow-hidden bg-muted relative group cursor-zoom-in"
               onClick={() => setIsPreviewOpen(true)}
@@ -121,7 +122,7 @@ export function OrderPaymentVerification({
             </Dialog>
 
             {order.proofUploadedAt && (
-              <p className="text-[10px] text-muted-foreground font-bold text-center italic">
+              <p className="text-xs text-muted-foreground font-semibold text-center italic">
                 Uploaded at: {new Date(order.proofUploadedAt).toLocaleString()}
               </p>
             )}
@@ -129,15 +130,15 @@ export function OrderPaymentVerification({
 
           <div className="space-y-8">
             <div className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <MetaLabel className="block">
                 Order Totals
-              </p>
-              <div className="p-6 bg-card rounded-xl border border-border space-y-4">
+              </MetaLabel>
+              <Card className="gap-0 p-6 space-y-4">
                 <div className="flex justify-between">
                   <span className="text-xs text-muted-foreground font-medium">
                     Subtotal
                   </span>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-sm font-semibold text-foreground">
                     {formatPrice(order.subtotalAmount)}
                   </span>
                 </div>
@@ -145,19 +146,19 @@ export function OrderPaymentVerification({
                   <span className="text-xs text-muted-foreground font-medium">
                     Shipping
                   </span>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-sm font-semibold text-foreground">
                     {formatPrice(order.shippingCost)}
                   </span>
                 </div>
                 <div className="pt-3 border-t border-border flex justify-between items-baseline">
-                  <span className="text-xs font-black text-foreground">
+                  <span className="text-xs font-semibold text-foreground">
                     EXPECTED TOTAL
                   </span>
-                  <span className="text-2xl font-black text-primary tracking-tighter">
+                  <span className="text-2xl font-semibold text-primary-ink tracking-tighter">
                     {formatPrice(order.totalAmount)}
                   </span>
                 </div>
-              </div>
+              </Card>
             </div>
 
             {order.paymentStatus === "PROOF_UPLOADED" && (
@@ -165,7 +166,7 @@ export function OrderPaymentVerification({
                 <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
                   <DialogTrigger asChild>
                     <Button
-                      className="w-full h-14 rounded-md bg-success hover:bg-success/90 text-success-foreground font-black text-sm"
+                      className="w-full h-14 rounded-md bg-success hover:bg-success/90 text-success-foreground font-medium text-sm"
                       onClick={() => setConfirmAmount(order.totalAmount)}
                     >
                       <AppIcon icon="solar:check-circle-linear" className="w-5 h-5 mr-2" />
@@ -174,37 +175,37 @@ export function OrderPaymentVerification({
                   </DialogTrigger>
                   <DialogContent className="max-w-md rounded-xl p-8 border border-border">
                     <DialogHeader className="mb-6">
-                      <DialogTitle className="text-2xl font-black text-foreground">
+                      <DialogTitle className="text-2xl font-semibold text-foreground">
                         Confirm Payment
                       </DialogTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
+                        <MetaLabel className="block">
                           Expected:
-                        </p>
-                        <span className="text-xs font-black text-primary">
+                        </MetaLabel>
+                        <span className="text-xs font-semibold text-primary-ink">
                           {formatPrice(order.totalAmount)}
                         </span>
                       </div>
                     </DialogHeader>
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        <Label className="text-xs font-medium text-muted-foreground ml-1">
                           Confirmed Amount (NGN)
                         </Label>
                         <Input
                           type="number"
-                          className="h-14 rounded-xl bg-muted/50 border-border font-black text-xl tracking-tighter"
+                          className="h-14 rounded-xl bg-muted/50 border-border font-semibold text-xl tracking-tighter"
                           value={confirmAmount}
                           onChange={(e) =>
                             setConfirmAmount(Number(e.target.value))
                           }
                         />
-                        <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 ml-1">
+                        <p className="text-xs text-primary-ink font-medium mt-1 ml-1">
                           In Words: {formatPrice(confirmAmount)}
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        <Label className="text-xs font-medium text-muted-foreground ml-1">
                           Internal Note (Optional)
                         </Label>
                         <Textarea
@@ -218,14 +219,14 @@ export function OrderPaymentVerification({
                         <Button
                           variant="ghost"
                           onClick={() => setIsConfirmOpen(false)}
-                          className="flex-1 rounded-md font-bold"
+                          className="flex-1 rounded-md font-medium"
                         >
                           Cancel
                         </Button>
                         <Button
                           onClick={handleConfirmAction}
                           disabled={isConfirmPending}
-                          className="flex-2 h-14 rounded-md bg-success hover:bg-success/90 text-success-foreground font-black"
+                          className="flex-2 h-14 rounded-md bg-success hover:bg-success/90 text-success-foreground font-medium"
                         >
                           {isConfirmPending ? "Validating..." : "Confirm & Process"}
                         </Button>
@@ -238,7 +239,7 @@ export function OrderPaymentVerification({
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full h-14 rounded-md border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 font-bold text-sm"
+                      className="w-full h-14 rounded-md border-destructive/20 bg-destructive/5 text-destructive-ink hover:bg-destructive/10 font-medium text-sm"
                     >
                       <AppIcon icon="solar:forbidden-circle-linear" className="w-5 h-5 mr-2" />
                       Reject Proof
@@ -246,16 +247,16 @@ export function OrderPaymentVerification({
                   </DialogTrigger>
                   <DialogContent className="max-w-md rounded-xl p-8 border border-border">
                     <DialogHeader className="mb-6">
-                      <DialogTitle className="text-2xl font-black text-destructive">
+                      <DialogTitle className="text-2xl font-semibold text-destructive-ink">
                         Reject Proof
                       </DialogTitle>
-                      <p className="text-xs text-destructive/70 font-bold uppercase tracking-widest mt-1">
+                      <p className="text-xs text-destructive-ink/70 font-medium mt-1">
                         This will notify the customer
                       </p>
                     </DialogHeader>
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        <Label className="text-xs font-medium text-muted-foreground ml-1">
                           Rejection Reason (Visible to Customer)
                         </Label>
                         <Textarea
@@ -269,14 +270,14 @@ export function OrderPaymentVerification({
                         <Button
                           variant="ghost"
                           onClick={() => setIsRejectOpen(false)}
-                          className="flex-1 rounded-md font-bold"
+                          className="flex-1 rounded-md font-medium"
                         >
                           Cancel
                         </Button>
                         <Button
                           onClick={handleRejectAction}
                           disabled={isRejectPending}
-                          className="flex-2 h-14 rounded-md bg-destructive hover:bg-destructive/90 text-white font-black"
+                          className="flex-2 h-14 rounded-md bg-destructive hover:bg-destructive/90 text-white font-medium"
                         >
                           {isRejectPending ? "Rejecting..." : "Send Rejection"}
                         </Button>
@@ -293,10 +294,10 @@ export function OrderPaymentVerification({
                   <AppIcon icon="solar:check-circle-linear" className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-success mb-1">
+                  <p className="text-xs font-medium text-success-ink mb-1">
                     Validated Payment
                   </p>
-                  <p className="font-black text-foreground text-lg tracking-tighter">
+                  <p className="font-semibold text-foreground text-lg tracking-tighter">
                     {formatPrice(order.confirmedAmountPaid || 0)}
                   </p>
                 </div>

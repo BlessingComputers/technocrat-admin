@@ -113,7 +113,7 @@ export function AttachPartDialog({
               <AppIcon icon="solar:refresh-linear" className="size-5 animate-spin" />
             </div>
           ) : results.length === 0 ? (
-            <p className="py-10 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="py-10 text-center text-xs font-medium text-muted-foreground">
               {search ? "No parts match" : "No parts found"}
             </p>
           ) : (
@@ -171,7 +171,7 @@ export function AttachPartDialog({
                       }
                       className={cn(
                         "size-5 shrink-0",
-                        isSelected ? "text-primary" : "text-muted-foreground",
+                        isSelected ? "text-primary-ink" : "text-muted-foreground",
                       )}
                     />
                   )}

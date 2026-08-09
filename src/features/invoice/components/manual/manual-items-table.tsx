@@ -21,11 +21,11 @@ export function ManualItemsTable({
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-foreground">Items Purchased</h3>
+        <h3 className="text-sm font-semibold text-foreground">Items Purchased</h3>
         <Button
           type="button"
           onClick={onAddClick}
-          className="h-9 rounded-lg bg-primary px-4 font-black text-primary-foreground"
+          className="h-9 rounded-lg bg-primary px-4 font-medium text-primary-foreground"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 h-4 w-4" />
           Add Items
@@ -39,7 +39,7 @@ export function ManualItemsTable({
               {HEADERS.map((h, i) => (
                 <th
                   key={h || i}
-                  className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                  className="px-4 py-3 text-xs font-medium text-muted-foreground"
                 >
                   {h}
                 </th>
@@ -59,7 +59,7 @@ export function ManualItemsTable({
             ) : (
               items.map((item, index) => (
                 <tr key={index} className="text-sm">
-                  <td className="px-4 py-3 font-bold text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">
                     <span
                       className="block max-w-[200px] truncate"
                       title={item.productName}
@@ -73,20 +73,20 @@ export function ManualItemsTable({
                   <td className="px-4 py-3 text-muted-foreground">
                     {item.variantName || "—"}
                   </td>
-                  <td className="px-4 py-3 font-bold text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">
                     {item.quantity}
                   </td>
-                  <td className="px-4 py-3 font-bold text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">
                     {formatPrice(item.unitPrice)}
                   </td>
-                  <td className="px-4 py-3 font-black text-foreground">
+                  <td className="px-4 py-3 font-semibold text-foreground">
                     {formatPrice(item.quantity * item.unitPrice)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
                       onClick={() => onRemove(index)}
-                      className="text-destructive/70 transition-colors hover:text-destructive"
+                      className="text-destructive-ink/70 transition-colors hover:text-destructive-ink"
                       aria-label="Remove item"
                     >
                       <AppIcon icon="solar:trash-bin-trash-linear" className="h-4 w-4" />

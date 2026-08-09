@@ -17,6 +17,7 @@ import {
   type HelpDoc,
 } from "@/config/help-docs";
 import { DocHero, Bento, BentoTile } from "./doc-kit";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /**
  * Span/tone rhythm for the category mosaic. Widths pair to 12 columns and the
@@ -104,9 +105,9 @@ function GlanceDeck({
         className="pointer-events-none absolute -bottom-8 -right-6 size-56 text-primary-foreground/10"
       />
       <div className="relative">
-        <p className="text-xs font-black uppercase tracking-widest text-primary-foreground/70">
+        <MetaLabel tone="pinned" className="block">
           At a glance
-        </p>
+        </MetaLabel>
         <div className="mt-4 flex items-end gap-6">
           <Stat value={guides} label={guides === 1 ? "guide" : "guides"} />
           <span className="mb-2 h-8 w-px bg-primary-foreground/20" />
@@ -135,10 +136,10 @@ function GlanceDeck({
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="leading-none">
-      <div className="text-4xl font-black tracking-tight">{value}</div>
-      <div className="mt-1.5 text-xs font-bold uppercase tracking-widest text-primary-foreground/70">
+      <div className="text-4xl font-semibold tracking-tight">{value}</div>
+      <MetaLabel tone="pinned" className="block mt-1.5">
         {label}
-      </div>
+      </MetaLabel>
     </div>
   );
 }
@@ -155,7 +156,7 @@ function DeckLink({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-xl bg-primary-foreground/10 px-4 py-3 text-sm font-bold transition-colors hover:bg-primary-foreground/20 motion-reduce:transition-none"
+      className="group flex items-center gap-3 rounded-xl bg-primary-foreground/10 px-4 py-3 text-sm font-semibold transition-colors hover:bg-primary-foreground/20 motion-reduce:transition-none"
     >
       <AppIcon icon={icon} className="size-5 shrink-0" />
       <span className="min-w-0 flex-1">{title}</span>
@@ -207,7 +208,7 @@ function SearchResults({
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
         <AppIcon icon="solar:inbox-linear" className="size-8 text-muted-foreground" />
-        <p className="text-sm font-bold text-foreground">
+        <p className="text-sm font-semibold text-foreground">
           No guides match “{query.trim()}”.
         </p>
         <p className="max-w-sm text-xs text-muted-foreground">
@@ -219,9 +220,9 @@ function SearchResults({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+      <MetaLabel className="block">
         {results.length} {results.length === 1 ? "guide" : "guides"}
-      </p>
+      </MetaLabel>
       <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {results.map((doc) => (
           <li key={doc.slug}>
@@ -241,19 +242,19 @@ function DocRow({ doc }: { doc: HelpDoc }) {
       href={helpDocHref(doc.slug)}
       className="group flex h-full items-start gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/20 motion-reduce:transition-none"
     >
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-ink">
         <AppIcon icon={doc.icon} className="size-6" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-black tracking-tight text-foreground">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">
             {doc.title}
           </h3>
           <TypeBadge doc={doc} />
         </div>
         <p className="text-sm text-muted-foreground">{doc.description}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          <span className="font-bold uppercase tracking-widest">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-medium">
             {category.label}
           </span>
           {doc.updated && <UpdatedStamp iso={doc.updated} />}
@@ -282,12 +283,12 @@ function CategoryMosaic({ groups }: { groups: CategoryGroup[] }) {
   return (
     <section className="space-y-5">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-xl font-black tracking-tight text-foreground">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
           Browse by area
         </h2>
-        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+        <MetaLabel>
           {total} {total === 1 ? "area" : "areas"}
-        </span>
+        </MetaLabel>
       </div>
 
       <Bento className="items-start">
@@ -327,12 +328,12 @@ function CategoryTileBody({
       <div
         className={cn(
           "mb-4 flex size-12 items-center justify-center rounded-2xl",
-          jewel ? "bg-jewel/15 text-jewel" : "bg-primary/10 text-primary",
+          jewel ? "bg-jewel/15 text-jewel-ink" : "bg-primary/10 text-primary-ink",
         )}
       >
         <AppIcon icon={category.icon} className="size-6" />
       </div>
-      <h3 className="text-lg font-black tracking-tight text-foreground">
+      <h3 className="text-lg font-semibold tracking-tight text-foreground">
         {category.label}
       </h3>
       <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -344,14 +345,14 @@ function CategoryTileBody({
           <li key={doc.slug}>
             <Link
               href={helpDocHref(doc.slug)}
-              className="group flex items-center gap-3 rounded-xl bg-background/70 px-3.5 py-3 text-sm font-bold text-foreground transition-colors hover:bg-primary/5 hover:text-primary motion-reduce:transition-none"
+              className="group flex items-center gap-3 rounded-xl bg-background/70 px-3.5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-primary/5 hover:text-primary-ink motion-reduce:transition-none"
             >
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-lg",
                   jewel
-                    ? "bg-jewel/15 text-jewel"
-                    : "bg-primary/10 text-primary",
+                    ? "bg-jewel/15 text-jewel-ink"
+                    : "bg-primary/10 text-primary-ink",
                 )}
               >
                 <AppIcon icon={doc.icon} className="size-4" />
@@ -361,7 +362,7 @@ function CategoryTileBody({
               <AppIcon
                 icon="solar:alt-arrow-right-linear"
                 aria-hidden
-                className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none"
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary-ink motion-reduce:transition-none"
               />
             </Link>
           </li>
@@ -401,7 +402,7 @@ function ResponsibilityBand() {
           <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-secondary-foreground/10 text-secondary-foreground">
             <AppIcon icon="solar:shield-check-linear" className="size-6" />
           </div>
-          <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Working responsibly
           </h2>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-secondary-foreground/80">
@@ -428,9 +429,14 @@ function DoDontColumn({
 }) {
   const isDo = tone === "do";
   const icon = isDo ? "solar:check-circle-linear" : "solar:close-circle-linear";
+  // These two sit inside ResponsibilityBand, a `bg-secondary` panel — graphite in
+  // BOTH themes. So the -ink Rule inverts here: raw `--success`/`--destructive`
+  // stay bright in either theme (L 0.63 / 0.72) and read on graphite, while
+  // `-ink` (L 0.47 in light) would go muddy. Do not "finish" the -ink migration
+  // on this component.
   return (
     <div className="rounded-2xl bg-secondary-foreground/[0.06] p-5 ring-1 ring-inset ring-secondary-foreground/10">
-      <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-secondary-foreground">
+      <p className="mb-3 flex items-center gap-2 text-xs font-medium text-secondary-foreground">
         <AppIcon
           icon={icon}
           className={cn("size-4", isDo ? "text-success" : "text-destructive")}
@@ -463,7 +469,7 @@ function DoDontColumn({
 
 function TypeBadge({ doc }: { doc: HelpDoc }) {
   return (
-    <Badge variant="muted" className="text-[9px] uppercase tracking-widest">
+    <Badge variant="muted" className="text-xs">
       {HELP_TYPE_LABEL[doc.type]}
     </Badge>
   );

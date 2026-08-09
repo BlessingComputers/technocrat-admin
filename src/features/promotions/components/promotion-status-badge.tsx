@@ -24,7 +24,7 @@ export function PromotionStatusBadge({ status }: { status: PromotionStatus }) {
   return (
     <Badge
       variant={config.variant}
-      className="gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1"
+      className="gap-1 text-xs font-medium px-2.5 py-1"
     >
       <AppIcon icon={config.icon} className="size-3" />
       {config.label}

@@ -22,7 +22,7 @@ export function PaymentTableRow({
       <td className="px-8 py-4">
         <Link
           href={`/payments/${payment.id}`}
-          className="font-semibold text-sm text-primary hover:underline"
+          className="font-semibold text-sm text-primary-ink hover:underline"
         >
           {payment.paymentId}
         </Link>
@@ -56,7 +56,7 @@ export function PaymentTableRow({
       <td className="px-8 py-4 text-right">
         <Link
           href={`/payments/${payment.id}`}
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
         >
           View
           <AppIcon icon="solar:alt-arrow-right-linear" className="w-3 h-3" />

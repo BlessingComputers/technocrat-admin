@@ -15,6 +15,7 @@ import { usePart } from "../api/parts.queries";
 import type { Part } from "../types/parts";
 import { PartsStockBadge } from "./parts-stock-badge";
 import { PartDetailSkeleton } from "./parts-skeletons";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface PartDetailViewProps {
   partId: string;
@@ -31,7 +32,7 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <Link
         href="/catalogues/parts"
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Parts
@@ -40,14 +41,14 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
       <PageHeader title={part.name} description={part.partId}>
         <Badge
           variant={part.isActive ? "success" : "muted"}
-          className="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide"
+          className="rounded-full px-2.5 py-1 text-xs font-semibold"
         >
           {part.isActive ? "Active" : "Inactive"}
         </Badge>
         {part.isFeatured && (
           <Badge
             variant="warning"
-            className="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide"
+            className="rounded-full px-2.5 py-1 text-xs font-semibold"
           >
             Featured
           </Badge>
@@ -66,8 +67,8 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
         </div>
 
         <div className="space-y-6 lg:col-span-2">
-          <Card className="space-y-4 border p-6">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Card className="space-y-4 p-6">
+            <h3 className="text-base font-semibold text-foreground">
               Details
             </h3>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -94,12 +95,12 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
               </Field>
               <Field label="Price">
                 {part.price == null ? (
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     On request
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <span className="font-mono font-bold tabular-nums text-foreground">
+                    <span className="font-mono font-semibold tabular-nums text-foreground">
                       {formatPrice(part.price)}
                     </span>
                     {part.compareAtPrice != null &&
@@ -127,9 +128,9 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
 
             {part.description && (
               <div className="border-t border-border pt-4">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <MetaLabel className="block mb-1">
                   Description
-                </p>
+                </MetaLabel>
                 <p className="text-sm leading-relaxed text-foreground">
                   {part.description}
                 </p>
@@ -137,8 +138,8 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
             )}
           </Card>
 
-          <Card className="border p-6">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Card className="p-6">
+            <h3 className="mb-4 text-base font-semibold text-foreground">
               Specifications
             </h3>
             {part.specifications.length === 0 ? (
@@ -178,9 +179,11 @@ function Field({
 }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
+      <MetaLabel asChild>
+        <dt>
+          {label}
+        </dt>
+      </MetaLabel>
       <dd className="text-sm text-foreground">{children}</dd>
     </div>
   );
@@ -193,7 +196,7 @@ function PartGallery({ part }: { part: Part }) {
   const [active, setActive] = useState<string | null>(initial);
 
   return (
-    <Card className="space-y-3 border p-3">
+    <Card className="space-y-3 p-3">
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
         {active ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -232,7 +235,7 @@ function PartGallery({ part }: { part: Part }) {
 function PartNotFound() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
-      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
         <AppIcon icon="solar:danger-circle-linear" className="size-8" />
       </div>
       <div className="space-y-1 text-center">

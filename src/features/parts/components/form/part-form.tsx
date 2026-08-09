@@ -264,7 +264,7 @@ export function PartForm({ initialData, productContext }: PartFormProps) {
 
       <Link
         href={backHref}
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         {backLabel}
@@ -281,7 +281,7 @@ export function PartForm({ initialData, productContext }: PartFormProps) {
         }
       />
 
-      <Card className="border">
+      <Card>
         <CardContent className="p-6 lg:p-8">
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

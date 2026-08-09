@@ -65,11 +65,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
               <AppIcon
                 icon="solar:shield-check-bold"
-                className="size-6 text-primary"
+                className="size-6 text-primary-ink"
               />
             </div>
           </div>
-          <CardTitle className="font-heading text-2xl font-bold tracking-tight">
+          <CardTitle className="font-heading text-2xl font-semibold tracking-tight">
             Staff Portal
           </CardTitle>
           <CardDescription>
@@ -139,7 +139,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </Field>
 
               {state?.error && (
-                <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm font-medium text-destructive-ink animate-in fade-in slide-in-from-top-1">
                   <AppIcon
                     icon="solar:lock-keyhole-minimalistic-bold"
                     className="size-4 shrink-0"
@@ -159,7 +159,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           />
           Restricted access for authorized personnel only
         </p>
-        <p className="text-[10px] text-muted-foreground/60">
+        <p className="text-xs text-muted-foreground/60">
           All login attempts and session activities are monitored for security.
         </p>
       </div>

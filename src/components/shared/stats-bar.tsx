@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
+import { MetaLabel } from "@/components/shared/meta-label";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -21,12 +22,12 @@ import { cn } from "@/lib/utils/cn";
 
 /** Icon-chip tints. Status tones carry meaning; `jewel` is decorative only. */
 const STAT_TONE = {
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/15 text-success",
-  warning: "bg-warning/15 text-warning",
-  danger: "bg-destructive/12 text-destructive",
-  info: "bg-info/15 text-info",
-  jewel: "bg-jewel/15 text-jewel",
+  primary: "bg-primary/10 text-primary-ink",
+  success: "bg-success/15 text-success-ink",
+  warning: "bg-warning/15 text-warning-ink",
+  danger: "bg-destructive/12 text-destructive-ink",
+  info: "bg-info/15 text-info-ink",
+  jewel: "bg-jewel/15 text-jewel-ink",
   muted: "bg-muted text-muted-foreground",
 } as const;
 
@@ -128,13 +129,14 @@ export function Stat({
           </span>
         )}
       </div>
-      {/* Sentence case, not tracked caps — DESIGN.md's eyebrow rule. New code
-          does not add to the debt the FieldLabel sweep exists to clear. */}
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+      {/* Sentence case, not tracked caps — DESIGN.md's eyebrow rule. The Label
+          role comes from the primitive, so a KPI caption cannot drift from the
+          ~100 captions C-c pointed at <MetaLabel>. */}
+      <MetaLabel className="mb-1 block">{label}</MetaLabel>
       <div className="flex items-baseline gap-2">
         <h3
           className={cn(
-            "text-3xl font-bold tracking-tight text-foreground tabular-nums",
+            "text-3xl font-semibold tracking-tight text-foreground tabular-nums",
             loading && "animate-pulse text-muted-foreground/30",
           )}
         >
@@ -145,8 +147,8 @@ export function Stat({
             className={cn(
               "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium",
               trendDirection === "down"
-                ? "bg-destructive/12 text-destructive"
-                : "bg-success/15 text-success",
+                ? "bg-destructive/12 text-destructive-ink"
+                : "bg-success/15 text-success-ink",
             )}
           >
             <AppIcon

@@ -8,7 +8,7 @@ import {
 import { UploaderRow } from "./uploader-row";
 import type { UploaderSummary } from "../types/upload-analytics";
 
-const HEAD = "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+const HEAD = "text-xs font-semibold text-muted-foreground";
 
 interface UploadersTableProps {
   uploaders: UploaderSummary[];

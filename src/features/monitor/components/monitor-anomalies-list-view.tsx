@@ -19,6 +19,8 @@ import { MonitorAnomaliesSkeleton } from "./monitor-skeletons";
 import { MonitorUnavailable, isMonitorUnavailableError } from "./monitor-unavailable";
 import { AnomalyCard } from "./anomaly-card";
 import type { MonitorAnomaliesParams } from "../types/monitor";
+import { Card } from "@/components/ui/card";
+import { filterControlClass } from "@/components/shared/filter-bar";
 
 const DEFAULT_PARAMS: MonitorAnomaliesParams = { limit: 50 };
 
@@ -56,10 +58,10 @@ export function MonitorAnomaliesListView() {
             })
           }
         >
-          <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[220px]">
+          <SelectTrigger className={filterControlClass}>
             <SelectValue placeholder="All Anomaly Types" />
           </SelectTrigger>
-          <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+          <SelectContent>
             <SelectItem value="ALL">All Anomaly Types</SelectItem>
             <SelectItem value="error_rate_spike">Error rate spike</SelectItem>
             <SelectItem value="latency_spike">Latency spike</SelectItem>
@@ -72,8 +74,8 @@ export function MonitorAnomaliesListView() {
           isMonitorUnavailableError(error) ? (
             <MonitorUnavailable onRetry={() => refetch()} />
           ) : (
-            <div className="py-20 text-center bg-card rounded-lg border border-border">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <Card className="gap-0 py-20 text-center">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
                 <AppIcon icon="solar:danger-circle-linear" className="size-8" />
               </div>
               <h3 className="text-lg font-semibold text-foreground">
@@ -85,10 +87,10 @@ export function MonitorAnomaliesListView() {
               <Button variant="outline" onClick={() => refetch()} className="mt-4">
                 Retry
               </Button>
-            </div>
+            </Card>
           )
         ) : anomalies.length === 0 ? (
-          <div className="py-20 text-center bg-card rounded-lg border border-border">
+          <Card className="gap-0 py-20 text-center">
             <AppIcon
               icon="solar:shield-check-linear"
               className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4"
@@ -99,7 +101,7 @@ export function MonitorAnomaliesListView() {
             <p className="text-sm text-muted-foreground mt-1">
               Error rate and latency are within the 24-hour baseline
             </p>
-          </div>
+          </Card>
         ) : (
           <div className="space-y-4">
             {anomalies.map((anomaly, i) => (

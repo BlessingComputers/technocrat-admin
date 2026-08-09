@@ -103,14 +103,14 @@ export function ConversationListItem({
             className={cn(
               "truncate text-sm",
               isTyping
-                ? "italic text-primary"
+                ? "italic text-primary-ink"
                 : "text-muted-foreground",
             )}
           >
             {preview}
           </span>
           {unreadCount > 0 && (
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-[11px] font-semibold text-white">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white">
               {unreadCount}
             </span>
           )}
@@ -124,8 +124,8 @@ export function ConversationListItem({
             className={cn(
               "mt-1.5 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
               conversation.aiState === "HANDLING"
-                ? "bg-jewel/10 text-jewel"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                ? "bg-jewel/10 text-jewel-ink"
+                : "bg-warning/10 text-warning-ink",
             )}
           >
             <AppIcon
@@ -162,7 +162,7 @@ export function ConversationListItem({
               }
             }}
             className={cn(
-              "mt-1.5 inline-flex items-center gap-1 rounded-md bg-primary/5 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10",
+              "mt-1.5 inline-flex items-center gap-1 rounded-md bg-primary/5 px-2 py-1 text-xs font-medium text-primary-ink hover:bg-primary/10",
               isTaking && "cursor-not-allowed opacity-60 hover:bg-primary/5",
             )}
           >

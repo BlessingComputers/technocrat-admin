@@ -18,6 +18,7 @@ import {
   type SlideLinkValue,
 } from "./promotion-slide-link-fields";
 import type { PromotionSlide } from "../types/promotions";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // backend caps at 5 MB/image
@@ -175,9 +176,9 @@ export function PromotionSlideManager({
       {sortedSlides.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+            <MetaLabel className="block">
               Slides ({sortedSlides.length})
-            </p>
+            </MetaLabel>
             <span className="text-xs text-muted-foreground italic">
               Drag to reorder
             </span>
@@ -199,7 +200,7 @@ export function PromotionSlideManager({
                   className="pointer-events-none h-full w-full object-cover"
                 />
                 {(slide.productSlug || slide.externalUrl) && (
-                  <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
                     <AppIcon
                       icon={
                         slide.productSlug ? "solar:box-linear" : "solar:link-linear"
@@ -223,7 +224,7 @@ export function PromotionSlideManager({
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="size-8 rounded-md text-destructive"
+                    className="size-8 rounded-md text-destructive-ink"
                     onClick={() => setSlideToDelete(slide.id)}
                   >
                     <AppIcon icon="solar:trash-bin-trash-linear" className="size-3.5" />
@@ -236,9 +237,9 @@ export function PromotionSlideManager({
       )}
 
       {editingSlideId && (
-        <Card className="space-y-4 border border-primary/30 bg-primary/[0.03] p-4">
+        <Card className="space-y-4 border-primary/30 bg-primary/[0.03] p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-black text-foreground">Edit slide</p>
+            <p className="text-sm font-semibold text-foreground">Edit slide</p>
             <Button variant="ghost" size="sm" onClick={() => setEditingSlideId(null)}>
               Cancel
             </Button>
@@ -257,7 +258,7 @@ export function PromotionSlideManager({
       {pendingFiles.length > 0 && (
         <div className="space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-black text-foreground">
+            <p className="text-sm font-semibold text-foreground">
               Ready to upload ({pendingFiles.length})
             </p>
             <div className="flex items-center gap-2">
@@ -322,7 +323,7 @@ export function PromotionSlideManager({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-7 shrink-0 text-destructive"
+                    className="size-7 shrink-0 text-destructive-ink"
                     onClick={() => removePendingFile(pf.id)}
                     disabled={uploadSlides.isPending}
                   >

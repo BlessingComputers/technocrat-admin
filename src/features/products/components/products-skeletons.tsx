@@ -108,7 +108,7 @@ export function CategoriesPanelSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {[0, 1].map((col) => (
-        <Card key={col} className="overflow-hidden border p-0">
+        <Card key={col} className="overflow-hidden p-0">
           <div className="flex items-center justify-between border-b border-border p-4">
             <Skeleton className="h-5 w-28" />
             <Skeleton className="h-8 w-16 rounded-lg" />

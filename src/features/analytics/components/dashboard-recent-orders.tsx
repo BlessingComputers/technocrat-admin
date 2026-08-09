@@ -26,7 +26,7 @@ export function DashboardRecentOrders({
   return (
     <Card className="overflow-hidden p-0 gap-0">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b bg-muted/5 px-4 sm:px-6 py-4 gap-4 sm:gap-0">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
           <AppIcon icon="solar:cart-large-2-bold" className="size-4" />
           Recent Orders
         </CardTitle>
@@ -34,7 +34,7 @@ export function DashboardRecentOrders({
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 sm:flex-none h-8 rounded-md gap-2 font-medium text-xs uppercase tracking-wide"
+            className="flex-1 sm:flex-none h-8 rounded-md gap-2 font-medium text-xs"
           >
             <AppIcon icon="solar:filter-bold" className="size-3.5" />
             Filter
@@ -43,7 +43,7 @@ export function DashboardRecentOrders({
             asChild
             variant="ghost"
             size="sm"
-            className="flex-1 sm:flex-none h-8 rounded-md text-primary font-medium text-xs uppercase tracking-wide"
+            className="flex-1 sm:flex-none h-8 rounded-md text-primary-ink font-medium text-xs"
           >
             <Link href="/orders">View All Queue</Link>
           </Button>
@@ -53,22 +53,22 @@ export function DashboardRecentOrders({
         <Table className="min-w-200">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b-border/40">
-              <TableHead className="w-30 px-6 font-semibold text-xs uppercase tracking-wide">
+              <TableHead className="w-30 px-6">
                 Order ID
               </TableHead>
-              <TableHead className="font-semibold text-xs uppercase tracking-wide">
+              <TableHead>
                 Customer
               </TableHead>
-              <TableHead className="font-semibold text-xs uppercase tracking-wide">
+              <TableHead>
                 Products
               </TableHead>
-              <TableHead className="font-semibold text-xs uppercase tracking-wide">
+              <TableHead>
                 Value
               </TableHead>
-              <TableHead className="font-semibold text-xs uppercase tracking-wide">
+              <TableHead>
                 Date
               </TableHead>
-              <TableHead className="text-right px-6 font-semibold text-xs uppercase tracking-wide">
+              <TableHead className="text-right px-6">
                 Status
               </TableHead>
             </TableRow>
@@ -120,7 +120,7 @@ export function DashboardRecentOrders({
                 <TableCell colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <AppIcon icon="solar:inbox-linear" className="size-8 opacity-30" />
-                    <p className="text-xs font-medium uppercase tracking-wide">
+                    <p className="text-xs font-medium">
                       No recent orders found
                     </p>
                   </div>

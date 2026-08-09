@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";
 import { UploaderDateRange } from "./uploader-date-range";
 import type { UploaderSort } from "../utils/filter-sort-uploaders";
+import { MetaLabel } from "@/components/shared/meta-label";
+import { Card } from "@/components/ui/card";
 
 interface DateRange {
   startDate: string;
@@ -37,7 +39,7 @@ export function UploaderManagementToolbar({
   onSortChange,
 }: UploaderManagementToolbarProps) {
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+    <Card className="gap-0 space-y-4 p-4 sm:p-5">
       <UploaderDateRange range={range} onChange={onRangeChange} />
       <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative sm:max-w-xs sm:flex-1">
@@ -54,7 +56,7 @@ export function UploaderManagementToolbar({
         </div>
         <SortPills sort={sort} onSortChange={onSortChange} />
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -67,16 +69,16 @@ function SortPills({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <MetaLabel className="shrink-0">
         Sort
-      </span>
+      </MetaLabel>
       <div className="flex flex-wrap gap-1 rounded-xl border border-border/40 bg-muted/20 p-1">
         {SORTS.map((option) => (
           <button
             key={option.id}
             onClick={() => onSortChange(option.id)}
             className={cn(
-              "rounded-lg px-2.5 py-1 text-xs font-semibold uppercase tracking-wide transition-all",
+              "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
               sort === option.id
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",

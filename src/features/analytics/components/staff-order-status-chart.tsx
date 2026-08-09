@@ -44,7 +44,7 @@ export function StaffOrderStatusChart({
       title="Orders"
       subtitle={`${(orders.todayOrders ?? 0).toLocaleString()} today`}
       icon="solar:cart-large-2-bold"
-      iconClass="bg-jewel/15 text-jewel"
+      iconClass="bg-jewel/15 text-jewel-ink"
       href="/orders"
       linkLabel="Manage orders"
       centerValue={orders.totalOrders ?? 0}

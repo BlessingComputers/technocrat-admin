@@ -30,6 +30,7 @@ import type {
   TaxRule,
 } from "../types/tax";
 import { rateToNumber, scopeLabel } from "../utils/tax-format";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /** Sentinel for the "any / all" option (shadcn Select rejects an empty value). */
 const ANY = "__any__";
@@ -159,12 +160,12 @@ export function TaxRuleFormDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-lg p-0 border-none">
         <div className="bg-primary rounded-t-lg p-6 text-primary-foreground">
-          <DialogTitle className="text-xl font-black tracking-tight">
+          <DialogTitle className="text-xl font-semibold tracking-tight">
             {isEditing ? "Edit Tax Rule" : "New Tax Rule"}
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-[11px] font-bold uppercase tracking-widest mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             {isPart ? "Part tax override" : "Product tax override"}
-          </p>
+          </MetaLabel>
         </div>
 
         {/* min-w-0: DialogContent is a CSS grid, so this form is a grid item
@@ -177,7 +178,7 @@ export function TaxRuleFormDialog({
           {isEditing ? (
             // Scope is immutable once a rule exists — show it, don't offer edits.
             <Field label="Scope">
-              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 h-9 text-sm font-bold text-foreground">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 h-9 text-sm font-semibold text-foreground">
                 {scopeLabel(initial, kind)}
               </div>
             </Field>
@@ -236,7 +237,7 @@ export function TaxRuleFormDialog({
                         />
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Pick at least one. A rule replaces the store rate for
                       everything in its scope; the most specific matching rule
                       wins.
@@ -275,8 +276,8 @@ export function TaxRuleFormDialog({
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/10">
             <div>
-              <p className="text-sm font-bold text-foreground">Active</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-sm font-semibold text-foreground">Active</p>
+              <p className="text-xs text-muted-foreground">
                 Inactive rules are ignored — the store rate applies instead
               </p>
             </div>
@@ -284,7 +285,7 @@ export function TaxRuleFormDialog({
           </div>
 
           {error && (
-            <p className="text-xs font-bold text-destructive" role="alert">
+            <p className="text-xs font-semibold text-destructive-ink" role="alert">
               {error}
             </p>
           )}
@@ -294,14 +295,14 @@ export function TaxRuleFormDialog({
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="flex-1 rounded-lg font-bold text-muted-foreground h-11"
+              className="flex-1 rounded-lg font-medium text-muted-foreground h-11"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-[2] rounded-lg bg-primary text-primary-foreground font-black h-11"
+              className="flex-[2] rounded-lg bg-primary text-primary-foreground font-medium h-11"
             >
               {isSubmitting
                 ? "Saving…"
@@ -346,7 +347,7 @@ function ScopeModeToggle({
           onClick={() => onChange(o.value)}
           aria-pressed={mode === o.value}
           className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-bold transition-colors",
+            "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
             mode === o.value
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -404,10 +405,10 @@ function ItemScopePicker({
     return (
       <Field label={label}>
         <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3">
-          <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-foreground">
+          <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
             <AppIcon
               icon="solar:box-linear"
-              className="size-4 shrink-0 text-primary"
+              className="size-4 shrink-0 text-primary-ink"
             />
             <span className="truncate">{selected.name}</span>
           </span>
@@ -438,11 +439,11 @@ function ItemScopePicker({
         {showResults && (
           <div className="absolute inset-x-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-md border border-border bg-card shadow-lg">
             {isFetching && results.length === 0 ? (
-              <p className="px-3 py-2 text-[11px] text-muted-foreground">
+              <p className="px-3 py-2 text-xs text-muted-foreground">
                 Searching…
               </p>
             ) : results.length === 0 ? (
-              <p className="px-3 py-2 text-[11px] text-muted-foreground">
+              <p className="px-3 py-2 text-xs text-muted-foreground">
                 No {noun} match “{term}”.
               </p>
             ) : (
@@ -464,7 +465,7 @@ function ItemScopePicker({
           </div>
         )}
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-xs text-muted-foreground">
         This rate applies to the exact {kind}, overriding any category
         {isPart ? ", brand, or part-type" : " or brand"} rule.
       </p>
@@ -513,7 +514,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+      <Label className="text-xs font-medium text-muted-foreground ml-1">
         {label}
       </Label>
       {children}

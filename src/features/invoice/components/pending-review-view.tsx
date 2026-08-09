@@ -13,6 +13,7 @@ import { InvoiceEmptyState } from "./invoice-empty-state";
 import { InvoiceTableSkeleton } from "./invoice-skeletons";
 import { customerName, formatInvoiceDate } from "../utils/invoice-utils";
 import type { InvoiceListParams } from "../types/invoice";
+import { Card } from "@/components/ui/card";
 
 const LIMIT = 20;
 const HEADERS = [
@@ -45,12 +46,12 @@ export function PendingReviewView() {
           <AppIcon icon="solar:arrow-left-linear" className="h-4 w-4" />
           Back
         </Link>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
           Pending Review
         </h1>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <Card className="gap-0 overflow-hidden py-0">
         <div className="p-6 pb-4">
           <div className="relative">
             <AppIcon
@@ -139,7 +140,7 @@ export function PendingReviewView() {
             />
           </div>
         )}
-      </div>
+      </Card>
     </PageContainer>
   );
 }

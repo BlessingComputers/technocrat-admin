@@ -59,8 +59,8 @@ export function InvoiceReviewPanel({
 
   return (
     <div className="space-y-6">
-      <Card className="gap-0 border bg-card p-8">
-        <h3 className="text-base font-bold text-foreground">
+      <Card className="gap-0 p-8">
+        <h3 className="text-base font-semibold text-foreground">
           Product availability
         </h3>
         <div className="mt-4 space-y-2">
@@ -89,8 +89,8 @@ export function InvoiceReviewPanel({
       {isUnavailable && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Customer communication */}
-          <Card className="gap-0 border bg-card p-8">
-            <h3 className="text-base font-bold text-foreground">
+          <Card className="gap-0 p-8">
+            <h3 className="text-base font-semibold text-foreground">
               Customer Communication
             </h3>
             <div className="mt-4 space-y-2">
@@ -123,8 +123,8 @@ export function InvoiceReviewPanel({
           </Card>
 
           {/* Customer decision */}
-          <Card className="gap-0 border bg-card p-8">
-            <h3 className="text-base font-bold text-foreground">
+          <Card className="gap-0 p-8">
+            <h3 className="text-base font-semibold text-foreground">
               Customer decision
             </h3>
             <div className="mt-4 space-y-2">

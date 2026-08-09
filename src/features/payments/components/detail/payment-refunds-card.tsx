@@ -21,9 +21,9 @@ export function PaymentRefundsCard({
   const refunds = payment.refunds ?? [];
 
   return (
-    <Card className="p-6 border bg-card space-y-4">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:card-recive-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-4">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:card-recive-linear" className="w-4 h-4 text-primary-ink" />
         Refunds
       </h3>
 
@@ -51,7 +51,7 @@ export function PaymentRefundsCard({
                 </div>
               </div>
               <div className="text-right space-y-1">
-                <div className="text-sm font-bold tabular-nums text-foreground">
+                <div className="text-sm font-semibold tabular-nums text-foreground">
                   {formatPrice(refund.amount)}
                 </div>
                 <Badge variant={paymentStatusTone(refund.status)}>

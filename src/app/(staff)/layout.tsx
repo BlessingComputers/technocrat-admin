@@ -35,7 +35,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
 function StaffShellFallback() {
   return (
     <div className="flex h-screen w-full items-center justify-center">
-      <AppIcon icon="solar:refresh-linear" className="size-8 animate-spin text-primary/60" />
+      <AppIcon icon="solar:refresh-linear" className="size-8 animate-spin text-primary-ink/60" />
       <span className="sr-only">Loading workspace…</span>
     </div>
   );

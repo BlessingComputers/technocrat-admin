@@ -15,18 +15,18 @@ const badgeVariants = cva(
         destructive:
           "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
         success:
-          "border-transparent bg-success/15 text-success [a&]:hover:bg-success/25",
+          "border-transparent bg-success/15 text-success-ink [a&]:hover:bg-success/25",
         warning:
-          "border-transparent bg-warning/15 text-warning [a&]:hover:bg-warning/25",
+          "border-transparent bg-warning/15 text-warning-ink [a&]:hover:bg-warning/25",
         danger:
-          "border-transparent bg-destructive/12 text-destructive [a&]:hover:bg-destructive/20",
-        info: "border-transparent bg-info/15 text-info [a&]:hover:bg-info/25",
+          "border-transparent bg-destructive/12 text-destructive-ink [a&]:hover:bg-destructive/20",
+        info: "border-transparent bg-info/15 text-info-ink [a&]:hover:bg-info/25",
         muted:
           "border-transparent bg-muted text-muted-foreground [a&]:hover:bg-muted/70",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 [a&]:hover:underline",
+        link: "text-primary-ink underline-offset-4 [a&]:hover:underline",
       },
     },
     defaultVariants: {

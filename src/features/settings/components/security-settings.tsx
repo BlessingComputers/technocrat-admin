@@ -69,7 +69,7 @@ export function SecuritySettings() {
             <div className="size-8 bg-primary/10 rounded-full flex items-center justify-center">
               <AppIcon
                 icon="solar:lock-keyhole-minimalistic-bold"
-                className="size-4 text-primary"
+                className="size-4 text-primary-ink"
               />
             </div>
             <CardTitle>Password Management</CardTitle>
@@ -94,7 +94,7 @@ export function SecuritySettings() {
                   <p className="font-semibold text-foreground">
                     Need a new token?
                   </p>
-                  <p className="text-[10px]">
+                  <p className="text-xs">
                     Click the button to send a fresh security token to your
                     inbox.
                   </p>
@@ -104,7 +104,7 @@ export function SecuritySettings() {
                   variant="outline"
                   onClick={handleRequestToken}
                   disabled={forgotMutation.isPending || !email}
-                  className="h-8 text-xs gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all"
+                  className="h-8 text-xs gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary-ink transition-all"
                 >
                   {forgotMutation.isPending ? (
                     <AppIcon
@@ -172,7 +172,7 @@ export function SecuritySettings() {
                   required
                 />
                 {isMismatch && (
-                  <p className="text-xs text-destructive mt-1 font-medium">
+                  <p className="text-xs text-destructive-ink mt-1 font-medium">
                     Passwords do not match
                   </p>
                 )}
@@ -201,10 +201,10 @@ export function SecuritySettings() {
       </Card>
 
       <div className="bg-muted/30 rounded-xl p-6 border border-border">
-        <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
+        <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
           <AppIcon
             icon="solar:shield-check-bold"
-            className="size-4 text-primary"
+            className="size-4 text-primary-ink"
           />
           Security Policy
         </h3>

@@ -9,7 +9,7 @@ export default function ProductTaxonomyLoading() {
     <div className="mx-auto max-w-6xl space-y-6">
       <Link
         href="/catalogues"
-        className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Products

@@ -31,7 +31,7 @@ export interface TaxRuleRow {
 }
 
 const HEAD =
-  "font-black text-[10px] uppercase tracking-widest text-muted-foreground";
+  "font-medium text-xs text-muted-foreground";
 
 interface TaxRulesTableProps {
   rows: TaxRuleRow[];
@@ -74,11 +74,11 @@ export function TaxRulesTable({
           ) : isError ? (
             <StateRow>
               <div className="flex flex-col items-center justify-center gap-4 text-center max-w-md mx-auto">
-                <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+                <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive-ink">
                   <AppIcon icon="solar:danger-circle-linear" className="size-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight text-foreground">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
                     Couldn’t load {noun} tax rules
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -97,7 +97,7 @@ export function TaxRulesTable({
                   <AppIcon icon="solar:bill-list-linear" className="size-7" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black tracking-tight text-foreground">
+                  <h3 className="text-base font-semibold tracking-tight text-foreground">
                     No {noun} tax rules yet
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -107,7 +107,7 @@ export function TaxRulesTable({
                 </div>
                 <Button
                   onClick={onCreate}
-                  className="mt-1 rounded-lg bg-primary text-primary-foreground font-black"
+                  className="mt-1 rounded-lg bg-primary text-primary-foreground font-medium"
                 >
                   <AppIcon icon="solar:add-circle-linear" className="mr-2 size-4" />
                   New Rule
@@ -143,34 +143,34 @@ function TaxRuleTableRow({
     <TableRow className="hover:bg-muted/30 border-b-border/40">
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span className="font-bold text-sm text-foreground leading-tight">
+          <span className="font-semibold text-sm text-foreground leading-tight">
             {row.scopeLabel}
           </span>
-          <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-bold w-fit">
+          <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-semibold w-fit">
             {row.ruleId}
           </span>
           {row.notes && (
-            <span className="text-[11px] text-muted-foreground line-clamp-1 max-w-[280px]">
+            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[280px]">
               {row.notes}
             </span>
           )}
         </div>
       </TableCell>
 
-      <TableCell className="text-right font-mono font-black text-sm tabular-nums text-foreground">
+      <TableCell className="text-right font-mono font-semibold text-sm tabular-nums text-foreground">
         {+row.rate.toFixed(2)}%
       </TableCell>
 
       <TableCell>
         <Badge
           variant={row.isActive ? "success" : "muted"}
-          className="font-black text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full"
+          className="font-medium text-xs px-2.5 py-1 rounded-full"
         >
           {row.isActive ? "Active" : "Inactive"}
         </Badge>
       </TableCell>
 
-      <TableCell className="text-muted-foreground text-xs font-bold">
+      <TableCell className="text-muted-foreground text-xs font-semibold">
         {row.createdByName}
       </TableCell>
 
@@ -194,7 +194,7 @@ function TaxRuleTableRow({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(row.id)}
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 font-bold"
+              className="text-destructive-ink focus:text-destructive-ink focus:bg-destructive/10 font-medium"
             >
               <AppIcon icon="solar:trash-bin-trash-linear" className="size-4 mr-2" />
               Delete

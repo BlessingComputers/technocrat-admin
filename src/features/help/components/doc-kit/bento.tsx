@@ -59,10 +59,10 @@ const HOVER = {
 
 /** Faded corner-glyph tint per tone — bolder than a hairline wash so it reads. */
 const GLYPH_TINT = {
-  muted: "text-primary/[0.07]",
-  card: "text-primary/[0.07]",
-  accent: "text-primary/[0.09]",
-  jewel: "text-jewel/[0.12]",
+  muted: "text-primary-ink/[0.07]",
+  card: "text-primary-ink/[0.07]",
+  accent: "text-primary-ink/[0.09]",
+  jewel: "text-jewel-ink/[0.12]",
   inverted: "text-primary-foreground/10",
   dark: "text-secondary-foreground/10",
 } as const;

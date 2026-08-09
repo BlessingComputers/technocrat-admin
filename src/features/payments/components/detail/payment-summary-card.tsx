@@ -7,6 +7,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
 import { getMidenReference } from "../../utils/payment-utils";
 import type { AdminTransactionDetail } from "../../types/payments";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const DATE_OPTS: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -36,9 +37,9 @@ export function PaymentSummaryCard({
   }
 
   return (
-    <Card className="p-6 border bg-card space-y-5">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:bill-list-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-5">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:bill-list-linear" className="w-4 h-4 text-primary-ink" />
         Transaction Summary
       </h3>
 
@@ -77,7 +78,7 @@ export function PaymentSummaryCard({
                 <button
                   type="button"
                   onClick={copyMidenReference}
-                  className="inline-flex items-center gap-1.5 hover:text-primary"
+                  className="inline-flex items-center gap-1.5 hover:text-primary-ink"
                   aria-label="Copy Miden reference"
                 >
                   {midenReference}
@@ -95,7 +96,7 @@ export function PaymentSummaryCard({
           value={
             <Link
               href={`/orders/gateway/${payment.orderId}`}
-              className="text-primary hover:underline"
+              className="text-primary-ink hover:underline"
             >
               {payment.orderNumber}
             </Link>
@@ -109,11 +110,11 @@ export function PaymentSummaryCard({
 
       {(payment.errorCode || payment.errorMessage) && (
         <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-4 space-y-1">
-          <p className="text-xs font-semibold text-destructive uppercase tracking-wide">
+          <p className="text-xs font-semibold text-destructive-ink">
             {payment.errorCode || "Error"}
           </p>
           {payment.errorMessage && (
-            <p className="text-xs text-destructive/80">
+            <p className="text-xs text-destructive-ink/80">
               {payment.errorMessage}
             </p>
           )}
@@ -136,11 +137,11 @@ function Row({
 }) {
   return (
     <div className="space-y-0.5">
-      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+      <MetaLabel className="block">
         {label}
-      </div>
+      </MetaLabel>
       <div
-        className={`text-sm text-foreground ${bold ? "font-bold" : "font-medium"} ${mono ? "font-mono text-xs" : ""}`}
+        className={`text-sm text-foreground ${bold ? "font-semibold" : "font-medium"} ${mono ? "font-mono text-xs" : ""}`}
       >
         {value}
       </div>

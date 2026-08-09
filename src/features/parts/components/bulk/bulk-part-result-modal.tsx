@@ -48,10 +48,10 @@ export function BulkPartResultModal({
               <div key={r.row} className="flex items-start gap-2 text-xs">
                 <AppIcon
                   icon="solar:close-circle-bold"
-                  className="mt-0.5 size-3.5 shrink-0 text-destructive"
+                  className="mt-0.5 size-3.5 shrink-0 text-destructive-ink"
                 />
                 <span>
-                  <span className="font-bold">{r.partName ?? `Row ${r.row}`}</span>
+                  <span className="font-semibold">{r.partName ?? `Row ${r.row}`}</span>
                   {r.error ? ` — ${r.error}` : ""}
                 </span>
               </div>

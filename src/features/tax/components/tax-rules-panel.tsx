@@ -149,7 +149,7 @@ export function TaxRulesPanel({
         {hasRules && (
           <Button
             onClick={openCreate}
-            className="shrink-0 rounded-lg bg-primary text-primary-foreground font-black h-9"
+            className="shrink-0 rounded-lg bg-primary text-primary-foreground font-medium h-9"
           >
             <AppIcon icon="solar:add-circle-linear" className="mr-2 size-4" />
             New Rule
@@ -157,7 +157,7 @@ export function TaxRulesPanel({
         )}
       </div>
 
-      <Card className="overflow-hidden border bg-card p-0 gap-0">
+      <Card className="overflow-hidden p-0 gap-0">
         <TaxRulesTable
           rows={rows}
           kind={kind}

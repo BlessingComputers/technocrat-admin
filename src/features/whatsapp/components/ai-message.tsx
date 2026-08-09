@@ -33,7 +33,7 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
           <AppIcon
             icon="solar:magic-stick-3-linear"
             aria-hidden
-            className="size-3.5 text-jewel"
+            className="size-3.5 text-jewel-ink"
           />
         </span>
         <span className="text-sm font-medium text-foreground">
@@ -47,7 +47,7 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
             <AppIcon
               icon="solar:eye-closed-linear"
               aria-hidden
-              className="size-3.5 text-warning"
+              className="size-3.5 text-warning-ink"
             />
             Shadow mode — not visible to customer
           </span>
