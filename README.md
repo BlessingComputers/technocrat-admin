@@ -17,10 +17,20 @@ npm run dev        # http://localhost:3100
 Other scripts: `npm run build`, `npm run lint`, `npm test`, `npm run gen:icons`,
 `npm run gen:api`.
 
-> **Environment.** No `.env` files were carried over from Blessing (they held
-> Blessing's secrets). Until the env & API seam ticket lands, create a local
-> `.env.development` pointing `NEXT_PUBLIC_BACKEND_URL` / `API_BASE_URL` at the
-> shared dev backend.
+> **Environment.** Create `.env.development` (and `.env.production` if you build
+> locally) with a single line:
+>
+> ```
+> NEXT_PUBLIC_BACKEND_URL=https://hard-berty-elijay-27db4d69.koyeb.app
+> ```
+>
+> That is the whole configuration. **It is the only variable that names a
+> backend** — the API base, unblock URL, both sockets and the codegen scripts all
+> derive from it (ADR-0015); the full variable list is in ARCHITECTURE.md. It
+> points at the shared Blessing dev backend on Koyeb, a read-mostly stand-in, and
+> we log in with Blessing admin credentials — so treat the data as someone
+> else's. Do **not** create a `.env.local`: Next loads it in every mode and it
+> silently overrides `.env.production`.
 
 ## Port allocation
 

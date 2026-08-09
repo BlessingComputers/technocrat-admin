@@ -14,7 +14,9 @@ export default defineConfig({
     environmentOptions: { jsdom: { url: "http://localhost:3000" } },
     include: ["src/**/*.test.{ts,tsx}"],
     // lib/api/endpoints.ts calls serverEnv() on import in a node environment.
-    env: { API_BASE_URL: "http://test.local" },
+    // One variable, as everywhere else — the suite is itself a check that the
+    // seam is env-driven and carries no baked-in host (ADR-0015).
+    env: { NEXT_PUBLIC_BACKEND_URL: "http://test.local" },
     // Repairs jsdom's storage globals, which Node 22+'s own experimental
     // localStorage/sessionStorage otherwise shadow with undefined.
     setupFiles: ["./vitest.setup.ts"],

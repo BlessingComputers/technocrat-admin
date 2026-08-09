@@ -34,4 +34,6 @@
 
 ## Technocrat decisions
 
-_None yet — the first one lands at 0015._
+| # | Decision |
+| --- | --- |
+| [0015](0015-single-backend-origin-seam.md) | `NEXT_PUBLIC_BACKEND_URL` is the single backend seam; the API base, unblock URL, sockets and codegen all derive from it |

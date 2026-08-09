@@ -10,9 +10,9 @@
  *
  * Source order (first that works wins):
  *   1. --from <path>            — a local backend checkout
- *   2. the DEPLOYED backend     — $CHAT_CONTRACT_URL or the default below,
- *                                 mirroring gen-api.mjs; types match what is
- *                                 actually serving in production
+ *   2. the DEPLOYED backend     — $CHAT_CONTRACT_URL, else the backend seam
+ *                                 NEXT_PUBLIC_BACKEND_URL (ADR-0015), mirroring
+ *                                 gen-api.mjs; types match what is serving
  *   3. GitHub at --ref (default main) — gh CLI, then GITHUB_TOKEN
  *
  * Usage:
@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { backendOrigin } from './backend-origin.mjs';
 
 const OWNER_REPO = 'TechnocratBlessingComputersBackend/BlessingComputerBackend';
 const CONTRACT_REPO_PATH = 'backend/src/modules/chats/chat.contract.ts';
@@ -49,7 +50,7 @@ async function fetchContract() {
     // frontend against the contract that is actually serving.
     const deployedUrl =
         process.env.CHAT_CONTRACT_URL ||
-        'https://hard-berty-elijay-27db4d69.koyeb.app/chat.contract.ts';
+        `${backendOrigin()}/chat.contract.ts`;
     try {
         console.log(`fetching deployed contract: ${deployedUrl}`);
         const res = await fetch(deployedUrl, { signal: AbortSignal.timeout(30_000) });

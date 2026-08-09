@@ -28,8 +28,10 @@ The customer site lives in a separate repo.
 7. **No `localStorage`/`sessionStorage` calls in shared code.** The fetch
    client uses them for refresh locks; other code must not. State goes in
    Zustand stores under `features/<x>/store/`.
-8. **Server-only env vars (`API_BASE_URL`, `CLAUDE_API_KEY`, etc.) must NOT be
+8. **Server-only env vars (`GROQ_API_KEY`, `CLAUDE_API_KEY`) must NOT be
    referenced in client components.** Only `NEXT_PUBLIC_*` is safe in client code.
+   All env access goes through `src/config/env.ts`; the backend address is a
+   single derived seam (ADR-0015) — never introduce a second host variable.
 
 ---
 
@@ -466,21 +468,29 @@ files (`src/types/api.d.ts`, `.next/`, `node_modules/`) are excluded.
 
 ## Environment variables
 
-Set in Vercel and locally via `.env.local`:
+Set in `.env.development` / `.env.production` locally and in the deploy platform's
+settings. All env files are gitignored with no exceptions — this table is the template.
+**There is no `.env.local` in this app** — Next loads it in every mode and it silently
+overrides `.env.production` during a local production build.
+
+**`NEXT_PUBLIC_BACKEND_URL` is the only variable that names a backend (ADR-0015).**
+The API base, the emergency-unblock URL, both sockets, and the codegen scripts are all
+*derived* from it in `src/config/env.ts`. `API_BASE_URL` and
+`NEXT_PUBLIC_EMERGENCY_UNBLOCK_URL` no longer exist — setting them does nothing.
 
 | Variable | Visibility | Purpose |
 | -------- | ---------- | ------- |
-
-| `API_BASE_URL` | server-only | Backend URL, used by Next.js rewrites |
-| `NEXT_PUBLIC_API_BASE_URL` | public | Client-side base, normally `/api` |
-| `NEXT_PUBLIC_BACKEND_URL` | public | Full backend URL when needed in components |
+| `NEXT_PUBLIC_BACKEND_URL` | public | **The seam.** Backend origin, no trailing slash, no `/api`. Required — a missing value throws at config load |
+| `NEXT_PUBLIC_API_BASE_URL` | public | Mount point of the same-origin proxy on *our* domain, normally `/api`. A path, not a host — not part of the seam |
+| `IMAGE_ASSET_HOSTS` | build-time | Comma-separated hostnames for `next/image` `remotePatterns`. Optional; defaults live in `config/env.ts`. Needs a rebuild, not a restart |
 | `NEXT_PUBLIC_SOCKET_POLLING_FALLBACK` | public | Set to `"true"` to restore Socket.IO's polling→websocket upgrade for chat + WhatsApp. Default is WebSocket-only (App Platform 504s held-open long-polls). Escape hatch only — no code change needed |
 | `GROQ_API_KEY` | server-only | AI smart-paste routes (products + parts), primary provider |
 | `CLAUDE_API_KEY` | server-only | AI smart-paste routes, Claude Haiku 4.5 fallback on Groq rate-limit |
 
-**Never reference `API_BASE_URL`, `GROQ_API_KEY` or `CLAUDE_API_KEY` in client components.** If
-a client component needs to call the backend, it goes through the relative
-`/api/...` path that the Next.js rewrite forwards.
+**Never reference `GROQ_API_KEY` or `CLAUDE_API_KEY` in client components** — read them
+through `serverEnv()`, which throws if touched in the browser. If a client component
+needs to call the backend, it goes through the relative `/api/...` path that the
+Next.js rewrite forwards.
 
 ---
 
