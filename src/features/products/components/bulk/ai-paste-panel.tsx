@@ -56,7 +56,7 @@ export function AiPastePanel({
   };
 
   return (
-    <Card className="border border-border">
+    <Card className="border">
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">

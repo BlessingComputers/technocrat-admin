@@ -19,7 +19,7 @@ export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
   const hasContact = Boolean(customer.email || customer.phone);
 
   return (
-    <Card className="p-6 border border-border bg-foreground rounded-xl text-background">
+    <Card className="p-6 border bg-foreground text-background">
       <h3 className="text-sm font-black uppercase tracking-widest mb-5 flex items-center gap-2 text-background/70">
         <AppIcon icon="solar:user-rounded-linear" className="w-4 h-4 text-primary" />
         Customer

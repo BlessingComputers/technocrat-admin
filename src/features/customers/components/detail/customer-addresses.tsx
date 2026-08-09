@@ -22,7 +22,7 @@ export function CustomerAddresses({ addresses }: CustomerAddressesProps) {
   if (!addresses || addresses.length === 0) return null;
 
   return (
-    <Card className="p-8 border border-border bg-card rounded-xl">
+    <Card className="p-8 border bg-card">
       <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-3">
         <AppIcon icon="solar:map-point-linear" className="w-5 h-5 text-primary" />
         Addresses

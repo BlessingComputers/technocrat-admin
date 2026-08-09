@@ -1,5 +1,4 @@
-import { Card } from "@/components/ui/card";
-import { AppIcon } from "@/components/shared/app-icon";
+import { Stat, StatsBar } from "@/components/shared/stats-bar";
 import { formatPrice } from "@/lib/utils/format";
 import { formatDate, toAmount } from "../../utils/customer-utils";
 import type {
@@ -38,44 +37,36 @@ export function CustomerStatsCards({
   const items = [
     {
       icon: "solar:bag-4-linear",
-      label: "Total Orders",
+      label: "Total orders",
       value: String(totalOrders),
     },
     {
       icon: "solar:wallet-linear",
-      label: "Lifetime Value",
+      label: "Lifetime value",
       value: formatPrice(totalSpent),
     },
     {
       icon: "solar:chart-2-linear",
-      label: "Avg. Order",
+      label: "Avg. order",
       value: formatPrice(avgOrderValue),
     },
     {
       icon: "solar:clock-circle-linear",
-      label: "Last Order",
+      label: "Last order",
       value: formatDate(lastOrderAt),
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <StatsBar>
       {items.map((item) => (
-        <Card
+        <Stat
           key={item.label}
-          className="p-5 border border-border bg-card rounded-xl"
-        >
-          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
-            <AppIcon icon={item.icon} className="w-5 h-5" />
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-            {item.label}
-          </p>
-          <h3 className="text-xl font-black text-foreground tracking-tighter truncate">
-            {item.value}
-          </h3>
-        </Card>
+          icon={item.icon}
+          label={item.label}
+          value={item.value}
+        />
       ))}
-    </div>
+    </StatsBar>
   );
 }

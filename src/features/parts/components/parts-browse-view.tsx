@@ -198,7 +198,7 @@ export function PartsBrowseView() {
         disabled={bulkDelete.isPending}
       />
 
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden border bg-card p-0">
         <PartsTable
           parts={parts}
           isLoading={isLoading}

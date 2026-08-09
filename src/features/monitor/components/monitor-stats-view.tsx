@@ -16,6 +16,7 @@ import { MonitorAccessGate } from "./monitor-access-gate";
 import { MonitorNavTabs } from "./monitor-nav-tabs";
 import { MonitorStatsSkeleton } from "./monitor-skeletons";
 import { MonitorUnavailable, isMonitorUnavailableError } from "./monitor-unavailable";
+import { StatsBar } from "@/components/shared/stats-bar";
 import { StatsKpiCard } from "./stats-kpi-card";
 import { RequestsPerMinuteChart } from "./stats/requests-per-minute-chart";
 import { TopRoutesList } from "./stats/top-routes-list";
@@ -76,9 +77,9 @@ export function MonitorStatsView() {
           )
         ) : !data ? null : (
           <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <StatsBar columns={5}>
               <StatsKpiCard
-                title="Total Requests"
+                title="Total requests"
                 value={data.requests.total.toLocaleString()}
                 icon="solar:list-linear"
               />
@@ -90,24 +91,24 @@ export function MonitorStatsView() {
                 tone="danger"
               />
               <StatsKpiCard
-                title="Error Rate"
+                title="Error rate"
                 value={`${data.requests.errorRate.toFixed(2)}%`}
                 icon="solar:chart-2-linear"
                 tone={data.requests.errorRate > 1 ? "warning" : "success"}
               />
               <StatsKpiCard
-                title="Avg Latency"
+                title="Avg latency"
                 value={`${data.latency.avg.toFixed(0)}ms`}
                 icon="solar:clock-circle-linear"
               />
               <StatsKpiCard
-                title="Max Latency"
+                title="Max latency"
                 value={`${data.latency.max.toLocaleString()}ms`}
                 description={`min ${data.latency.min}ms`}
                 icon="solar:bolt-linear"
                 tone="warning"
               />
-            </div>
+            </StatsBar>
 
             <Card>
               <CardHeader>

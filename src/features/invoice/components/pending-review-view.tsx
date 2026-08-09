@@ -50,7 +50,7 @@ export function PendingReviewView() {
         </h1>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="p-6 pb-4">
           <div className="relative">
             <AppIcon
@@ -81,7 +81,7 @@ export function PendingReviewView() {
                   {HEADERS.map((header) => (
                     <th
                       key={header}
-                      className="px-6 py-3.5 text-[13px] font-medium text-muted-foreground first:pl-8 last:pr-8 last:text-right"
+                      className="px-6 py-3.5 text-xs font-medium text-muted-foreground first:pl-8 last:pr-8 last:text-right"
                     >
                       {header}
                     </th>
@@ -91,7 +91,9 @@ export function PendingReviewView() {
               <tbody>
                 {invoices.map((inv) => (
                   <tr
-                    key={inv.id}
+                    // Same undocumented payload as the main list: `id` may be
+                    // absent, `invoiceId` is the row's real identity.
+                    key={inv.invoiceId ?? inv.id}
                     className="border-b border-border/50 last:border-0"
                   >
                     <td className="px-6 py-4 pl-8 text-sm font-medium text-foreground">

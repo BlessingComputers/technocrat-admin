@@ -95,7 +95,7 @@ export function ReviewingInvoicesDoc() {
           <StepCard
             n={4}
             span={5}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:dollar-minimalistic-linear"
             title="Refund if needed"
           >

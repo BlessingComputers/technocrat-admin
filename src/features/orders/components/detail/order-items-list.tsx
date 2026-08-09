@@ -14,7 +14,7 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <Card className="p-8 sm:p-10 border border-border bg-card rounded-xl">
+    <Card className="p-8 sm:p-10 border bg-card">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-xl font-black text-foreground flex items-center gap-3">
           <AppIcon icon="solar:box-linear" className="w-6 h-6 text-primary" />

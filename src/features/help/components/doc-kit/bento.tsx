@@ -38,10 +38,11 @@ const TONE = {
   muted: "border border-border/60 bg-muted/40 text-card-foreground",
   card: "border border-border/60 bg-card text-card-foreground shadow-soft",
   accent: "border border-primary/30 bg-primary/5 text-card-foreground",
-  // Gold stays a jewel accent (border + glyph), never a gold surface — the
-  // Gold-As-Jewel rule (DESIGN.md). It's a white card with a gold edge.
-  gold: "border border-gold/45 bg-card text-card-foreground shadow-soft",
-  // Inverted maroon — reserve for one focal surface per view (maroon-owns-action).
+  // Jewel is an accent EDGE (border + glyph), never a jewel surface. Carried
+  // over from Blessing's Gold-As-Jewel rule with the hue swapped to periwinkle
+  // (ticket 07) — a white card with a coloured edge.
+  jewel: "border border-jewel/45 bg-card text-card-foreground shadow-soft",
+  // Inverted brand — reserve for one focal surface per view (green-owns-action).
   inverted: "border border-primary bg-primary text-primary-foreground",
   // Inverted navy — the grounding dark surface where maroon would over-claim.
   dark: "border border-secondary bg-secondary text-secondary-foreground",
@@ -51,7 +52,7 @@ const HOVER = {
   muted: "hover:border-primary/40 hover:bg-muted/60",
   card: "hover:border-primary/40 hover:bg-muted/20",
   accent: "hover:border-primary/50 hover:bg-primary/10",
-  gold: "hover:border-gold/70 hover:bg-gold/5",
+  jewel: "hover:border-jewel/70 hover:bg-jewel/5",
   inverted: "hover:brightness-110",
   dark: "hover:brightness-125",
 } as const;
@@ -61,7 +62,7 @@ const GLYPH_TINT = {
   muted: "text-primary/[0.07]",
   card: "text-primary/[0.07]",
   accent: "text-primary/[0.09]",
-  gold: "text-gold/[0.12]",
+  jewel: "text-jewel/[0.12]",
   inverted: "text-primary-foreground/10",
   dark: "text-secondary-foreground/10",
 } as const;

@@ -13,8 +13,11 @@ export function getInitials(name?: string | null): string {
 }
 
 // A small palette of avatar tints, matching the designer's varied circles.
-// Semantic tokens only (ADR-0009) — the chart series plus success/gold give the
-// varied hues without hardcoding Tailwind palette colors.
+// Semantic tokens only (ADR-0009) — the chart series plus success/warning give
+// the varied hues without hardcoding Tailwind palette colors.
+// Blessing's deleted jewel-tier entry was dropped here (ticket 07) rather than
+// remapped: jewel resolves to chart-4, which is already in this list, so
+// keeping it would have given two people the same "different" tint.
 const AVATAR_COLORS = [
   "bg-chart-1",
   "bg-chart-2",
@@ -22,7 +25,6 @@ const AVATAR_COLORS = [
   "bg-chart-4",
   "bg-chart-5",
   "bg-success",
-  "bg-gold",
   "bg-warning",
 ];
 

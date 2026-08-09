@@ -21,7 +21,7 @@ export function CircuitStatusCard() {
   const { data, isLoading } = useCircuitHealth();
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-4">
+    <Card className="p-6 border bg-card space-y-4">
       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
         <AppIcon
           icon="solar:pulse-2-linear"

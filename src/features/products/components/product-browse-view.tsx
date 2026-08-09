@@ -157,7 +157,7 @@ export function ProductBrowseView() {
         disabled={bulkDelete.isPending}
       />
 
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden border bg-card p-0">
         <ProductsTable
           products={products}
           isLoading={isLoading}

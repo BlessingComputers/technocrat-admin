@@ -12,7 +12,7 @@ export default function ProductsHubLoading() {
         description="Manage products, categories, and brands in one place"
       />
       <SkeletonStatCards count={4} />
-      <Card className="overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="overflow-hidden border bg-card p-0">
         <CardHeader className="border-b bg-muted/5 px-6 py-4">
           <Skeleton className="h-5 w-40" />
         </CardHeader>

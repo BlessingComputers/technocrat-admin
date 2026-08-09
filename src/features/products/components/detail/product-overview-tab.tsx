@@ -61,7 +61,7 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="border border-border bg-muted/5">
+    <Card className="border bg-muted/5">
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
           <AppIcon icon={icon} className="size-3.5" />

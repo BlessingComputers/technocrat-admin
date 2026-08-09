@@ -38,7 +38,7 @@ export function ProductsInventoryHealth({ stats }: { stats: ProductStats }) {
   const healthyPct = stats.total > 0 ? Math.round((healthy / stats.total) * 100) : 0;
 
   return (
-    <Card className="flex h-full flex-col gap-5 rounded-xl border border-border bg-card p-6">
+    <Card className="flex h-full flex-col gap-5 border bg-card p-6">
       <div className="flex items-center gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
           <AppIcon icon="solar:chart-2-bold" className="size-5" />

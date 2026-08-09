@@ -12,7 +12,7 @@ import { BentoTile } from "./bento";
  * composed page rather than a bulleted list.
  *
  * Compose them inside `<Bento>`; give each a `span` and pick one focal `tone`
- * (`inverted`/`gold`) per mosaic to hold the Maroon-Owns-Action / Gold-As-Jewel
+ * (`inverted`/`jewel`) per mosaic to hold the Green-Owns-Action / jewel-as-edge
  * rules (DESIGN.md). `bgIcon` drops the giant faded corner glyph of the tile.
  */
 export function StepCard({
@@ -27,7 +27,7 @@ export function StepCard({
   n: number;
   title: string;
   span?: 4 | 5 | 6 | 7 | 8 | 12;
-  tone?: "muted" | "card" | "accent" | "gold" | "inverted" | "dark";
+  tone?: "muted" | "card" | "accent" | "jewel" | "inverted" | "dark";
   /** Iconify Solar name for the giant faded corner glyph. */
   bgIcon?: string;
   children: ReactNode;
@@ -38,8 +38,8 @@ export function StepCard({
       <div
         className={cn(
           "mb-4 flex size-11 items-center justify-center rounded-xl text-base font-black tabular-nums",
-          tone === "gold"
-            ? "bg-gold/15 text-gold-foreground"
+          tone === "jewel"
+            ? "bg-jewel/15 text-jewel"
             : dark
               ? "bg-primary-foreground/15 text-primary-foreground"
               : "bg-primary/10 text-primary",

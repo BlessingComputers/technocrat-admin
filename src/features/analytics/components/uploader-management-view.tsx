@@ -57,7 +57,7 @@ export function UploaderManagementView() {
           onSortChange={setSort}
         />
         {data && <UploaderSummaryStrip uploaders={data.uploaders} />}
-        <Card className="overflow-hidden rounded-xl border border-border bg-card">
+        <Card className="overflow-hidden border bg-card">
           <CardContent
             className={cn(
               "p-0 transition-opacity duration-200",

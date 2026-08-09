@@ -141,7 +141,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
         }
       />
 
-      <Card className="border border-border">
+      <Card className="border">
         <CardContent className="p-6 lg:p-8">
           <FormProvider {...form}>
             <form

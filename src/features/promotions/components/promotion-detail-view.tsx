@@ -127,7 +127,7 @@ export function PromotionDetailView({ id }: { id: string }) {
         </div>
       )}
 
-      <Card className="rounded-lg border border-border p-6">
+      <Card className="border p-6">
         <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
           Details
         </h2>
@@ -139,7 +139,7 @@ export function PromotionDetailView({ id }: { id: string }) {
         />
       </Card>
 
-      <Card className="rounded-lg border border-border p-6">
+      <Card className="border p-6">
         <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
           Slides
         </h2>

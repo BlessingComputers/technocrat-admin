@@ -29,7 +29,7 @@ export function ProductsRestockList() {
   );
 
   return (
-    <Card className="flex h-full flex-col gap-0 overflow-hidden rounded-xl border border-border bg-card p-0">
+    <Card className="flex h-full flex-col gap-0 overflow-hidden border bg-card p-0">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning">

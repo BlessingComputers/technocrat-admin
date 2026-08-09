@@ -108,9 +108,20 @@ export interface RefundRecord {
   createdAt: string;
 }
 
-/** A row in any invoice list (list / pending-review / rejected). */
+/**
+ * A row in any invoice list (list / pending-review / rejected).
+ *
+ * ⚠️ Hand-authored and UNVERIFIED. The OpenAPI spec documents this endpoint
+ * with `content?: never` — i.e. no response body schema at all — so nothing
+ * here is guaranteed by codegen.
+ *
+ * `id` is optional because it demonstrably is: React reported duplicate/missing
+ * keys on `key={inv.id}` in production rendering. The stable identifier for a
+ * row is `invoiceId` (it's the route param and the first rendered column), so
+ * prefer that for keys and navigation.
+ */
 export interface InvoiceListItem {
-  id: string;
+  id?: string;
   invoiceId: string;
   invoiceNumber: string;
   invoiceType: InvoiceType;

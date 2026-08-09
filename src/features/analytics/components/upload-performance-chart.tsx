@@ -52,7 +52,7 @@ function lastWeekDays(start: string, end: string): string[] {
 
 /**
  * Team upload volume over the last (up to) 7 days of the queried window as a
- * stacked bar chart — products (maroon) + parts (gold) per day, aggregated
+ * stacked bar chart — products (green) + parts (jewel) per day, aggregated
  * across every uploader's `dailyBreakdown`. The day axis is zero-filled from the
  * period so sparse activity shows empty slots instead of a single stretched bar.
  */

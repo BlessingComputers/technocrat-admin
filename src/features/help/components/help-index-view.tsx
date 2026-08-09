@@ -20,13 +20,13 @@ import { DocHero, Bento, BentoTile } from "./doc-kit";
 
 /**
  * Span/tone rhythm for the category mosaic. Widths pair to 12 columns and the
- * tones stay light + varied (gold jewel, muted, accent) — the two *dark* surfaces
- * on the page are the maroon hero deck and the navy CTA band, so the mosaic
- * doesn't double up on inverted panels (maroon-owns-action, DESIGN.md).
+ * tones stay light + varied (jewel, muted, accent) — the two *dark* surfaces
+ * on the page are the green hero deck and the graphite CTA band, so the mosaic
+ * doesn't double up on inverted panels (green-owns-action, DESIGN.md).
  */
 const MOSAIC_PATTERN = [
   { span: 7, tone: "card" },
-  { span: 5, tone: "gold" },
+  { span: 5, tone: "jewel" },
   { span: 5, tone: "muted" },
   { span: 7, tone: "accent" },
 ] as const;
@@ -239,7 +239,7 @@ function DocRow({ doc }: { doc: HelpDoc }) {
   return (
     <Link
       href={helpDocHref(doc.slug)}
-      className="group flex h-full items-start gap-4 rounded-xl border border-border/60 bg-card p-4 shadow-soft transition-colors hover:border-primary/40 hover:bg-muted/20 motion-reduce:transition-none"
+      className="group flex h-full items-start gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/20 motion-reduce:transition-none"
     >
       <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <AppIcon icon={doc.icon} className="size-6" />
@@ -321,13 +321,13 @@ function CategoryTileBody({
   docs: HelpDoc[];
   tone: (typeof MOSAIC_PATTERN)[number]["tone"];
 }) {
-  const gold = tone === "gold";
+  const jewel = tone === "jewel";
   return (
     <>
       <div
         className={cn(
           "mb-4 flex size-12 items-center justify-center rounded-2xl",
-          gold ? "bg-gold/15 text-gold-foreground" : "bg-primary/10 text-primary",
+          jewel ? "bg-jewel/15 text-jewel" : "bg-primary/10 text-primary",
         )}
       >
         <AppIcon icon={category.icon} className="size-6" />
@@ -349,8 +349,8 @@ function CategoryTileBody({
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                  gold
-                    ? "bg-gold/15 text-gold-foreground"
+                  jewel
+                    ? "bg-jewel/15 text-jewel"
                     : "bg-primary/10 text-primary",
                 )}
               >

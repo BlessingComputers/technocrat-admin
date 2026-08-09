@@ -7,7 +7,7 @@ import type { MonitorLogDetail } from "../../types/monitor";
 
 export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
+    <Card className="p-6 border bg-card space-y-5">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
         <AppIcon icon="solar:info-circle-linear" className="w-4 h-4 text-primary" />
         Request Info

@@ -124,7 +124,7 @@ export function ConversationListItem({
             className={cn(
               "mt-1.5 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
               conversation.aiState === "HANDLING"
-                ? "bg-gold/10 text-gold"
+                ? "bg-jewel/10 text-jewel"
                 : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
             )}
           >

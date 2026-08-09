@@ -119,7 +119,7 @@ export function InvoiceView() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         {showControls && (
           <div className="p-6 pb-4">
             <InvoiceFilterBar

@@ -104,7 +104,7 @@ export function ManualInvoiceDetailView({
       </div>
 
       {/* Summary header */}
-      <Card className="border border-border bg-card p-8 rounded-xl">
+      <Card className="border bg-card p-8">
         <div className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
           {/* Left */}
           <div className="space-y-4">
@@ -168,7 +168,7 @@ export function ManualInvoiceDetailView({
       </Card>
 
       {/* Customer + billing */}
-      <Card className="grid grid-cols-1 gap-x-12 gap-y-6 border border-border bg-card p-8 rounded-xl md:grid-cols-2">
+      <Card className="grid grid-cols-1 gap-x-12 gap-y-6 border bg-card p-8 md:grid-cols-2">
         <div>
           <h3 className="mb-4 text-sm font-black text-foreground">
             Customer Information
@@ -211,7 +211,7 @@ export function ManualInvoiceDetailView({
       <ManualDetailItems items={invoice.lineItems} />
 
       {/* Amount summary */}
-      <Card className="border border-border bg-card p-8 rounded-xl">
+      <Card className="border bg-card p-8">
         <h3 className="mb-4 text-sm font-black text-foreground">
           Amount Summary
         </h3>
@@ -239,14 +239,14 @@ export function ManualInvoiceDetailView({
         </div>
       </Card>
 
-      <Card className="border border-border bg-card p-8 rounded-xl">
+      <Card className="border bg-card p-8">
         <h3 className="mb-2 text-sm font-black text-foreground">Issued by</h3>
         <p className="text-sm font-medium text-muted-foreground">
           {issuerName(invoice)}
         </p>
       </Card>
 
-      <Card className="border border-border bg-card p-8 rounded-xl">
+      <Card className="border bg-card p-8">
         <h3 className="mb-2 text-sm font-black text-foreground">Notes</h3>
         <p className="text-sm font-medium text-muted-foreground">
           {invoice.notes || "—"}
@@ -342,7 +342,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function ManualDetailItems({ items }: { items: ManualInvoiceLineItem[] }) {
   return (
-    <Card className="overflow-hidden border border-border bg-card p-0 rounded-xl">
+    <Card className="overflow-hidden border bg-card p-0">
       <div className="p-8 pb-4">
         <h3 className="text-sm font-black text-foreground">Items</h3>
       </div>

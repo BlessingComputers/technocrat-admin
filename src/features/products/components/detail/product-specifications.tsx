@@ -39,7 +39,7 @@ export function ProductSpecifications({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {entries.map((spec, i) => (
-        <Card key={i} className="border border-border bg-muted/10">
+        <Card key={i} className="border bg-muted/10">
           <CardContent className="p-3 flex justify-between items-center gap-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               {spec.name}

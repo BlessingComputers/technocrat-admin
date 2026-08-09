@@ -85,7 +85,7 @@ export function BulkProgress({
   const results = batch.results ?? [];
 
   return (
-    <Card className="border border-border">
+    <Card className="border">
       <CardContent className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Upload Progress</h3>

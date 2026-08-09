@@ -37,7 +37,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Process & track",
     href: "/orders",
     icon: "solar:cart-large-2-bold-duotone",
-    iconClass: "bg-gold/15 text-gold",
+    iconClass: "bg-jewel/15 text-jewel",
     group: "orders",
   },
   {
@@ -77,7 +77,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Customer conversations",
     href: "/chat",
     icon: "solar:chat-round-bold-duotone",
-    iconClass: "bg-gold/15 text-gold",
+    iconClass: "bg-jewel/15 text-jewel",
   },
   {
     title: "Users",
@@ -114,7 +114,7 @@ export function QuickLinksGrid({
           <Link
             key={link.href}
             href={link.href}
-            className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_12px_40px_-16px_rgba(0,0,0,0.18)]"
+            className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/25 hover:bg-muted/40"
           >
             <span
               className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${link.iconClass}`}

@@ -35,7 +35,7 @@ export function CustomerOrdersList({
   isLoading,
 }: CustomerOrdersListProps) {
   return (
-    <Card className="p-8 border border-border bg-card rounded-xl">
+    <Card className="p-8 border bg-card">
       <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-3">
         <AppIcon icon="solar:bag-4-linear" className="w-5 h-5 text-primary" />
         Order History

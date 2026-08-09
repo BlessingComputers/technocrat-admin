@@ -236,7 +236,7 @@ export function PromotionSlideManager({
       )}
 
       {editingSlideId && (
-        <Card className="space-y-4 rounded-lg border border-primary/30 bg-primary/[0.03] p-4">
+        <Card className="space-y-4 border border-primary/30 bg-primary/[0.03] p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-black text-foreground">Edit slide</p>
             <Button variant="ghost" size="sm" onClick={() => setEditingSlideId(null)}>

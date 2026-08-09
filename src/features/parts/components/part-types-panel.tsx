@@ -39,7 +39,7 @@ export function PartTypesPanel() {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-lg border border-border p-4">
+      <Card className="border p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Add a part type
         </p>
@@ -95,7 +95,7 @@ export function PartTypesPanel() {
           {types.map((t) => (
             <Card
               key={t.id}
-              className="flex items-center gap-3 rounded-xl border border-border p-3"
+              className="flex items-center gap-3 border p-3"
             >
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <AppIcon icon="solar:widget-5-linear" className="size-4" />

@@ -26,10 +26,10 @@ export function BankAccountCard({
   return (
     <Card
       className={cn(
-        "p-8 border-2 transition-all relative overflow-hidden group rounded-lg",
+        "p-8 border-2 transition-all relative overflow-hidden group",
         account.isPrimary
           ? "border-primary bg-primary/[0.03]"
-          : "border-border bg-card",
+          : "bg-card",
       )}
     >
       {account.isPrimary && <PrimaryBadge />}

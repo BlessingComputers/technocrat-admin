@@ -35,7 +35,7 @@ export function UploaderAnalyticsSection({
   const [editing, setEditing] = useState<UploaderSummary | null>(null);
 
   return (
-    <Card className="overflow-hidden rounded-xl border border-border bg-card">
+    <Card className="overflow-hidden border bg-card">
       <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/5 px-6 py-4">
         <div className="space-y-0.5">
           <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">

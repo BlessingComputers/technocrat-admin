@@ -21,7 +21,7 @@ const STAT_LABEL =
 export function ProductPricingCard({ variant }: ProductPricingCardProps) {
   if (!variant) {
     return (
-      <Card className="border border-border p-6">
+      <Card className="border p-6">
         <p className="text-sm text-muted-foreground">
           No pricing information available.
         </p>
@@ -33,7 +33,7 @@ export function ProductPricingCard({ variant }: ProductPricingCardProps) {
   const isLow = variant.stockQuantity <= variant.lowStockThreshold;
 
   return (
-    <Card className="border border-border p-0">
+    <Card className="border p-0">
       <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         <div className="space-y-1">
           <p className={STAT_LABEL}>Part Number</p>

@@ -66,7 +66,7 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
         </div>
 
         <div className="space-y-6 lg:col-span-2">
-          <Card className="space-y-4 rounded-lg border border-border p-6">
+          <Card className="space-y-4 border p-6">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Details
             </h3>
@@ -137,7 +137,7 @@ export function PartDetailView({ partId }: PartDetailViewProps) {
             )}
           </Card>
 
-          <Card className="rounded-lg border border-border p-6">
+          <Card className="border p-6">
             <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Specifications
             </h3>
@@ -193,7 +193,7 @@ function PartGallery({ part }: { part: Part }) {
   const [active, setActive] = useState<string | null>(initial);
 
   return (
-    <Card className="space-y-3 rounded-lg border border-border p-3">
+    <Card className="space-y-3 border p-3">
       <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
         {active ? (
           // eslint-disable-next-line @next/next/no-img-element

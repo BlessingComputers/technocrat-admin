@@ -14,7 +14,7 @@ const HEADERS = ["Product", "SKU", "Variant", "QTY", "Unit price", "Total"];
 
 export function InvoiceItemsCard({ items }: InvoiceItemsCardProps) {
   return (
-    <Card className="gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="gap-0 border bg-card p-8">
       <h3 className="text-base font-bold text-foreground">Items</h3>
 
       <div className="mt-5 overflow-x-auto">
@@ -24,7 +24,7 @@ export function InvoiceItemsCard({ items }: InvoiceItemsCardProps) {
               {HEADERS.map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-3 text-[13px] font-medium text-muted-foreground first:rounded-l-lg first:pl-4 last:rounded-r-lg"
+                  className="px-4 py-3 text-xs font-medium text-muted-foreground first:rounded-l-lg first:pl-4 last:rounded-r-lg"
                 >
                   {header}
                 </th>

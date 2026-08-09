@@ -30,7 +30,7 @@ export function TaxSettingPanel() {
 
   if (isError || !setting) {
     return (
-      <Card className="border border-border rounded-lg bg-card p-6">
+      <Card className="border bg-card p-6">
         <div className="flex flex-col items-center justify-center gap-3 text-center py-6">
           <div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
             <AppIcon icon="solar:danger-circle-linear" className="size-6" />
@@ -78,7 +78,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
   };
 
   return (
-    <Card className="border border-border rounded-lg bg-card p-6 gap-0">
+    <Card className="border bg-card p-6 gap-0">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
@@ -199,7 +199,7 @@ function TaxSettingForm({ setting }: { setting: TaxSetting }) {
 
 function TaxSettingSkeleton() {
   return (
-    <Card className="border border-border rounded-lg bg-card p-6 gap-0">
+    <Card className="border bg-card p-6 gap-0">
       <div className="space-y-2">
         <div className="h-5 w-40 rounded bg-muted animate-pulse" />
         <div className="h-4 w-80 max-w-full rounded bg-muted/70 animate-pulse" />

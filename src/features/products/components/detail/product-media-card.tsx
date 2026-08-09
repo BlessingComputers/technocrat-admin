@@ -18,7 +18,7 @@ export function ProductMediaCard({ product }: ProductMediaCardProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border border-border p-0">
+      <Card className="overflow-hidden border p-0">
         <div className="aspect-square relative bg-muted flex items-center justify-center">
           {primary ? (
             // eslint-disable-next-line @next/next/no-img-element

@@ -28,7 +28,7 @@ export function OrderDeliveryCard({
   const icon = isDispatch ? "solar:delivery-linear" : "solar:shop-linear";
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl">
+    <Card className="p-6 border bg-card">
       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
         <AppIcon icon={icon} className="w-4 h-4 text-primary" />
         Delivery

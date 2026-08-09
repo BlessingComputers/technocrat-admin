@@ -212,7 +212,7 @@ export function ConversationList({
               <QueueGroup
                 label="AI handling"
                 icon="solar:magic-stick-3-linear"
-                iconClassName="text-gold"
+                iconClassName="text-jewel"
                 conversations={queueSplit.aiHandling}
                 {...rowProps}
               />

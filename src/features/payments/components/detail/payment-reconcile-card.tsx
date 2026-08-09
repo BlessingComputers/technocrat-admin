@@ -35,7 +35,7 @@ export function PaymentReconcileCard({
   const tone = reconcileOutcomeTone(payment.lastReconcileOutcome);
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-4">
+    <Card className="p-6 border bg-card space-y-4">
       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
         <AppIcon icon="solar:radar-2-linear" className="w-4 h-4 text-primary" />
         Reconciliation Sweep

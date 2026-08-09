@@ -3,11 +3,12 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
 
 /** Icon-chip tints available to a Tile. `primary`/`success` preserve the
- *  original two; `gold`/`navy` extend the palette for newer guides. */
+ *  original two; `jewel`/`navy` extend the palette for newer guides.
+ *  `jewel` is decorative only — never use it to signal state. */
 const TILE_TONE = {
   primary: "bg-primary/10 text-primary",
   success: "bg-success/15 text-success",
-  gold: "bg-gold/15 text-gold-foreground",
+  jewel: "bg-jewel/15 text-jewel",
   navy: "bg-secondary/10 text-secondary",
 } as const;
 
@@ -27,7 +28,7 @@ export function Tile({
   tone?: keyof typeof TILE_TONE;
 }) {
   return (
-    <Card className="rounded-xl border border-border p-5">
+    <Card className="border p-5">
       <div
         className={cn(
           "mb-3 flex size-10 items-center justify-center rounded-lg",

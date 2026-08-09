@@ -10,7 +10,7 @@ interface CustomerProfileCardProps {
 
 export function CustomerProfileCard({ customer }: CustomerProfileCardProps) {
   return (
-    <Card className="p-8 border border-border bg-foreground rounded-xl text-background">
+    <Card className="p-8 border bg-foreground text-background">
       <div className="flex items-center gap-4 mb-8">
         <div className="w-14 h-14 rounded-full bg-primary/20 text-primary flex items-center justify-center text-lg font-black shrink-0">
           {initials(customer)}

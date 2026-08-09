@@ -36,7 +36,7 @@ export function WebhookRegistrationCard() {
   const disabled = !valid || !confirmed || mutation.isPending;
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
+    <Card className="p-6 border bg-card space-y-5">
       <div>
         <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <AppIcon icon="solar:link-linear" className="w-4 h-4 text-primary" />
@@ -55,7 +55,7 @@ export function WebhookRegistrationCard() {
         <Input
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://api.blessingcomputers.com"
+          placeholder="https://api.example.com"
           className="rounded-lg bg-muted/50 border-border font-mono text-xs"
         />
         {baseUrl && !valid && (

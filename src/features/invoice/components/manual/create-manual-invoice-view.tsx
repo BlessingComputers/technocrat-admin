@@ -93,7 +93,7 @@ export function CreateManualInvoiceView() {
         </p>
       </div>
 
-      <Card className="border border-border bg-card p-8 rounded-2xl">
+      <Card className="border bg-card p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           <ManualCustomerFields form={form} onChange={update} />
 

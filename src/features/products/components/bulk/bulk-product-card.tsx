@@ -89,7 +89,7 @@ export function BulkProductCard({
   const fromPrice = row.variants[0]?.price || "—";
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
       {/* Summary header */}
       <div className="flex items-center gap-3 p-4">
         <button

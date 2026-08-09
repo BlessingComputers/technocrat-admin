@@ -23,7 +23,14 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-primary/[0.04] [&_tr]:border-b", className)}
+      // Sharp instrument (ticket 07): the header is separated from the body by
+      // a definite rule, not just a tint — a readout's column header, not a
+      // decorated strip. The brand tint stays; it is what keeps the table
+      // recognisably Technocrat's.
+      className={cn(
+        "bg-primary/[0.04] [&_tr]:border-b [&_tr]:border-b-border",
+        className,
+      )}
       {...props}
     />
   );

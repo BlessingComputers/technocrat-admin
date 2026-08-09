@@ -136,7 +136,7 @@ export function CategoriesPanel() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Top-level categories */}
-      <Card className="border border-border p-0 overflow-hidden">
+      <Card className="border p-0 overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <AppIcon icon="solar:folder-linear" className="size-5 text-primary" />
@@ -221,7 +221,7 @@ export function CategoriesPanel() {
       </Card>
 
       {/* Subcategories of the active category */}
-      <Card className="border border-border p-0 overflow-hidden">
+      <Card className="border p-0 overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground truncate">

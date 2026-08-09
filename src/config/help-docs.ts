@@ -296,7 +296,7 @@ export const helpDocs: HelpDoc[] = [
       "points",
       "bronze",
       "silver",
-      "gold",
+      "jewel",
       "platinum",
       "lifetime value",
       "spend",

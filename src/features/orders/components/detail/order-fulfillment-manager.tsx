@@ -74,7 +74,7 @@ export function OrderFulfillmentManager({
   };
 
   return (
-    <Card className="p-8 sm:p-10 border border-border bg-card rounded-xl">
+    <Card className="p-8 sm:p-10 border bg-card">
       <h3 className="text-xl font-black text-foreground mb-8 flex items-center gap-3">
         <AppIcon icon="solar:delivery-linear" className="w-6 h-6 text-primary" />
         Fulfilment

@@ -281,7 +281,7 @@ export function PartForm({ initialData, productContext }: PartFormProps) {
         }
       />
 
-      <Card className="border border-border">
+      <Card className="border">
         <CardContent className="p-6 lg:p-8">
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

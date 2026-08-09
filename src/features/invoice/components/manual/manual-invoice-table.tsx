@@ -45,7 +45,7 @@ export function ManualInvoiceTable({
             {HEADERS.map((header) => (
               <th
                 key={header}
-                className="px-6 py-3.5 text-[13px] font-medium text-muted-foreground first:pl-8"
+                className="px-6 py-3.5 text-xs font-medium text-muted-foreground first:pl-8"
               >
                 {header}
               </th>

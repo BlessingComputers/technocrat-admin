@@ -10,7 +10,7 @@ interface InvoiceTimelineProps {
 
 export function InvoiceTimeline({ timeline }: InvoiceTimelineProps) {
   return (
-    <Card className="h-full gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="h-full gap-0 border bg-card p-8">
       <h3 className="text-base font-bold text-foreground">Timeline</h3>
 
       {timeline.length === 0 ? (

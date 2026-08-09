@@ -22,7 +22,7 @@ export function InvoiceSummaryCard({ invoice }: InvoiceSummaryCardProps) {
   }
 
   return (
-    <Card className="gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="gap-0 border bg-card p-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_auto_1fr] lg:gap-10">
         {/* Identity */}
         <div>

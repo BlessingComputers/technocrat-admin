@@ -36,7 +36,7 @@ export function PaymentSummaryCard({
   }
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
+    <Card className="p-6 border bg-card space-y-5">
       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
         <AppIcon icon="solar:bill-list-linear" className="w-4 h-4 text-primary" />
         Transaction Summary

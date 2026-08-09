@@ -13,7 +13,7 @@ export default function InvoicesLoading() {
       <PageHeader title="Invoices" />
       <SkeletonStatCards count={4} />
       <Skeleton className="h-10 w-72 rounded-lg" />
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="p-6 pb-4">
           <SkeletonFilterBar />
         </div>

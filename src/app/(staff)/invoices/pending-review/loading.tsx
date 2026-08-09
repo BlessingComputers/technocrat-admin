@@ -20,7 +20,7 @@ export default function PendingReviewLoading() {
         </h1>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="p-6 pb-4">
           <Skeleton className="h-10 w-full rounded-lg" />
         </div>

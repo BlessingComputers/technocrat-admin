@@ -158,7 +158,7 @@ export function ProductsHubView() {
         </div>
       </div>
 
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden border bg-card p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Recently added
@@ -233,7 +233,7 @@ function CatalogEntryCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.22)]",
+        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-colors duration-150 hover:border-primary/25 hover:bg-muted/40",
         styles.border,
       )}
     >

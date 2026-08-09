@@ -12,7 +12,7 @@ export function InvoiceAmountSummary({ invoice }: InvoiceAmountSummaryProps) {
   const taxRate = invoice.taxRate ?? 0;
 
   return (
-    <Card className="h-full gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="h-full gap-0 border bg-card p-8">
       <h3 className="text-base font-bold text-foreground">Amount Summary</h3>
 
       <dl className="mt-5 space-y-3 text-sm">

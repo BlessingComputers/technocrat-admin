@@ -44,7 +44,7 @@ export function BulkProductUploadDoc() {
           />
           <Tile
             icon="solar:box-linear"
-            tone="gold"
+            tone="jewel"
             title="Even a single product"
             body="Adding just one? Bulk upload with a single manual row is quicker than the full product form."
           />
@@ -118,7 +118,7 @@ export function BulkProductUploadDoc() {
           <StepCard
             n={5}
             span={12}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:cloud-upload-linear"
             title="Upload the batch"
           >

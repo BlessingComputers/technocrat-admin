@@ -54,7 +54,7 @@ export function OrderPaymentVerification({
   if (!order.proofOfPaymentUrl) return null;
 
   return (
-    <Card className="border border-border bg-card rounded-xl overflow-hidden">
+    <Card className="border bg-card overflow-hidden">
       <div className="p-8 sm:p-10 border-b border-border flex items-center justify-between">
         <h3 className="text-xl font-black text-foreground flex items-center gap-3">
           <AppIcon icon="solar:shield-check-linear" className="w-6 h-6 text-primary" />

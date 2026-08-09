@@ -99,7 +99,7 @@ export function ManagingProductsDoc() {
           <StepCard
             n={4}
             span={6}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:power-linear"
             title="Make it live"
           >

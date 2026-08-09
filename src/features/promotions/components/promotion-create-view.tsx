@@ -33,7 +33,7 @@ export function PromotionCreateView() {
         title="New Promotion"
         description="Starts as a draft. You'll add slide images and publish it on the next screen."
       />
-      <Card className="rounded-lg border border-border p-6">
+      <Card className="border p-6">
         <PromotionForm
           onSubmit={handleSubmit}
           isPending={createPromotion.isPending}

@@ -81,7 +81,7 @@ export function GettingStartedDoc() {
           />
           <Tile
             icon="solar:question-circle-linear"
-            tone="gold"
+            tone="jewel"
             title="Search the Help Center"
             body="Not sure how to do something? Open Help, type what you're after, and the matching guide comes up."
           />

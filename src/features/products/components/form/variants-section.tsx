@@ -71,7 +71,7 @@ export function VariantsSection({
         </div>
       )}
 
-      <Card className="border-border bg-muted/10 overflow-hidden p-0">
+      <Card className="bg-muted/10 overflow-hidden p-0">
         <CardContent className="p-4">
           <fieldset
             disabled={missingDefaultVariant}

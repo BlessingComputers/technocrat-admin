@@ -1,5 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AppIcon } from "@/components/shared/app-icon";
+import { Stat } from "@/components/shared/stats-bar";
 import type { CustomersBucket } from "../types/dashboard-kpi";
 
 interface NewCustomersCardProps {
@@ -7,59 +6,48 @@ interface NewCustomersCardProps {
 }
 
 /**
- * "New Customers" KPI card. Structurally different from the other live cards
- * (single solid bar instead of split, total-database row + descriptive text)
- * so it doesn't share the `KpiSplitCard` shell.
+ * "New customers" KPI cell. Structurally richer than the split cards (single
+ * solid bar instead of a split, plus a total-database row), but it renders
+ * through the same `<Stat>` so it sits flush in the `<StatsBar>` panel.
+ *
+ * Ticket 07: this was a bare `<Card>` dropped inside the KPI grid. Once the
+ * grid became a single panel, that nested card drew its own radius and border
+ * inside the panel — visibly the odd cell out. Never nest a card (DESIGN.md).
  */
 export function NewCustomersCard({ customers }: NewCustomersCardProps) {
   return (
-    <Card className="hover:border-primary/20 transition-all group relative overflow-hidden">
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="size-10 rounded-xl flex items-center justify-center bg-info/10 text-info">
-            <AppIcon icon="solar:users-group-rounded-bold" className="size-5" />
+    <Stat
+      icon="solar:users-group-rounded-linear"
+      tone="info"
+      label="New customers"
+      value={`+${(customers.new || 0).toLocaleString()}`}
+      badge="Acquisition"
+      badgeTone="info"
+      footer={
+        <>
+          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
+            <div className="w-full rounded-full bg-info" />
           </div>
-          <span className="text-xs font-semibold uppercase tracking-wide bg-info/10 text-info px-2 py-0.5 rounded-md">
-            Acquisition
-          </span>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            New Customers
-          </p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            +{(customers.new || 0).toLocaleString()}
-          </h3>
-        </div>
-
-        <div className="space-y-1 pt-1.5">
-          <div className="h-1.5 w-full bg-muted/60 rounded-full flex overflow-hidden">
-            <div
-              className="bg-info rounded-full"
-              style={{ width: "100%" }}
-            />
-          </div>
-          <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+          <div className="mt-1 text-xs text-muted-foreground">
             Registration rate active
           </div>
-        </div>
 
-        <div className="pt-2 border-t border-border/50 space-y-1.5 text-xs">
-          <div className="flex justify-between items-center text-muted-foreground">
-            <span className="font-bold flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-info" />
-              Total Database
-            </span>
-            <span className="font-extrabold text-foreground">
-              {(customers.total || 0).toLocaleString()}
-            </span>
+          <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-info" />
+                Total database
+              </span>
+              <span className="font-semibold text-foreground">
+                {(customers.total || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Registered customers across all periods.
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            Registered customers across all periods.
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+    />
   );
 }
