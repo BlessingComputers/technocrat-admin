@@ -38,6 +38,7 @@ function useSidebar() {
 
 function SidebarProvider({
   defaultOpen = false,
+  defaultRailCollapsed = false,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -46,6 +47,8 @@ function SidebarProvider({
   ...props
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
+  /** Server-read cookie value, so the docked rail's first paint is its persisted width. */
+  defaultRailCollapsed?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -59,6 +62,21 @@ function SidebarProvider({
   React.useEffect(() => {
     setIsMobile(isMobile);
   }, [isMobile, setIsMobile]);
+
+  // Seed the rail from the server-read cookie *during render*, not in an
+  // effect. An effect runs after paint, so a user who collapsed the rail would
+  // watch it render expanded and then snap — shoving the whole canvas sideways
+  // on every load. Seeding here means SSR and the hydration pass read the same
+  // value and agree.
+  //
+  // A `useState` lazy initializer rather than a ref guard: both run once per
+  // mount, but reading `ref.current` during render is a React lint error, while
+  // the initializer is the sanctioned once-per-mount render hook. The provider
+  // is the tree root, so this always writes before any child reads.
+  React.useState(() => {
+    useSidebarStore.setState({ railCollapsed: defaultRailCollapsed });
+    return defaultRailCollapsed;
+  });
 
   // Initialize with defaultOpen
   React.useEffect(() => {
@@ -133,7 +151,7 @@ function Sidebar({
   side?: "left" | "right";
   collapsible?: "offcanvas" | "none";
 }) {
-  const { open, setOpen, isMobile } = useSidebar();
+  const { open, setOpen, isMobile, railCollapsed } = useSidebar();
   const isLarge = useIsLargeScreen();
 
   if (collapsible === "none") {
@@ -151,18 +169,32 @@ function Sidebar({
     );
   }
 
-  // ADR-0010 (revised): the sidebar docks as a persistent rail on large screens
-  // (`lg`+) and collapses to an on-demand overlay drawer (the same `Sheet`) below
-  // that. The docked rail is CSS-hidden below `lg` (no hydration flash); the
-  // drawer is only mounted below `lg` (gated by `useIsLargeScreen`, whose SSR
-  // snapshot is desktop-first) so the two never render on top of each other.
+  // ADR-0010 (revised) + ADR-0016: the sidebar docks as a persistent rail on
+  // large screens (`lg`+) and collapses to an on-demand overlay drawer (the same
+  // `Sheet`) below that. The docked rail is CSS-hidden below `lg` (no hydration
+  // flash); the drawer is only mounted below `lg` (gated by `useIsLargeScreen`,
+  // whose SSR snapshot is desktop-first) so the two never render on top of each
+  // other.
+  //
+  // ADR-0016 restores the icon rail ADR-0010 removed, but as a *user* toggle
+  // (the header chevron) rather than the automatic desktop mode it used to be —
+  // so the "icon-only rail is visually poor" objection that killed it no longer
+  // applies: nobody lands in it unasked. `group`/`data-collapsible` here is what
+  // the `group-data-[collapsible=icon]:*` rules throughout this file key off;
+  // those rules survived ADR-0010 intact, so this is a re-wiring, not a rewrite.
   return (
     <>
       <aside
         data-slot="sidebar"
         data-sidebar="sidebar"
+        data-state={railCollapsed ? "collapsed" : "expanded"}
+        data-collapsible={railCollapsed ? "icon" : ""}
         className={cn(
-          "sticky top-0 hidden h-screen w-(--sidebar-width) shrink-0 flex-col bg-sidebar text-sidebar-foreground lg:flex",
+          // `group` is for descendants; the width rule is `data-*` (not
+          // `group-data-*`) because it applies to this element itself.
+          "group sticky top-0 hidden h-screen w-(--sidebar-width) shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground lg:flex",
+          "transition-[width] duration-200 ease-linear motion-reduce:transition-none",
+          "data-[collapsible=icon]:w-(--sidebar-width-icon)",
           className,
         )}
         {...props}
@@ -222,6 +254,48 @@ function SidebarTrigger({
     >
       <PanelLeftIcon />
       <span className="sr-only">Toggle Sidebar</span>
+    </Button>
+  );
+}
+
+/**
+ * Collapse/expand control for the **docked rail** at `lg`+ (ADR-0016) — the
+ * chevron drawn beside the wordmark in Figma `404:1729`. Distinct from
+ * `SidebarTrigger`, which opens the small-screen drawer; the two are never
+ * visible at the same breakpoint.
+ */
+function SidebarRailTrigger({
+  className,
+  onClick,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  const { railCollapsed, toggleRail } = useSidebar();
+
+  return (
+    <Button
+      data-sidebar="rail-trigger"
+      data-slot="sidebar-rail-trigger"
+      variant="ghost"
+      size="icon"
+      aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-expanded={!railCollapsed}
+      title={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      className={cn(
+        "size-8 shrink-0 rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+        className,
+      )}
+      onClick={(event) => {
+        onClick?.(event);
+        toggleRail();
+      }}
+      {...props}
+    >
+      <PanelLeftIcon
+        className={cn(
+          "size-[18px] transition-transform duration-200 motion-reduce:transition-none",
+          railCollapsed && "rotate-180",
+        )}
+      />
     </Button>
   );
 }
@@ -422,7 +496,14 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  // ADR-0016 removed two things stock shadcn puts here: the `!important`
+  // collapsed geometry (`size-8!`/`p-2!`), which fought the full-bleed rail
+  // `AppSidebar` needs, and the `data-[active=true]:bg-sidebar-accent` default —
+  // Technocrat's active row is a solid `sidebar-primary` fill and `sidebar-accent`
+  // is the *neutral hover*, the inverse of Blessing's mapping. `AppSidebar` is
+  // this component's only consumer, so both now live there rather than being
+  // overridden from a distance.
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -457,7 +538,7 @@ function SidebarMenuButton({
   tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot.Root : "button";
-  const { isMobile, state } = useSidebar();
+  const { isMobile, railCollapsed } = useSidebar();
 
   const button = (
     <Comp
@@ -483,10 +564,14 @@ function SidebarMenuButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
+      {/* The label is only hidden when the *docked rail* is collapsed, so that
+          is what gates the tooltip. Gating on the drawer's `state` (as this did
+          before ADR-0016) fired a tooltip on every desktop hover, duplicating a
+          label that was right there. */}
       <TooltipContent
         side="right"
         align="center"
-        hidden={state !== "collapsed" || isMobile}
+        hidden={!railCollapsed || isMobile}
         {...tooltip}
       />
     </Tooltip>
@@ -668,6 +753,7 @@ export {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
+  SidebarRailTrigger,
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,

@@ -37,3 +37,4 @@
 | # | Decision |
 | --- | --- |
 | [0015](0015-single-backend-origin-seam.md) | `NEXT_PUBLIC_BACKEND_URL` is the single backend seam; the API base, unblock URL, sockets and codegen all derive from it |
+| [0016](0016-technocrat-app-shell.md) | The app shell: full-bleed active nav row (inverting Blessing's token mapping), a user-toggled icon rail, and a slimmed top bar |
