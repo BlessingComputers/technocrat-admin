@@ -462,7 +462,7 @@ export const helpDocHref = (slug: string) => `${HELP_BASE}/${slug}`;
  */
 export const HELP_SUPPORT = {
   title: "Still stuck?",
-  body: "Reach out to your system administrator or the Blessing Computers tech team for a hand.",
+  body: "Reach out to your system administrator or the Technocrat tech team for a hand.",
   /** Optional in-app destination (e.g. internal Chat) once wired. */
   href: undefined as string | undefined,
   cta: undefined as string | undefined,

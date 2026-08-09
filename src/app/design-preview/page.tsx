@@ -89,7 +89,7 @@ function Rail({ hue, label, note }: { hue: string; label: string; note?: string 
         className="w-64 rounded-2xl border border-sidebar-border bg-sidebar p-3 shadow-sm"
       >
         <div className="px-3 py-4 text-lg font-extrabold tracking-tight text-sidebar-foreground">
-          Blessing<span className="text-primary">.</span>
+          Technocrat<span className="text-primary">.</span>
         </div>
 
         {GROUPS.map((group) => (

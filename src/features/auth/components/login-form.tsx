@@ -86,7 +86,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="name@blessingcomputers.com"
+                  placeholder="name@technocratng.com"
                   className="h-11"
                   defaultValue={state?.email}
                   required

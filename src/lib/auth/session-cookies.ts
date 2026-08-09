@@ -164,8 +164,8 @@ const FORWARDED_COOKIES = new Set([ACCESS_COOKIE, REFRESH_COOKIE]);
 /**
  * Serialize ONLY the staff session cookies into an outbound `Cookie:` header.
  *
- * Never forward the whole jar: the apex domain (.blessingcomputers.com)
- * carries third-party cookies (GA, the cPanel server's Mixpanel cookie) whose
+ * Never forward the whole jar: the apex domain the admin runs under carries
+ * third-party cookies (GA, the cPanel server's Mixpanel cookie) whose
  * decoded values can contain newlines — `fetch` rejects those as invalid
  * header values and the request never leaves the server (production incident,
  * 2026-06-12: SSR profile read as "unauthenticated", logout 500). The backend

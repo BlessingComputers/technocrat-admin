@@ -40,6 +40,13 @@
   --color-sidebar: var(--sidebar);
   --color-jewel: var(--jewel);
   --color-jewel-foreground: var(--jewel-foreground);
+  --color-jewel-ink: var(--jewel-ink);
+  --color-primary-ink: var(--primary-ink);
+  --color-secondary-ink: var(--secondary-ink);
+  --color-success-ink: var(--success-ink);
+  --color-warning-ink: var(--warning-ink);
+  --color-info-ink: var(--info-ink);
+  --color-destructive-ink: var(--destructive-ink);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -118,11 +125,17 @@
      Owns the one real action per screen, active nav, focus ring, hero series. */
   --primary: oklch(0.55 0.2 145);
   --primary-foreground: oklch(0.99 0 0);
+  /* Green AS TEXT — 4.66:1. `--primary` as text measured 3.37:1. See the
+     `-ink` vs `-foreground` note at the top of the DARK block. */
+  --primary-ink: oklch(0.455 0.183 145);
 
   /* Graphite — the Figma frame's Secondary/main (#1F2937). Grounding emphasis
      and secondary buttons, where green would over-claim. */
   --secondary: oklch(0.2795 0.0296 264);
   --secondary-foreground: oklch(0.99 0 0);
+  /* Graphite AS TEXT — 9.55:1. Same value as the surface in light; flips in
+     dark, where the graphite itself would measure 1.01:1 on a card. */
+  --secondary-ink: oklch(0.2795 0.0296 264);
 
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -134,6 +147,9 @@
   --accent-foreground: oklch(0.205 0 0);
 
   --destructive: oklch(0.577 0.245 27.325);
+  /* 4.68:1. No collision risk with `--primary-ink` here, unlike Blessing —
+     Technocrat's brand hue is green, so red as text is unambiguous. */
+  --destructive-ink: oklch(0.467 0.221 27.325);
 
   /* Success sits in the SAME hue family as --primary by design (see the
      Green-Does-Double-Duty rule). It is deliberately lighter and slightly
@@ -141,11 +157,20 @@
      primary button. Approximates the frame's Green/success #16A34A. */
   --success: oklch(0.63 0.17 149);
   --success-foreground: oklch(0.985 0 0);
+  /* 4.70:1. ⚠️ This lands 4.2 OKLab units from `--primary-ink` — as TEXT the
+     two greens are close, and deliberately so: the Green-Does-Double-Duty rule
+     separates action from status by FORM, not by hue. A status green only ever
+     appears inside a labelled chip; a primary green as text is a link or an
+     emphasis. Do not try to pull these apart by shifting the hue — that
+     reintroduces a second brand green, which is what the rule forbids. */
+  --success-ink: oklch(0.47 0.146 149);
 
   /* Amber is now purely semantic — with no jewel tier it means "needs
      attention" and nothing else. */
   --warning: oklch(0.68 0.16 65);
   --warning-foreground: oklch(0.985 0 0);
+  /* 4.67:1. `--warning` as text measured 2.35:1 — the worst in the set. */
+  --warning-ink: oklch(0.5 0.134 65);
 
   /* Approximates the frame's Grey/03 border #E9ECEF. */
   --border: oklch(0.925 0.002 150);
@@ -171,12 +196,17 @@
      used as `text-jewel` on tints, so it must stay dark enough in light. */
   --jewel: oklch(0.52 0.11 275);
   --jewel-foreground: oklch(0.99 0 0);
+  /* 4.68:1. The comment above notes jewel "must stay dark enough in light"
+     because it is used as `text-jewel` on tints — that requirement now belongs
+     to this token, which frees `--jewel` to be chosen for how it looks. */
+  --jewel-ink: oklch(0.485 0.107 275);
   --chart-5: oklch(0.42 0.02 250);
 
   /* Neutral informational state. Shares chart-2's blue so an info chip and an
      info series agree. Replaces any ad-hoc sky-*. */
   --info: oklch(0.55 0.13 245);
   --info-foreground: oklch(0.985 0 0);
+  --info-ink: oklch(0.48 0.122 245); /* 4.65:1 */
 
   /* Chrome (sidebar + topbar) = the card surface. White against the canvas.
      Nav label ink is the frame's warm `stone` #343330, NOT the cool page ink —
@@ -212,11 +242,19 @@
  * above everything it can land on. Those relationships are why the values look
  * arbitrary — they are not. Do not round them off.
  *
- * CARRIED-OVER DEBT (was true in Blessing, still true here): `text-primary`,
- * `text-destructive` on solid fills, `text-info`, and status colours used as
- * text on their own 10% tint all sit below AA in dark. The fix is the `-ink`
- * text-only token pattern, not a surface change — see the customer app's
- * globals.css. Out of scope for this ticket; belongs with the restyle sweep.
+ * CARRIED-OVER DEBT — RESOLVED (sweep class B, 2026-08-09). `text-primary`,
+ * `text-info`, and every status colour used as text on its own tint sat below
+ * AA in dark (measured 1.89:1 to 3.37:1). The `-ink` text-only roles below fix
+ * it; each value is MEASURED against the role's own 15% tint over `--accent`,
+ * the lightest surface a chip can land on.
+ *
+ * `-foreground` = text ON that colour as a solid surface; pinned, does NOT flip.
+ * `-ink` = that colour used AS text on a page, card or tint; MUST flip.
+ * The test is not which colour it is, it is what the text sits ON.
+ *
+ * STILL OPEN, because it is a surface problem and not an `-ink` one:
+ * `bg-destructive text-white` measures 2.89:1. Fixing it moves `--destructive`
+ * as a fill, i.e. every destructive button — a design change, not a token add.
  * -------------------------------------------------------------------------- */
 .dark {
   --background: oklch(0.225 0.012 264);
@@ -230,11 +268,15 @@
      dark canvas, and this matches technocrat-frontend's own dark primary. */
   --primary: oklch(0.72 0.19 145);
   --primary-foreground: oklch(0.145 0 0);
+  --primary-ink: oklch(0.765 0.182 145); /* 4.64:1 */
 
   /* Pinned graphite panel — the same value as the light theme's --secondary,
      so the panel does not shift hue between themes. */
   --secondary: oklch(0.2795 0.0296 264);
   --secondary-foreground: oklch(0.985 0 0);
+  /* Graphite AS TEXT flips to a cool near-white — the graphite itself measured
+     1.01:1 on a dark card, i.e. invisible. */
+  --secondary-ink: oklch(0.92 0.02 264);
 
   --muted: oklch(0.295 0.014 264);
   --muted-foreground: oklch(0.74 0.014 264);
@@ -242,10 +284,13 @@
   --accent-foreground: oklch(0.985 0.005 264);
 
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-ink: oklch(0.824 0.17 22.216); /* 4.60:1 */
   --success: oklch(0.72 0.16 149);
   --success-foreground: oklch(0.16 0.03 149);
+  --success-ink: oklch(0.77 0.153 149); /* 4.67:1 */
   --warning: oklch(0.78 0.15 70);
   --warning-foreground: oklch(0.2 0.04 65);
+  --warning-ink: oklch(0.8 0.147 70); /* 4.67:1 */
 
   /* The border, not a shadow, is what defines a surface at rest in dark.
      Carries the graphite cast so it doesn't read as a cool-grey line. */
@@ -262,10 +307,12 @@
   /* Jewel lifts for dark, same as every other hue on this ladder. */
   --jewel: oklch(0.78 0.1 275);
   --jewel-foreground: oklch(0.16 0.03 275);
+  --jewel-ink: oklch(0.8 0.098 275); /* 4.63:1 */
   --chart-5: oklch(0.62 0.02 250);
 
   --info: oklch(0.68 0.13 245);
   --info-foreground: oklch(0.16 0.03 245);
+  --info-ink: oklch(0.77 0.119 245); /* 4.61:1 */
 
   /* Chrome = the card surface, same rule as light. Active = solid green fill
      (sidebar-primary), hover = neutral lift (sidebar-accent) — the same

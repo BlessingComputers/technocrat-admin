@@ -61,7 +61,7 @@ export interface ParseProductResult {
 }
 
 const SYSTEM_PROMPT = `
-You are a Product Data Architect for Blessing Computers, an electronics retailer.
+You are a Product Data Architect for Technocrat Nigeria, an electronics retailer.
 Your task is to parse raw supplier listings into structured JSON for a bulk upload editor.
 
 INSTRUCTIONS:
