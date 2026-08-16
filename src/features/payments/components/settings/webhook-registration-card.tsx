@@ -36,10 +36,10 @@ export function WebhookRegistrationCard() {
   const disabled = !valid || !confirmed || mutation.isPending;
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
+    <Card className="p-6 space-y-5">
       <div>
-        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <AppIcon icon="solar:link-linear" className="w-4 h-4 text-primary" />
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <AppIcon icon="solar:link-linear" className="w-4 h-4 text-primary-ink" />
           Miden Webhook
         </h3>
         <p className="text-xs text-muted-foreground mt-2">
@@ -49,17 +49,17 @@ export function WebhookRegistrationCard() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <Label className="text-xs font-medium text-muted-foreground ml-1">
           Public HTTPS Base URL
         </Label>
         <Input
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://api.blessingcomputers.com"
+          placeholder="https://api.example.com"
           className="rounded-lg bg-muted/50 border-border font-mono text-xs"
         />
         {baseUrl && !valid && (
-          <p className="text-xs text-destructive">
+          <p className="text-xs text-destructive-ink">
             Must be a valid HTTPS URL. Miden will silently receive nothing if
             this resolves to HTTP.
           </p>
@@ -80,7 +80,7 @@ export function WebhookRegistrationCard() {
       <Button
         onClick={() => mutation.mutate(baseUrl)}
         disabled={disabled}
-        className="w-full h-11 rounded-lg font-black disabled:opacity-50"
+        className="w-full h-11 rounded-lg font-medium disabled:opacity-50"
       >
         {mutation.isPending ? "Registering..." : "Register Webhook"}
       </Button>

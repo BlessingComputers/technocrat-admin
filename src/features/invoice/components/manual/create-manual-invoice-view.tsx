@@ -80,12 +80,12 @@ export function CreateManualInvoiceView() {
       <div className="space-y-1">
         <Link
           href={BACK_HREF}
-          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
         >
           <AppIcon icon="solar:arrow-left-linear" className="h-3 w-3" />
           Back to invoices
         </Link>
-        <h1 className="text-2xl font-black tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Create Invoice
         </h1>
         <p className="text-sm font-medium text-muted-foreground">
@@ -93,7 +93,7 @@ export function CreateManualInvoiceView() {
         </p>
       </div>
 
-      <Card className="border border-border bg-card p-8 rounded-2xl">
+      <Card className="p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           <ManualCustomerFields form={form} onChange={update} />
 
@@ -116,14 +116,14 @@ export function CreateManualInvoiceView() {
               asChild
               type="button"
               variant="ghost"
-              className="h-12 rounded-lg px-8 font-bold text-muted-foreground"
+              className="h-12 rounded-lg px-8 font-medium text-muted-foreground"
             >
               <Link href={BACK_HREF}>Cancel</Link>
             </Button>
             <Button
               type="submit"
               disabled={createMutation.isPending}
-              className="h-12 rounded-lg bg-primary px-12 font-black text-primary-foreground"
+              className="h-12 rounded-lg bg-primary px-12 font-medium text-primary-foreground"
             >
               {createMutation.isPending ? "Creating…" : "Create Invoice"}
             </Button>

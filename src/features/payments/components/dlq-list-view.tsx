@@ -16,6 +16,7 @@ import { PaymentsNavTabs } from "./payments-nav-tabs";
 import { PaymentsPagination } from "./payments-pagination";
 import { DlqTable } from "./dlq/dlq-table";
 import type { DlqListParams } from "../types/payments";
+import { filterControlClass } from "@/components/shared/filter-bar";
 
 const DEFAULT_PARAMS: DlqListParams = { page: 1, limit: 20, type: "" };
 
@@ -51,10 +52,10 @@ export function DlqListView() {
             })
           }
         >
-          <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[180px]">
+          <SelectTrigger className={filterControlClass}>
             <SelectValue placeholder="All Job Types" />
           </SelectTrigger>
-          <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+          <SelectContent>
             <SelectItem value="ALL">All Job Types</SelectItem>
             <SelectItem value="VERIFY">Verify</SelectItem>
             <SelectItem value="WEBHOOK">Webhook</SelectItem>

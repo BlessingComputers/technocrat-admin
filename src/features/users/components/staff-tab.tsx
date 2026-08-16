@@ -172,7 +172,7 @@ export function StaffTab() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="firstName">
-                  First Name <span className="text-destructive">*</span>
+                  First Name <span className="text-destructive-ink">*</span>
                 </Label>
                 <Input
                   id="firstName"
@@ -185,7 +185,7 @@ export function StaffTab() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="lastName">
-                  Last Name <span className="text-destructive">*</span>
+                  Last Name <span className="text-destructive-ink">*</span>
                 </Label>
                 <Input
                   id="lastName"
@@ -198,7 +198,7 @@ export function StaffTab() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">
-                  Email <span className="text-destructive">*</span>
+                  Email <span className="text-destructive-ink">*</span>
                 </Label>
                 <Input
                   id="email"
@@ -275,7 +275,7 @@ export function StaffTab() {
                   <TableRow key={s.id || s.email}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary-ink shrink-0">
                           <AppIcon icon="solar:user-bold" className="size-5" />
                         </div>
                         <div className="flex flex-col">
@@ -434,7 +434,7 @@ export function StaffTab() {
                   </SelectContent>
                 </Select>
               )}
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Leave empty to remove any existing custom role.
               </p>
             </div>

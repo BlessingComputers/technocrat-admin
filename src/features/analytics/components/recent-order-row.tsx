@@ -77,7 +77,7 @@ export function RecentOrderRow({
       <TableCell className="text-right px-6">
         <Badge
           variant={statusToVariant(status)}
-          className="rounded-lg text-xs px-2 py-1 uppercase tracking-wide"
+          className="rounded-lg text-xs px-2 py-1"
         >
           {status?.replace(/_/g, " ") || "PENDING"}
         </Badge>

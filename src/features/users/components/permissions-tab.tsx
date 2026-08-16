@@ -120,7 +120,7 @@ export function PermissionsTab() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">
-                  Name <span className="text-destructive">*</span>
+                  Name <span className="text-destructive-ink">*</span>
                 </Label>
                 <Input
                   id="name"
@@ -222,7 +222,7 @@ export function PermissionsTab() {
                     <TableCell>
                       <Badge
                         variant={permissionBadgeTone(p.name)}
-                        className="font-mono font-normal text-[11px]"
+                        className="font-mono font-normal text-xs"
                       >
                         {p.name}
                       </Badge>
@@ -251,7 +251,7 @@ export function PermissionsTab() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="text-destructive-ink hover:text-destructive-ink hover:bg-destructive/10"
                           onClick={() => setDeleteTarget(p)}
                           disabled={
                             deleteMutation.isPending &&

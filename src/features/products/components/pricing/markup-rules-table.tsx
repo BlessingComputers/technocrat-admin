@@ -24,7 +24,7 @@ import type { MarkupRule } from "../../types/pricing";
 import { ruleScopeLabel } from "./markup-rule-utils";
 
 const HEAD =
-  "font-semibold text-xs uppercase tracking-wide text-muted-foreground";
+  "font-semibold text-xs text-muted-foreground";
 
 const APPLY_TO_LABEL: Record<string, string> = {
   PRICE: "Selling price",
@@ -72,7 +72,7 @@ export function MarkupRulesTable({
           {isError ? (
             <StateRow>
               <div className="flex flex-col items-center justify-center gap-4 text-center max-w-md mx-auto">
-                <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+                <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive-ink">
                   <AppIcon icon="solar:danger-circle-linear" className="size-8" />
                 </div>
                 <div>
@@ -94,7 +94,7 @@ export function MarkupRulesTable({
                 icon="solar:sale-linear"
                 className="size-8 opacity-30 mx-auto mb-2"
               />
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 No markup rules yet
               </span>
             </StateRow>
@@ -161,7 +161,7 @@ function MarkupRuleRow({
       <TableCell
         className={cn(
           "font-mono font-semibold text-sm tabular-nums",
-          rule.markupPercentage < 0 ? "text-destructive" : "text-foreground",
+          rule.markupPercentage < 0 ? "text-destructive-ink" : "text-foreground",
         )}
       >
         {rule.markupPercentage < 0
@@ -178,7 +178,7 @@ function MarkupRuleRow({
       <TableCell>
         <Badge
           variant={rule.isActive ? "success" : "muted"}
-          className="font-semibold text-xs uppercase tracking-wide px-2.5 py-1 rounded-full"
+          className="font-semibold text-xs px-2.5 py-1 rounded-full"
         >
           {rule.isActive ? "Active" : "Inactive"}
         </Badge>
@@ -235,7 +235,7 @@ function MarkupRuleRow({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(rule)}
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 font-bold"
+              className="text-destructive-ink focus:text-destructive-ink focus:bg-destructive/10 font-medium"
             >
               <AppIcon icon="solar:trash-bin-trash-linear" className="size-4 mr-2" />
               Delete

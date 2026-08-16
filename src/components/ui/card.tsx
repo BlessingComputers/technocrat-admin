@@ -7,7 +7,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-2xl border border-border/60 bg-card py-6 text-card-foreground shadow-soft ",
+        // Sharp instrument (ticket 07): a card at rest is a machined panel
+        // defined by a full-opacity hairline — not a floating one defined by a
+        // shadow. `shadow-soft` now means raised; adding it here is a defect.
+        "flex flex-col gap-6 rounded-2xl border border-border bg-card py-6 text-card-foreground",
         className,
       )}
       {...props}

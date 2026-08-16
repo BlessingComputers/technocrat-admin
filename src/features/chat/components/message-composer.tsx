@@ -137,7 +137,7 @@ export function MessageComposer({
       <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
         <button
           type="button"
-          className="flex size-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
+          className="flex size-8 items-center justify-center rounded-full text-primary-ink transition-colors hover:bg-primary/10"
           aria-label="Attach"
         >
           <AppIcon icon="solar:add-circle-bold" className="size-6" />
@@ -162,7 +162,7 @@ export function MessageComposer({
           onClick={submit}
           disabled={disabled || !value.trim()}
           className={cn(
-            "flex size-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10",
+            "flex size-8 items-center justify-center rounded-full text-primary-ink transition-colors hover:bg-primary/10",
             (disabled || !value.trim()) && "opacity-40",
           )}
           aria-label="Send"

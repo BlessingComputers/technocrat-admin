@@ -90,7 +90,7 @@ export function EmergencyUnblock() {
         <Button
           variant="destructive"
           size="lg"
-          className="rounded-md gap-2 font-bold ring-4 ring-destructive/20 h-12 px-6"
+          className="rounded-md gap-2 font-medium ring-4 ring-destructive/20 h-12 px-6"
           onClick={() => setIsOpen(true)}
         >
           <AppIcon icon="solar:shield-warning-bold" className="size-5" />
@@ -101,7 +101,7 @@ export function EmergencyUnblock() {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
+            <DialogTitle className="flex items-center gap-2 text-destructive-ink">
               <AppIcon icon="solar:shield-warning-bold" className="size-5" />
               Emergency IP Unblock
             </DialogTitle>

@@ -7,25 +7,47 @@ import type { NavGroup } from "@/types/nav";
  * server→client boundary as props and stays import-free except for its type
  * (config may import `types` only).
  *
- * Hrefs are root-relative — this app is served at the root of
- * admin.blessingcomputers.com, with no `/admin` prefix.
+ * Hrefs are root-relative — this app is served at the root of the admin host,
+ * with no `/admin` prefix.
  *
  * Note: `/analytics` is intentionally not in the nav (ADR-0009) — the dashboard
  * shows the at-a-glance KPIs; the route/view stays dormant for a future deep-dive.
  *
  * The dashboard is the home route (`/`), reachable via the sidebar Logo and the
- * "Overview" nav item below.
+ * "Dashboard Overview" nav item below.
+ *
+ * Grouping, ordering and labels follow Figma `404:1729` (ADR-0016), which is why
+ * MAIN leads with Orders/Customers rather than the catalogue: the frame reads the
+ * nav as a day's work queue first and a data surface second. Two deliberate
+ * divergences from that frame, both recorded in the ADR — `Settings` is dropped
+ * from ADMIN because the footer gear already owns it, and `WhatsApp` is kept
+ * despite not being drawn, because the slice ships and the nav is its only entry
+ * point.
  */
 export const navGroups: NavGroup[] = [
   {
-    label: "RESOURCES",
+    label: "MAIN",
     items: [
       {
         // Unrestricted: every staff/admin lands on the dashboard at `/`.
-        title: "Overview",
+        title: "Dashboard Overview",
         href: "/",
         icon: "solar:widget-5-linear",
         iconActive: "solar:widget-5-bold",
+      },
+      {
+        title: "Orders",
+        href: "/orders",
+        icon: "solar:cart-large-2-linear",
+        iconActive: "solar:cart-large-2-bold",
+        requiredPermissions: ["orders"],
+      },
+      {
+        title: "Customers",
+        href: "/customers",
+        icon: "solar:users-group-rounded-linear",
+        iconActive: "solar:users-group-rounded-bold",
+        requiredPermissions: ["customers"],
       },
       {
         title: "Catalogues",
@@ -43,20 +65,6 @@ export const navGroups: NavGroup[] = [
         icon: "solar:tag-price-linear",
         iconActive: "solar:tag-price-bold",
         requiredPermissions: ["products"],
-      },
-      {
-        title: "Orders",
-        href: "/orders",
-        icon: "solar:cart-large-2-linear",
-        iconActive: "solar:cart-large-2-bold",
-        requiredPermissions: ["orders"],
-      },
-      {
-        title: "Customers",
-        href: "/customers",
-        icon: "solar:users-group-rounded-linear",
-        iconActive: "solar:users-group-rounded-bold",
-        requiredPermissions: ["customers"],
       },
       {
         title: "Invoices",
@@ -86,10 +94,15 @@ export const navGroups: NavGroup[] = [
         // inbox (`requireStaff` on the backend routes), so there's no permission
         // key to gate on. Reassign is the only SUPER_ADMIN-gated action, and
         // that's handled inside the view.
+        // The real WhatsApp mark, not a generic chat bubble — a nav row for a
+        // named third-party product should show that product's logo, and the
+        // storefront already sets that precedent. Single-form (see BRAND_ICONS
+        // in `scripts/build-icons.mjs`), so both states point at one name and
+        // colour alone carries active.
         title: "WhatsApp",
         href: "/whatsapp",
-        icon: "solar:chat-square-call-linear",
-        iconActive: "solar:chat-square-call-bold",
+        icon: "brand:whatsapp",
+        iconActive: "brand:whatsapp",
       },
     ],
   },
@@ -128,7 +141,7 @@ export const navGroups: NavGroup[] = [
         requiredPermissions: ["security"],
       },
       {
-        title: "Bank Accounts",
+        title: "Bank accounts",
         href: "/checkout/bank-accounts",
         icon: "solar:card-linear",
         iconActive: "solar:card-bold",
@@ -146,12 +159,10 @@ export const navGroups: NavGroup[] = [
         superAdminOnly: true,
       },
       {
-        title: "Settings",
-        href: "/settings",
-        icon: "solar:settings-linear",
-        iconActive: "solar:settings-bold",
-      },
-      {
+        // No `Settings` row: Figma `404:1729` draws the settings affordance as
+        // the footer gear instead, and `/settings` stays reachable there
+        // (ADR-0016). Re-adding it here would give one route two entry points
+        // in the same chrome.
         title: "Help",
         href: "/help",
         icon: "solar:question-circle-linear",

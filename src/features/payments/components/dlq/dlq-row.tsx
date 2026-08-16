@@ -22,7 +22,7 @@ export function DlqRow({ entry }: { entry: DlqEntry }) {
   return (
     <tr className="hover:bg-muted/30 transition-colors">
       <td className="px-8 py-4">
-        <Badge variant={dlqJobTypeTone(data.type)} className="uppercase tracking-wide">
+        <Badge variant={dlqJobTypeTone(data.type)}>
           {data.type}
         </Badge>
         <div className="text-xs text-muted-foreground mt-1">
@@ -62,7 +62,7 @@ export function DlqRow({ entry }: { entry: DlqEntry }) {
           size="sm"
           disabled={replay.isPending}
           onClick={() => replay.mutate(entry.id)}
-          className="rounded-lg font-black text-[10px] uppercase tracking-widest"
+          className="rounded-lg font-medium text-xs"
         >
           <AppIcon icon="solar:refresh-circle-linear" className="w-3.5 h-3.5 mr-1.5" />
           {replay.isPending ? "Replaying..." : "Replay"}

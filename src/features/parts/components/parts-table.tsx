@@ -32,7 +32,7 @@ interface PartsTableProps {
 }
 
 const HEAD =
-  "font-semibold text-xs uppercase tracking-wide text-muted-foreground";
+  "font-semibold text-xs text-muted-foreground";
 
 const COL_SPAN = 7;
 
@@ -80,7 +80,7 @@ export function PartsTable({
             <TableRow>
               <TableCell colSpan={COL_SPAN} className="h-[360px]">
                 <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 text-center">
-                  <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                  <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
                     <AppIcon icon="solar:danger-circle-linear" className="size-8" />
                   </div>
                   <div>
@@ -107,7 +107,7 @@ export function PartsTable({
                   icon="solar:cpu-bolt-linear"
                   className="mx-auto mb-2 size-8 opacity-30"
                 />
-                <span className="text-xs font-medium uppercase tracking-wide">
+                <span className="text-xs font-medium">
                   No parts match your filters
                 </span>
               </TableCell>

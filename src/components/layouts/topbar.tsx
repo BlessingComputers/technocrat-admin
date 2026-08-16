@@ -41,8 +41,13 @@ export function Topbar({ helpDocs = [] }: TopbarProps) {
   );
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-sidebar-border px-6 w-full bg-sidebar/80">
-      <div className="flex items-center gap-4 flex-1">
+    // Figma `301:920` draws no top bar at all — content starts at the page
+    // title. ADR-0016 keeps one anyway, because the bell, theme toggle and help
+    // menu have nowhere else to live, but slims it to 56px and drops the fill so
+    // it reads as a control strip rather than a second band of chrome competing
+    // with the page header directly beneath it.
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-sidebar-border bg-background px-4 md:px-6 w-full">
+      <div className="flex items-center gap-3 flex-1">
         {/* Below `lg` the sidebar is an overlay drawer, so the topbar carries the
             trigger + brand. At `lg`+ the docked rail owns both, so they hide. */}
         <SidebarTrigger className="-ml-1 h-9 w-9 lg:hidden" />
@@ -65,8 +70,8 @@ export function Topbar({ helpDocs = [] }: TopbarProps) {
             placeholder="Search for something..."
             className="pl-10 pr-12 h-10 bg-muted/40 border-border/40 focus:bg-background transition-all rounded-md"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] font-bold text-muted-foreground/60 border rounded px-1.5 py-0.5 bg-muted">
-            <span className="text-[11px] leading-none">⌘</span>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-semibold text-muted-foreground/60 border rounded px-1.5 py-0.5 bg-muted">
+            <span className="leading-none">⌘</span>
             <span>K</span>
           </div>
         </div>
@@ -91,7 +96,9 @@ export function Topbar({ helpDocs = [] }: TopbarProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72 rounded-xl border-border/60">
-              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {/* Not a tracked-caps eyebrow: DESIGN.md sanctions that treatment
+                  for the sidebar's MAIN/ADMIN headers and nowhere else. */}
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
                 Help &amp; guides
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -101,10 +108,10 @@ export function Topbar({ helpDocs = [] }: TopbarProps) {
                   className="cursor-pointer gap-3 py-2.5"
                   onClick={() => router.push(`/help/${doc.slug}`)}
                 >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
                     <AppIcon icon={doc.icon} className="size-4" />
                   </div>
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold leading-tight">
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
                     {doc.title}
                   </span>
                 </DropdownMenuItem>

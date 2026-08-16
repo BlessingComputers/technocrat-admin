@@ -66,36 +66,17 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Hosts admin uploads and avatars are displayed from. Sourced from
+  // `IMAGE_ASSET_HOSTS` (comma-separated) with a sensible default in
+  // config/env.ts, so a backend that serves images from a different bucket
+  // needs an env change, not a code change. Build-time — Next bakes these in.
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "technocratblessingcomputers.fra1.digitaloceanspaces.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "i.pravatar.cc",
-        port: "",
-        pathname: "/**",
-      },
-      // Add any other hosts admin uploads display from. Drop the
-      // www.blessingcomputers.com host — admin shouldn't be embedding
-      // marketing-site assets.
-    ],
+    remotePatterns: serverEnv().imageHosts.map((hostname) => ({
+      protocol: "https" as const,
+      hostname,
+      port: "",
+      pathname: "/**",
+    })),
   },
 };
 

@@ -13,6 +13,7 @@ import { ChartEmpty, ChartLoading } from "./chart-states";
 import { useRevenueAnalytics } from "../api/analytics.queries";
 import { compactPrice, formatChartDate } from "../utils/format-chart";
 import type { AnalyticsPeriod } from "../types/chart-analytics";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const chartConfig = {
   revenue: { label: "Revenue", color: "var(--chart-1)" },
@@ -30,15 +31,15 @@ export function RevenueTrendChart({ period }: { period: AnalyticsPeriod }) {
         data?.avgOrderValue ?? 0,
       )} avg order`}
       icon="solar:chart-2-bold"
-      iconClass="bg-primary/10 text-primary"
+      iconClass="bg-primary/10 text-primary-ink"
       headerRight={
         <div className="text-right">
-          <p className="text-2xl font-bold tracking-tight tabular-nums">
+          <p className="text-2xl font-semibold tracking-tight tabular-nums">
             {formatPrice(data?.totalRevenue ?? 0)}
           </p>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             Total · {period.toUpperCase()}
-          </p>
+          </MetaLabel>
         </div>
       }
       href="/orders"

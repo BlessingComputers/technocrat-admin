@@ -30,7 +30,7 @@ export function RecentProductsSnapshot() {
 
   if (isError) {
     return (
-      <div className="px-4 py-8 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="px-4 py-8 text-center text-xs font-medium text-muted-foreground">
         Couldn’t load recent products
       </div>
     );
@@ -40,12 +40,12 @@ export function RecentProductsSnapshot() {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
         <AppIcon icon="solar:box-linear" className="size-8 opacity-30" />
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           No products yet
         </span>
         <Link
           href="/catalogues/new"
-          className="text-xs font-medium text-primary hover:underline"
+          className="text-xs font-medium text-primary-ink hover:underline"
         >
           Add your first product →
         </Link>

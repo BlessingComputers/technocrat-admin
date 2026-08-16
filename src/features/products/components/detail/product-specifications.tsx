@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { ProductSpecification } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface ProductSpecificationsProps {
   specifications: ProductSpecification[];
@@ -39,11 +40,11 @@ export function ProductSpecifications({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {entries.map((spec, i) => (
-        <Card key={i} className="border border-border bg-muted/10">
+        <Card key={i} className="bg-muted/10">
           <CardContent className="p-3 flex justify-between items-center gap-3">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <MetaLabel>
               {spec.name}
-            </span>
+            </MetaLabel>
             <span className="text-sm font-semibold text-foreground text-right">
               {spec.value}
             </span>

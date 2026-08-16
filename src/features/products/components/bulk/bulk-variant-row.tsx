@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { formatNaira, parseNaira } from "../../schemas/product-form";
 import { applySellMarkup, type BulkVariant } from "./bulk-helpers";
+import { Card } from "@/components/ui/card";
 
 const CONDITIONS: BulkVariant["condition"][] = [
   "NEW",
@@ -21,7 +22,7 @@ const CONDITIONS: BulkVariant["condition"][] = [
 const SOURCING: BulkVariant["sourcingType"][] = ["INHOUSE", "OUTSOURCED"];
 
 const FIELD = "h-8 text-xs";
-const LABEL = "text-xs font-medium uppercase tracking-wide text-muted-foreground";
+const LABEL = "text-xs font-medium text-muted-foreground";
 
 interface BulkVariantRowProps {
   variant: BulkVariant;
@@ -46,7 +47,7 @@ export function BulkVariantRow({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+    <Card className="gap-0 p-3 space-y-2">
       <div className="flex items-center justify-end gap-2">
         <span className={LABEL}>Active</span>
         <Switch
@@ -71,7 +72,7 @@ export function BulkVariantRow({
             value={variant.price}
             onChange={(e) => onChange({ price: formatNaira(e.target.value) })}
             placeholder="₦0"
-            className={`${FIELD} font-bold`}
+            className={`${FIELD} font-semibold`}
           />
         </label>
         <label className="space-y-1">
@@ -179,6 +180,6 @@ export function BulkVariantRow({
           />
         </label>
       </div>
-    </div>
+    </Card>
   );
 }

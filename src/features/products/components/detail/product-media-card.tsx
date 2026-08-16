@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { ProductDetail } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface ProductMediaCardProps {
   product: ProductDetail;
@@ -18,7 +19,7 @@ export function ProductMediaCard({ product }: ProductMediaCardProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border border-border p-0">
+      <Card className="overflow-hidden p-0">
         <div className="aspect-square relative bg-muted flex items-center justify-center">
           {primary ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -39,19 +40,19 @@ export function ProductMediaCard({ product }: ProductMediaCardProps) {
       <div className="grid grid-cols-1 gap-4">
         <MiniStat
           icon="solar:star-bold"
-          chip="bg-primary/10 text-primary"
+          chip="bg-primary/10 text-primary-ink"
           value={`${product.averageRating} / 5.0`}
           label={`${product.reviewCount} Ratings`}
         />
         <MiniStat
           icon="solar:arrow-right-up-linear"
-          chip="bg-success/15 text-success"
+          chip="bg-success/15 text-success-ink"
           value={String(product.totalSales)}
           label="Total Sales"
         />
         <MiniStat
           icon="solar:box-linear"
-          chip="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+          chip="bg-info/10 text-info-ink"
           value={String(unitsInStock)}
           label="Units in Stock"
         />
@@ -79,9 +80,9 @@ function MiniStat({
         </div>
         <div>
           <div className="text-sm font-semibold text-foreground">{value}</div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+          <MetaLabel className="block">
             {label}
-          </div>
+          </MetaLabel>
         </div>
       </CardContent>
     </Card>

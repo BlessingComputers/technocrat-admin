@@ -91,7 +91,7 @@ export function BankAccountsDoc() {
           <StepCard
             n={4}
             span={5}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:check-circle-linear"
             title="You verify it"
           >

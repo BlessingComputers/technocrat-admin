@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { ResetCategoryInput } from "../../types/pricing";
 import type { ProductBrand, ProductCategory } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /** Sentinel for the "all" option (shadcn Select rejects ""). */
 const ALL = "__all__";
@@ -62,9 +63,9 @@ export function CategoryResetDialog({
           <DialogTitle className="text-xl font-semibold tracking-tight">
             Reset Category Prices
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             Back to base — no rule needed
-          </p>
+          </MetaLabel>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -107,7 +108,7 @@ export function CategoryResetDialog({
             </Field>
           </div>
 
-          {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+          {error && <p className="text-xs font-medium text-destructive-ink">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <Button
@@ -141,7 +142,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+      <Label className="text-xs font-semibold text-muted-foreground ml-1">
         {label}
       </Label>
       {children}

@@ -1,7 +1,10 @@
 // Generate src/types/api.d.ts from the backend's OpenAPI spec (ADR-0006).
 //
 // Source order:
-//   1. $API_DOCS_URL (or the default dev URL below) — fetched live.
+//   1. $API_DOCS_URL, else `<backend origin>/api-docs.json` where the origin is
+//      the single backend seam, NEXT_PUBLIC_BACKEND_URL (ADR-0015) — fetched
+//      live. No host is hardcoded here: repointing the app must also repoint
+//      codegen, or the types would silently come from the previous backend.
 //   2. scripts/api-docs.json — the committed snapshot, used when the URL is
 //      unreachable (offline / CI without network) so the build stays hermetic.
 //
@@ -13,13 +16,13 @@ import { execFileSync } from "node:child_process";
 import { writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { backendOrigin } from "./backend-origin.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SNAPSHOT = resolve(here, "api-docs.json");
 const OUT = resolve(here, "../src/types/api.d.ts");
 const URL =
-  process.env.API_DOCS_URL ||
-  "https://hard-berty-elijay-27db4d69.koyeb.app/api-docs.json";
+  process.env.API_DOCS_URL || `${backendOrigin()}/api-docs.json`;
 
 async function loadSpec() {
   try {

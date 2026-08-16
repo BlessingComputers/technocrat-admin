@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { metaLabelVariants } from "@/components/shared/meta-label";
 import { cn } from "@/lib/utils/cn";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
@@ -23,7 +24,14 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-primary/[0.04] [&_tr]:border-b", className)}
+      // Sharp instrument (ticket 07): the header is separated from the body by
+      // a definite rule, not just a tint — a readout's column header, not a
+      // decorated strip. The brand tint stays; it is what keeps the table
+      // recognisably Technocrat's.
+      className={cn(
+        "bg-primary/[0.04] [&_tr]:border-b [&_tr]:border-b-border",
+        className,
+      )}
       {...props}
     />
   );
@@ -70,7 +78,10 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 px-3 text-left align-middle text-xs font-semibold whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // A column head IS the Label role — 12/500/0.01em — so it takes the
+        // primitive's classes rather than a hand-spelled near-copy.
+        metaLabelVariants(),
+        "h-11 px-3 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
       )}
       {...props}

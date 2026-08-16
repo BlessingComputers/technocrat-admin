@@ -51,7 +51,7 @@ export function ProductDetailView({
     <div className="space-y-6 pb-12">
       <Link
         href="/catalogues/all?page=1&limit=20"
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-primary transition-colors"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Products
@@ -60,14 +60,14 @@ export function ProductDetailView({
       <PageHeader title={product.name} description={product.productId}>
         <Badge
           variant={product.isActive ? "success" : "muted"}
-          className="font-semibold text-xs uppercase tracking-wide px-2.5 py-1 rounded-full"
+          className="font-semibold text-xs px-2.5 py-1 rounded-full"
         >
           {product.isActive ? "Active" : "Inactive"}
         </Badge>
         {product.isFeatured && (
           <Badge
             variant="warning"
-            className="font-semibold text-xs uppercase tracking-wide px-2.5 py-1 rounded-full"
+            className="font-semibold text-xs px-2.5 py-1 rounded-full"
           >
             Featured
           </Badge>
@@ -146,7 +146,7 @@ export function ProductDetailView({
 function ProductNotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <div className="size-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
+      <div className="size-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive-ink">
         <AppIcon icon="solar:danger-circle-linear" className="size-8" />
       </div>
       <div className="text-center space-y-1">

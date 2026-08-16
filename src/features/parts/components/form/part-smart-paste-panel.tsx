@@ -10,6 +10,7 @@ import { getErrorMessage } from "@/lib/api/error-message";
 import { parsePartsViaAi } from "../../api/ai-parse.client";
 import type { Brand, Category, PartType } from "../../types/parts";
 import { formatNaira, slugify, type PartFormValues } from "../../schemas/part-form";
+import { Card } from "@/components/ui/card";
 
 interface PartSmartPastePanelProps {
   categories: Category[];
@@ -102,9 +103,9 @@ export function PartSmartPastePanel({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <Card className="gap-0 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
           <AppIcon icon="solar:magic-stick-3-linear" className="size-4" />
         </div>
         <div>
@@ -136,6 +137,6 @@ export function PartSmartPastePanel({
           {loading ? "Prefilling…" : "Prefill with AI"}
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

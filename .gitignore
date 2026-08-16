@@ -30,7 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — all of them, no exceptions. The seam is documented in
+# ARCHITECTURE.md + ADR-0015 rather than in a committed template.
+# Never add a .env.local: Next loads it in every mode and it silently
+# overrides .env.production in a local prod build (ADR-0015).
 .env*
 
 # vercel

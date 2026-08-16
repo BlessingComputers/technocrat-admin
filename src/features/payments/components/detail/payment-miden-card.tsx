@@ -36,14 +36,14 @@ export function PaymentMidenCard({ payment }: PaymentMidenCardProps) {
     .filter((n) => Number.isFinite(n) && n > 0);
 
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:radar-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-5">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:radar-linear" className="w-4 h-4 text-primary-ink" />
         Miden Tools
       </h3>
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <Label className="text-xs font-medium text-muted-foreground ml-1">
           Live lookup by reference
         </Label>
         <div className="flex gap-2">
@@ -63,14 +63,14 @@ export function PaymentMidenCard({ payment }: PaymentMidenCardProps) {
           </Button>
         </div>
         {lookup.data && (
-          <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-muted/50 p-3 text-[11px] font-mono text-foreground">
+          <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-muted/50 p-3 text-xs font-mono text-foreground">
             {JSON.stringify(lookup.data, null, 2)}
           </pre>
         )}
       </div>
 
       <div className="border-t border-border/60 pt-5 space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <Label className="text-xs font-medium text-muted-foreground ml-1">
           Resend webhook (Miden numeric transaction id, comma-separated)
         </Label>
         <div className="flex gap-2">

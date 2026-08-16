@@ -41,7 +41,7 @@ export function BulkRestoreModal({
     <Dialog open={open} onOpenChange={(o) => !o && onContinue()}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary-ink">
             <AppIcon icon="solar:clock-circle-linear" className="size-5" />
           </div>
           <DialogTitle>Resume your bulk draft?</DialogTitle>

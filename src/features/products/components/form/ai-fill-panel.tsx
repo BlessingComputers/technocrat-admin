@@ -105,10 +105,10 @@ export function AiFillPanel({ categories, brands }: AiFillPanelProps) {
   };
 
   return (
-    <Card className="border border-dashed border-primary/30 bg-primary/[0.03]">
+    <Card className="border-dashed border-primary/30 bg-primary/[0.03]">
       <CardContent className="space-y-3 p-5">
         <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
             <AppIcon icon="solar:magic-stick-3-bold" className="size-4" />
           </div>
           <div>

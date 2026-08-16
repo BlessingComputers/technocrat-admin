@@ -27,7 +27,7 @@ function EditPartForm({ partId }: { partId: string }) {
   if (isError || !part) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
-        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-8" />
         </div>
         <div className="space-y-1 text-center">

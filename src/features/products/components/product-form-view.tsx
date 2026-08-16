@@ -27,7 +27,7 @@ function EditProductForm({ productId }: { productId: string }) {
   if (isError || !product) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="size-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
+        <div className="size-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-8" />
         </div>
         <div className="text-center space-y-1">

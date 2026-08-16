@@ -1,8 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AppIcon } from "@/components/shared/app-icon";
+import { Stat, StatsBar, type StatTone } from "@/components/shared/stats-bar";
 import type { UploaderSummary } from "../types/upload-analytics";
 
-/** Aggregate stat cards above the management table (sums over the loaded set). */
+/** Aggregate stats above the management table (sums over the loaded set). */
 export function UploaderSummaryStrip({
   uploaders,
 }: {
@@ -14,36 +13,39 @@ export function UploaderSummaryStrip({
     (u) => u.percentOfDailyTarget >= 100,
   ).length;
 
-  const stats: { label: string; value: string | number; icon: string }[] = [
-    { label: "Total uploads", value: products + parts, icon: "solar:cloud-upload-bold" },
-    { label: "Products", value: products, icon: "solar:box-bold" },
-    { label: "Parts", value: parts, icon: "solar:cpu-bold" },
+  const stats: {
+    label: string;
+    value: string | number;
+    icon: string;
+    tone: StatTone;
+  }[] = [
+    {
+      label: "Total uploads",
+      value: products + parts,
+      icon: "solar:cloud-upload-linear",
+      tone: "primary",
+    },
+    { label: "Products", value: products, icon: "solar:box-linear", tone: "info" },
+    { label: "Parts", value: parts, icon: "solar:cpu-linear", tone: "jewel" },
     {
       label: "On target today",
       value: `${onTarget}/${uploaders.length}`,
-      icon: "solar:target-bold",
+      icon: "solar:target-linear",
+      tone: onTarget === uploaders.length ? "success" : "warning",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <StatsBar>
       {stats.map((stat) => (
-        <Card key={stat.label}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <AppIcon icon={stat.icon} className="size-4.5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-lg font-semibold leading-none tabular-nums">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <Stat
+          key={stat.label}
+          icon={stat.icon}
+          tone={stat.tone}
+          label={stat.label}
+          value={stat.value}
+        />
       ))}
-    </div>
+    </StatsBar>
   );
 }

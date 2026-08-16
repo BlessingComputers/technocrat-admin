@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderMetaCardProps {
   createdAt: string;
@@ -33,9 +34,9 @@ export function OrderMetaCard({
   cancelledAt,
 }: OrderMetaCardProps) {
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl">
-      <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-        <AppIcon icon="solar:calendar-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6">
+      <h3 className="text-base font-semibold text-foreground mb-5 flex items-center gap-2">
+        <AppIcon icon="solar:calendar-linear" className="w-4 h-4 text-primary-ink" />
         Timeline
       </h3>
       <div className="space-y-3">
@@ -63,16 +64,16 @@ function MetaRow({
 }) {
   const valueClass =
     tone === "success"
-      ? "text-success"
+      ? "text-success-ink"
       : tone === "danger"
-        ? "text-destructive"
+        ? "text-destructive-ink"
         : "text-foreground";
   return (
     <div className="flex justify-between items-center gap-4">
-      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+      <MetaLabel>
         {label}
-      </span>
-      <span className={`text-xs font-bold tabular-nums ${valueClass}`}>
+      </MetaLabel>
+      <span className={`text-xs font-semibold tabular-nums ${valueClass}`}>
         {value}
       </span>
     </div>

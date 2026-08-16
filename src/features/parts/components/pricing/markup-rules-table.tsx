@@ -36,7 +36,7 @@ interface MarkupRulesTableProps {
 }
 
 const HEAD =
-  "font-semibold text-xs uppercase tracking-wide text-muted-foreground";
+  "font-semibold text-xs text-muted-foreground";
 
 export function MarkupRulesTable({
   rules,
@@ -85,7 +85,7 @@ export function MarkupRulesTable({
                   icon="solar:tag-price-linear"
                   className="mx-auto mb-2 size-8 opacity-30"
                 />
-                <span className="text-xs font-medium uppercase tracking-wide">
+                <span className="text-xs font-medium">
                   No markup rules yet
                 </span>
               </TableCell>
@@ -107,7 +107,7 @@ export function MarkupRulesTable({
                   className={cn(
                     "font-mono text-sm font-semibold tabular-nums",
                     rule.markupPercentage < 0
-                      ? "text-destructive"
+                      ? "text-destructive-ink"
                       : "text-foreground",
                   )}
                 >
@@ -123,7 +123,7 @@ export function MarkupRulesTable({
                 <TableCell>
                   <Badge
                     variant={rule.isActive ? "success" : "muted"}
-                    className="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide"
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold"
                   >
                     {rule.isActive ? "Active" : "Inactive"}
                   </Badge>
@@ -160,7 +160,7 @@ export function MarkupRulesTable({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => onDelete(rule)}
-                        className="font-bold text-destructive focus:bg-destructive/10 focus:text-destructive"
+                        className="font-medium text-destructive-ink focus:bg-destructive/10 focus:text-destructive-ink"
                       >
                         <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
                         Delete

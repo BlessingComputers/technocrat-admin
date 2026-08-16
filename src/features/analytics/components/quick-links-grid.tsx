@@ -29,7 +29,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Catalog & pricing",
     href: "/catalogues?page=1",
     icon: "solar:box-bold-duotone",
-    iconClass: "bg-primary/10 text-primary",
+    iconClass: "bg-primary/10 text-primary-ink",
     group: "products",
   },
   {
@@ -37,7 +37,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Process & track",
     href: "/orders",
     icon: "solar:cart-large-2-bold-duotone",
-    iconClass: "bg-gold/15 text-gold",
+    iconClass: "bg-jewel/15 text-jewel-ink",
     group: "orders",
   },
   {
@@ -45,7 +45,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Accounts & history",
     href: "/customers",
     icon: "solar:users-group-rounded-bold-duotone",
-    iconClass: "bg-info/10 text-info",
+    iconClass: "bg-info/10 text-info-ink",
     group: "customers",
   },
   {
@@ -53,7 +53,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Issue & review",
     href: "/invoices",
     icon: "solar:bill-list-bold-duotone",
-    iconClass: "bg-success/15 text-success",
+    iconClass: "bg-success/15 text-success-ink",
     group: "invoices",
   },
   {
@@ -61,7 +61,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Stock & restocking",
     href: "/inventories",
     icon: "solar:box-minimalistic-bold-duotone",
-    iconClass: "bg-primary/10 text-primary",
+    iconClass: "bg-primary/10 text-primary-ink",
     group: "inventory",
   },
   {
@@ -69,7 +69,7 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Bulk product uploads",
     href: "/users/uploads",
     icon: "solar:cloud-upload-bold-duotone",
-    iconClass: "bg-info/10 text-info",
+    iconClass: "bg-info/10 text-info-ink",
     group: "products",
   },
   {
@@ -77,14 +77,14 @@ const QUICK_LINKS: QuickLink[] = [
     description: "Customer conversations",
     href: "/chat",
     icon: "solar:chat-round-bold-duotone",
-    iconClass: "bg-gold/15 text-gold",
+    iconClass: "bg-jewel/15 text-jewel-ink",
   },
   {
     title: "Users",
     description: "Staff & roles",
     href: "/users",
     icon: "solar:shield-user-bold-duotone",
-    iconClass: "bg-success/15 text-success",
+    iconClass: "bg-success/15 text-success-ink",
     group: "users",
   },
 ];
@@ -105,7 +105,7 @@ export function QuickLinksGrid({
 
   return (
     <section className="space-y-4 border-t border-border/70 pt-6">
-      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
         Quick Access
       </h2>
@@ -114,7 +114,7 @@ export function QuickLinksGrid({
           <Link
             key={link.href}
             href={link.href}
-            className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_12px_40px_-16px_rgba(0,0,0,0.18)]"
+            className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/25 hover:bg-muted/40"
           >
             <span
               className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${link.iconClass}`}
@@ -131,7 +131,7 @@ export function QuickLinksGrid({
             </div>
             <AppIcon
               icon="solar:alt-arrow-right-linear"
-              className="size-4 shrink-0 text-muted-foreground/50 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+              className="size-4 shrink-0 text-muted-foreground/50 transition-all group-hover:translate-x-0.5 group-hover:text-primary-ink"
             />
           </Link>
         ))}

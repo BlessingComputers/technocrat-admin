@@ -46,7 +46,7 @@ export function MonitorNavTabs() {
             className={cn(
               "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors",
               active
-                ? "border-primary text-primary"
+                ? "border-primary text-primary-ink"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >

@@ -60,7 +60,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-lg p-8">
-        <DialogTitle className="text-xl font-black tracking-tight mb-6">
+        <DialogTitle className="text-xl font-semibold tracking-tight mb-6">
           Add item
         </DialogTitle>
 
@@ -71,7 +71,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
               placeholder="Enter product name"
               value={draft.productName}
               onChange={(e) => update("productName", e.target.value)}
-              className="h-11 rounded-lg bg-muted/50 border-border font-bold"
+              className="h-11 rounded-lg bg-muted/50 border-border font-semibold"
             />
           </Field>
 
@@ -81,7 +81,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
                 placeholder="e.g. White"
                 value={draft.variantName}
                 onChange={(e) => update("variantName", e.target.value)}
-                className="h-11 rounded-lg bg-muted/50 border-border font-bold"
+                className="h-11 rounded-lg bg-muted/50 border-border font-semibold"
               />
             </Field>
             <Field label="SKU">
@@ -89,7 +89,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
                 placeholder="e.g. AP2-USB-C"
                 value={draft.sku}
                 onChange={(e) => update("sku", e.target.value)}
-                className="h-11 rounded-lg bg-muted/50 border-border font-bold"
+                className="h-11 rounded-lg bg-muted/50 border-border font-semibold"
               />
             </Field>
           </div>
@@ -103,7 +103,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
                 placeholder="1"
                 value={draft.quantity}
                 onChange={(e) => update("quantity", e.target.value)}
-                className="h-11 rounded-lg bg-muted/50 border-border font-bold"
+                className="h-11 rounded-lg bg-muted/50 border-border font-semibold"
               />
             </Field>
             <Field label="Unit price" required>
@@ -114,7 +114,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
                 placeholder="Enter price"
                 value={draft.unitPrice}
                 onChange={(e) => update("unitPrice", e.target.value)}
-                className="h-11 rounded-lg bg-muted/50 border-border font-bold"
+                className="h-11 rounded-lg bg-muted/50 border-border font-semibold"
               />
             </Field>
           </div>
@@ -122,7 +122,7 @@ export function AddItemModal({ isOpen, onOpenChange, onAdd }: AddItemModalProps)
           <div className="flex justify-center pt-2">
             <Button
               type="submit"
-              className="h-11 rounded-lg bg-primary px-10 font-black text-primary-foreground"
+              className="h-11 rounded-lg bg-primary px-10 font-medium text-primary-foreground"
             >
               Add item
             </Button>
@@ -144,9 +144,9 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+      <Label className="text-xs font-medium text-muted-foreground ml-1">
         {label}
-        {required && <span className="text-destructive"> *</span>}
+        {required && <span className="text-destructive-ink"> *</span>}
       </Label>
       {children}
     </div>

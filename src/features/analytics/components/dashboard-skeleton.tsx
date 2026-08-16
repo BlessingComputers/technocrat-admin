@@ -21,7 +21,7 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
-      <Card className="border border-border rounded-lg overflow-hidden">
+      <Card className="overflow-hidden">
         <CardHeader className="border-b bg-muted/5 px-6 py-4">
           <Skeleton className="h-6 w-32" />
         </CardHeader>

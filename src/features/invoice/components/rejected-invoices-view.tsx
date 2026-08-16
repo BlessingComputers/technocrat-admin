@@ -7,10 +7,12 @@ import { AppIcon } from "@/components/shared/app-icon";
 import PageContainer from "@/components/layouts/page-container";
 import { formatPrice } from "@/lib/utils/format";
 import { useRejectedInvoices } from "../api/invoice.queries";
+import { StatsBar } from "@/components/shared/stats-bar";
 import { InvoiceKpiCard } from "./kpis/invoice-kpi-card";
 import { InvoiceTable } from "./invoice-table";
 import { InvoicePagination } from "./invoice-pagination";
 import type { InvoiceListParams } from "../types/invoice";
+import { Card } from "@/components/ui/card";
 
 const LIMIT = 20;
 
@@ -36,38 +38,36 @@ export function RejectedInvoicesView() {
           <AppIcon icon="solar:arrow-left-linear" className="h-4 w-4" />
           Back
         </Link>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
           Rejected invoices
         </h1>
       </div>
 
-      <div className="rounded-2xl bg-muted/40 p-3 sm:p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          <InvoiceKpiCard
-            title="Total Amount"
-            value={formatPrice(summary?.totalAmount ?? 0)}
-            icon="solar:bill-list-linear"
-            iconClassName="text-foreground/70"
-            isLoading={isLoading}
-          />
-          <InvoiceKpiCard
-            title="Refunded"
-            value={formatPrice(summary?.refundedAmount ?? 0)}
-            icon="solar:bill-check-linear"
-            iconClassName="text-success"
-            isLoading={isLoading}
-          />
-          <InvoiceKpiCard
-            title="Pending refund"
-            value={formatPrice(summary?.pendingRefundAmount ?? 0)}
-            icon="solar:bill-list-linear"
-            iconClassName="text-warning"
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
+      <StatsBar columns={3}>
+        <InvoiceKpiCard
+          title="Total amount"
+          value={formatPrice(summary?.totalAmount ?? 0)}
+          icon="solar:bill-list-linear"
+          tone="primary"
+          isLoading={isLoading}
+        />
+        <InvoiceKpiCard
+          title="Refunded"
+          value={formatPrice(summary?.refundedAmount ?? 0)}
+          icon="solar:bill-check-linear"
+          tone="success"
+          isLoading={isLoading}
+        />
+        <InvoiceKpiCard
+          title="Pending refund"
+          value={formatPrice(summary?.pendingRefundAmount ?? 0)}
+          icon="solar:bill-list-linear"
+          tone="warning"
+          isLoading={isLoading}
+        />
+      </StatsBar>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <Card className="gap-0 overflow-hidden py-0">
         <div className="p-6 pb-4">
           <div className="relative">
             <AppIcon
@@ -105,7 +105,7 @@ export function RejectedInvoicesView() {
             />
           </div>
         )}
-      </div>
+      </Card>
     </PageContainer>
   );
 }

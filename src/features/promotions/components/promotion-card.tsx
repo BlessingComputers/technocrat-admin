@@ -75,7 +75,7 @@ export function PromotionCard({ promotion }: { promotion: Promotion }) {
   };
 
   return (
-    <Card className="group overflow-hidden rounded-xl border border-border p-0 gap-0">
+    <Card className="group overflow-hidden p-0 gap-0">
       <Link
         href={`/socials/${promotion.id}`}
         className="relative block aspect-video w-full bg-muted"
@@ -101,7 +101,7 @@ export function PromotionCard({ promotion }: { promotion: Promotion }) {
         <div className="min-w-0">
           <Link
             href={`/socials/${promotion.id}`}
-            className="block truncate text-sm font-black text-foreground hover:text-primary"
+            className="block truncate text-sm font-semibold text-foreground hover:text-primary-ink"
           >
             {promotion.title}
           </Link>

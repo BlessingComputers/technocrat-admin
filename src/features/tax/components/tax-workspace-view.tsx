@@ -10,6 +10,7 @@ import { useTaxSetting } from "../api/tax.queries";
 import { TaxSettingPanel } from "./tax-setting-panel";
 import { ProductTaxRules } from "./product-tax-rules";
 import { PartTaxRules } from "./part-tax-rules";
+import { Card } from "@/components/ui/card";
 
 type RuleScope = "products" | "parts";
 
@@ -27,12 +28,12 @@ export function TaxWorkspaceView() {
 
   if (!can("tax:manage")) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16 text-center">
+      <Card className="items-center justify-center gap-3 py-16 text-center">
         <div className="size-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
           <AppIcon icon="solar:lock-keyhole-minimalistic-linear" className="size-7" />
         </div>
         <div>
-          <h3 className="text-base font-black tracking-tight text-foreground">
+          <h3 className="text-base font-semibold tracking-tight text-foreground">
             No access to tax settings
           </h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
@@ -40,7 +41,7 @@ export function TaxWorkspaceView() {
             permission. Ask a super admin to grant it.
           </p>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -53,7 +54,7 @@ export function TaxWorkspaceView() {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black tracking-tight text-foreground">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
               Scoped rules
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -67,7 +68,7 @@ export function TaxWorkspaceView() {
           <div className="flex items-start gap-2.5 rounded-lg border border-info/30 bg-info/[0.06] px-4 py-3">
             <AppIcon
               icon="solar:info-circle-bold"
-              className="size-4 mt-0.5 shrink-0 text-info"
+              className="size-4 mt-0.5 shrink-0 text-info-ink"
             />
             <p className="text-sm font-medium text-foreground/80">
               Store tax is off, so these rules are paused — they won’t apply at
@@ -130,7 +131,7 @@ function SegmentButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 rounded-md px-3.5 h-8 text-sm font-bold transition-colors",
+        "flex items-center gap-2 rounded-md px-3.5 h-8 text-sm font-semibold transition-colors",
         active
           ? "bg-card text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",

@@ -245,7 +245,7 @@ export function MarkupRuleFormDialog({
             </>
           )}
           {(errors.partId ?? errors.categoryId) && (
-            <p className="text-xs font-medium text-destructive" role="alert">
+            <p className="text-xs font-medium text-destructive-ink" role="alert">
               {(errors.partId ?? errors.categoryId)?.message}
             </p>
           )}
@@ -303,7 +303,7 @@ export function MarkupRuleFormDialog({
                 }}
               />
               {errors.markupPercentage && (
-                <p className="text-xs text-destructive">
+                <p className="text-xs text-destructive-ink">
                   {errors.markupPercentage.message}
                 </p>
               )}
@@ -405,14 +405,14 @@ function ModeButton({
           "block text-sm font-semibold",
           active
             ? discount
-              ? "text-destructive"
-              : "text-primary"
+              ? "text-destructive-ink"
+              : "text-primary-ink"
             : "text-foreground",
         )}
       >
         {label}
       </span>
-      <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="block text-xs font-medium text-muted-foreground">
         {hint}
       </span>
     </button>

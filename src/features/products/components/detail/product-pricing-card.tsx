@@ -11,7 +11,7 @@ interface ProductPricingCardProps {
 }
 
 const STAT_LABEL =
-  "text-xs font-medium uppercase tracking-wide text-muted-foreground";
+  "text-xs font-medium text-muted-foreground";
 
 /**
  * Pricing & inventory for a product. The variant concept is no longer exposed,
@@ -21,7 +21,7 @@ const STAT_LABEL =
 export function ProductPricingCard({ variant }: ProductPricingCardProps) {
   if (!variant) {
     return (
-      <Card className="border border-border p-6">
+      <Card className="p-6">
         <p className="text-sm text-muted-foreground">
           No pricing information available.
         </p>
@@ -33,7 +33,7 @@ export function ProductPricingCard({ variant }: ProductPricingCardProps) {
   const isLow = variant.stockQuantity <= variant.lowStockThreshold;
 
   return (
-    <Card className="border border-border p-0">
+    <Card className="p-0">
       <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         <div className="space-y-1">
           <p className={STAT_LABEL}>Part Number</p>
@@ -56,7 +56,7 @@ export function ProductPricingCard({ variant }: ProductPricingCardProps) {
           <p className={STAT_LABEL}>Condition</p>
           <Badge
             variant="outline"
-            className="text-xs font-medium uppercase tracking-tight h-5"
+            className="text-xs font-medium h-5"
           >
             {variant.condition}
           </Badge>
@@ -68,9 +68,9 @@ export function ProductPricingCard({ variant }: ProductPricingCardProps) {
             className={cn(
               "text-lg font-semibold",
               isOut
-                ? "text-destructive"
+                ? "text-destructive-ink"
                 : isLow
-                  ? "text-warning"
+                  ? "text-warning-ink"
                   : "text-foreground",
             )}
           >
@@ -86,7 +86,7 @@ export function ProductPricingCard({ variant }: ProductPricingCardProps) {
           <span
             className={cn(
               "inline-flex items-center gap-1.5 text-sm font-semibold",
-              variant.isActive ? "text-success" : "text-muted-foreground",
+              variant.isActive ? "text-success-ink" : "text-muted-foreground",
             )}
           >
             <AppIcon

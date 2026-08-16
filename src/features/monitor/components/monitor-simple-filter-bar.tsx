@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { AppIcon } from "@/components/shared/app-icon";
+import { FilterSearch } from "@/components/shared/filter-bar";
 import type { MonitorErrorsOrSlowParams } from "../types/monitor";
 
 interface MonitorSimpleFilterBarProps {
@@ -23,19 +22,13 @@ export function MonitorSimpleFilterBar({
   const commit = () => onParamsChange({ ...params, path: pathDraft || undefined });
 
   return (
-    <div className="relative max-w-md group">
-      <AppIcon
-        icon="solar:magnifer-linear"
-        className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-      />
-      <Input
-        placeholder={placeholder}
-        className="pl-12 h-12 rounded-md border border-border bg-card focus:ring-primary/20 font-medium"
-        value={pathDraft}
-        onChange={(e) => setPathDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && commit()}
-      />
-    </div>
+    <FilterSearch
+      wrapperClassName="max-w-md"
+      placeholder={placeholder}
+      value={pathDraft}
+      onChange={(e) => setPathDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && commit()}
+    />
   );
 }

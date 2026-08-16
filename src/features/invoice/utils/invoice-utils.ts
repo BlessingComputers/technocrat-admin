@@ -10,9 +10,9 @@ type Tone = "success" | "info" | "violet" | "warning" | "danger" | "muted";
 
 const TONE_CLASSES: Record<Tone, string> = {
   success: "bg-success/12 text-success border-success/25",
-  info: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+  info: "bg-info/10 text-info-ink border-info/20",
   violet:
-    "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+    "bg-jewel/10 text-jewel-ink border-jewel/20",
   warning: "bg-warning/15 text-warning border-warning/25",
   danger: "bg-destructive/12 text-destructive border-destructive/25",
   muted: "bg-muted text-muted-foreground border-border",

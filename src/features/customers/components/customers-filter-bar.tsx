@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,8 +13,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import { AppIcon } from "@/components/shared/app-icon";
+import {
+  FilterBar,
+  FilterSearch,
+  filterControlClass,
+} from "@/components/shared/filter-bar";
 import { cn } from "@/lib/utils/cn";
+import { MetaLabel } from "@/components/shared/meta-label";
 import type {
   CustomerStatus,
   CustomersListParams,
@@ -47,19 +53,12 @@ export function CustomersFilterBar({
   );
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="relative flex-1 group">
-        <AppIcon
-          icon="solar:magnifer-linear"
-          className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-        />
-        <Input
-          placeholder="Search by name or email..."
-          className="pl-12 h-12 rounded-md border border-border bg-card focus:ring-primary/20 font-medium"
-          value={searchInput}
-          onChange={(e) => onSearch(e.target.value)}
-        />
-      </div>
+    <FilterBar>
+      <FilterSearch
+        placeholder="Search by name or email..."
+        value={searchInput}
+        onChange={(e) => onSearch(e.target.value)}
+      />
 
       <Select
         value={params.status || "ALL"}
@@ -69,10 +68,10 @@ export function CustomersFilterBar({
           })
         }
       >
-        <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-black uppercase tracking-widest text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[180px]">
+        <SelectTrigger className={filterControlClass}>
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
-        <SelectContent className="bg-card border border-border text-xs font-bold text-foreground">
+        <SelectContent>
           <SelectItem value="ALL">All Statuses</SelectItem>
           <SelectItem value="ACTIVE">Active</SelectItem>
           <SelectItem value="SUSPENDED">Suspended</SelectItem>
@@ -85,18 +84,18 @@ export function CustomersFilterBar({
           <Button
             variant="outline"
             className={cn(
-              "h-12 px-6 rounded-md bg-card border border-border hover:bg-muted/50 flex items-center gap-2",
+              "gap-2",
               hasAdvanced &&
-                "border-primary text-primary bg-primary/5 hover:bg-primary/10",
+                "border-primary text-primary-ink bg-primary/5 hover:bg-primary/10",
             )}
           >
             <AppIcon
               icon="solar:filter-linear"
               className="w-4 h-4 text-muted-foreground"
             />
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground hidden sm:inline">
+            <MetaLabel className="hidden sm:inline">
               Advanced Filters
-            </span>
+            </MetaLabel>
             {hasAdvanced && (
               <span className="w-2 h-2 rounded-full bg-primary" />
             )}
@@ -104,22 +103,24 @@ export function CustomersFilterBar({
         </PopoverTrigger>
         <PopoverContent
           align="end"
-          className="w-80 p-6 bg-card border border-border rounded-md shadow-soft-lg space-y-6"
+          className="w-80 space-y-6 p-6 shadow-soft-lg"
         >
           <div className="space-y-1">
-            <h4 className="text-xs font-black uppercase tracking-widest text-foreground">
+            <h4 className="text-base font-semibold text-foreground">
               Advanced Filters
             </h4>
-            <p className="text-[10px] font-bold text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               Refine the customer list
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                Loyalty Tier
-              </label>
+              <MetaLabel asChild>
+                <label>
+                  Loyalty Tier
+                </label>
+              </MetaLabel>
               <Select
                 value={params.loyaltyTier || "ALL"}
                 onValueChange={(val) =>
@@ -129,10 +130,10 @@ export function CustomersFilterBar({
                   })
                 }
               >
-                <SelectTrigger className="h-10 w-full bg-muted/50 border border-border text-xs font-bold text-foreground">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Tiers" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border border-border text-xs font-bold text-foreground">
+                <SelectContent>
                   <SelectItem value="ALL">All Tiers</SelectItem>
                   {LOYALTY_TIERS.map((tier) => (
                     <SelectItem key={tier} value={tier}>
@@ -145,27 +146,31 @@ export function CustomersFilterBar({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                  Joined From
-                </label>
+                <MetaLabel asChild>
+                  <label>
+                    Joined From
+                  </label>
+                </MetaLabel>
                 <Input
                   type="date"
                   value={params.from || ""}
                   onChange={(e) =>
                     onFilter({ from: e.target.value || undefined })
                   }
-                  className="h-10 w-full bg-muted/50 border border-border text-xs font-bold text-foreground"
+                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                  Joined To
-                </label>
+                <MetaLabel asChild>
+                  <label>
+                    Joined To
+                  </label>
+                </MetaLabel>
                 <Input
                   type="date"
                   value={params.to || ""}
                   onChange={(e) => onFilter({ to: e.target.value || undefined })}
-                  className="h-10 w-full bg-muted/50 border border-border text-xs font-bold text-foreground"
+                  className="w-full"
                 />
               </div>
             </div>
@@ -174,13 +179,13 @@ export function CustomersFilterBar({
           {hasActiveFilters && (
             <Button
               onClick={onReset}
-              className="w-full h-10 bg-foreground hover:bg-foreground/90 text-background text-xs font-black uppercase tracking-widest rounded-md"
+              className="w-full h-10 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium rounded-md"
             >
               Reset Filters
             </Button>
           )}
         </PopoverContent>
       </Popover>
-    </div>
+    </FilterBar>
   );
 }

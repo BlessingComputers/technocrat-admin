@@ -122,7 +122,7 @@ export function PromotionForm({
       </p>
 
       {error && (
-        <p className="text-xs font-bold text-destructive" role="alert">
+        <p className="text-xs font-semibold text-destructive-ink" role="alert">
           {error}
         </p>
       )}

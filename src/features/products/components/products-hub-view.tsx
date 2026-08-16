@@ -158,14 +158,14 @@ export function ProductsHubView() {
         </div>
       </div>
 
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-base font-semibold text-foreground">
             Recently added
           </h3>
           <Link
             href="/catalogues/all"
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-primary-ink hover:underline"
           >
             View all →
           </Link>
@@ -196,14 +196,14 @@ export function ProductsHubView() {
 
 const ENTRY_ACCENTS = {
   primary: {
-    tile: "bg-primary/10 text-primary",
+    tile: "bg-primary/10 text-primary-ink",
     border: "hover:border-primary/30",
-    arrow: "group-hover:text-primary",
+    arrow: "group-hover:text-primary-ink",
   },
   info: {
-    tile: "bg-info/10 text-info",
+    tile: "bg-info/10 text-info-ink",
     border: "hover:border-info/40",
-    arrow: "group-hover:text-info",
+    arrow: "group-hover:text-info-ink",
   },
 } as const;
 
@@ -233,7 +233,7 @@ function CatalogEntryCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.22)]",
+        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-colors duration-150 hover:border-primary/25 hover:bg-muted/40",
         styles.border,
       )}
     >
@@ -260,7 +260,7 @@ function CatalogEntryCard({
         </h3>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <div className="mt-auto flex items-center gap-2 border-t border-border/60 pt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="mt-auto flex items-center gap-2 border-t border-border/60 pt-4 text-xs font-medium text-muted-foreground">
         {meta}
       </div>
     </Link>

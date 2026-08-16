@@ -2,7 +2,10 @@
  * Admin app — root layout.
  *
  * Notable differences from the main app's layout.tsx:
- * - metadataBase points at admin.blessingcomputers.com
+ * - metadataBase points at admin.technocratng.com — the storefront's domain with
+ *   the same `admin.` prefix Blessing used. No Technocrat admin host exists yet
+ *   and deploy is out of scope; this is a placeholder, and harmless because every
+ *   page is noindex. Revisit when the real hostname is assigned.
  * - robots.index = false, robots.follow = false (every page)
  * - No marketing OpenGraph/Twitter card data
  * - EmergencyUnblock is mounted app-wide (incl. the login page) so locked-out
@@ -26,9 +29,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://admin.blessingcomputers.com"),
+  metadataBase: new URL("https://admin.technocratng.com"),
   title: {
-    default: "Admin · Blessing Computers",
+    default: "Admin · Technocrat",
     template: "%s · Admin",
   },
   description: "Internal staff dashboard.",

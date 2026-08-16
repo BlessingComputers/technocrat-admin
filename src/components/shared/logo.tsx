@@ -31,7 +31,7 @@ export function Logo({
     <Link href={href || "/"} className={cn("flex items-center gap-2", className)}>
       <Image
         src={logoSrc}
-        alt="Blessing Online Stores Logo"
+        alt="Technocrat Nigeria Logo"
         loading="eager"
         className={cn(logoClass, imageClassName)}
       />

@@ -5,7 +5,8 @@ import { NextRequest } from "next/server";
  * Admin app middleware.
  *
  * No /admin prefix — this app IS the admin, served at root on
- * admin.blessingcomputers.com. Every route except /login is staff-protected.
+ * the admin host (admin.technocratng.com). Every route except /login is
+ * staff-protected.
  *
  * Customer block from the original proxy.ts lives in the main app, not here.
  */

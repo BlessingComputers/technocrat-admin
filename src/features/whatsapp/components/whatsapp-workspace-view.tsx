@@ -25,7 +25,7 @@ export function WhatsAppWorkspaceView() {
     <div className="flex h-[calc(100dvh-8rem)] flex-col gap-4">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
             WhatsApp
           </h1>
           <p className="text-sm font-medium text-muted-foreground">
@@ -41,12 +41,12 @@ export function WhatsAppWorkspaceView() {
       </div>
 
       {!workspace.isOnline && (
-        <div className="flex shrink-0 items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+        <div className="flex shrink-0 items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
           <AppIcon
             icon="solar:info-circle-linear"
-            className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400"
+            className="mt-0.5 size-4 shrink-0 text-warning-ink"
           />
-          <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+          <p className="text-xs leading-relaxed text-warning-ink">
             You’re not available for WhatsApp. Turn on{" "}
             <span className="font-semibold">Available</span> to receive new
             conversations as they arrive — this is separate from your live-chat

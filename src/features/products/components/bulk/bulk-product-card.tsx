@@ -20,6 +20,7 @@ import type { ProductBrand, ProductCategory } from "../../types/products";
 import { useSubcategories } from "../../api/products.queries";
 import { BulkVariantRow } from "./bulk-variant-row";
 import { BulkImagesSection } from "./bulk-images-section";
+import { Card } from "@/components/ui/card";
 import {
   newBulkSpec,
   validateBulkRow,
@@ -45,7 +46,7 @@ interface BulkProductCardProps {
 }
 
 const SECTION_LABEL =
-  "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+  "flex items-center gap-2 text-xs font-semibold text-muted-foreground";
 
 export function BulkProductCard({
   row,
@@ -89,7 +90,7 @@ export function BulkProductCard({
   const fromPrice = row.variants[0]?.price || "—";
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+    <Card className="gap-0 overflow-hidden py-0">
       {/* Summary header */}
       <div className="flex items-center gap-3 p-4">
         <button
@@ -99,7 +100,7 @@ export function BulkProductCard({
           <span title={valid ? "Ready" : errors.join(", ")}>
             <AppIcon
               icon={valid ? "solar:check-circle-bold" : "solar:danger-circle-bold"}
-              className={cn("size-5 shrink-0", valid ? "text-success" : "text-warning")}
+              className={cn("size-5 shrink-0", valid ? "text-success-ink" : "text-warning-ink")}
             />
           </span>
           <div className="min-w-0 flex-1">
@@ -124,7 +125,7 @@ export function BulkProductCard({
                   "font-mono",
                   row.variants[0]?.sku.trim()
                     ? "text-foreground"
-                    : "font-bold text-warning",
+                    : "font-semibold text-warning-ink",
                 )}
                 title="Part number (required)"
               >
@@ -152,7 +153,7 @@ export function BulkProductCard({
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="size-8 text-muted-foreground hover:text-destructive-ink hover:bg-destructive/10"
           onClick={() => onRemove(row.id)}
         >
           <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />
@@ -178,7 +179,7 @@ export function BulkProductCard({
           {errors.map((err) => (
             <span
               key={err}
-              className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning"
+              className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-1 text-xs font-medium text-warning-ink"
             >
               <AppIcon icon="solar:danger-triangle-linear" className="size-3" />
               {err}
@@ -201,7 +202,7 @@ export function BulkProductCard({
           {/* General */}
           <section className="space-y-3">
             <div className={SECTION_LABEL}>
-              <AppIcon icon="solar:widget-5-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:widget-5-linear" className="size-4 text-primary-ink" />
               General
             </div>
             <Input
@@ -299,7 +300,7 @@ export function BulkProductCard({
           {/* Images */}
           <section className="space-y-3">
             <div className={SECTION_LABEL}>
-              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary-ink" />
               Images
             </div>
             <BulkImagesSection
@@ -312,7 +313,7 @@ export function BulkProductCard({
           {/* Pricing & Inventory */}
           <section className="space-y-3">
             <div className={SECTION_LABEL}>
-              <AppIcon icon="solar:tag-price-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:tag-price-linear" className="size-4 text-primary-ink" />
               Pricing & Inventory
             </div>
             <BulkVariantRow
@@ -325,7 +326,7 @@ export function BulkProductCard({
           {/* Specifications */}
           <section className="space-y-3">
             <div className={SECTION_LABEL}>
-              <AppIcon icon="solar:document-text-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:document-text-linear" className="size-4 text-primary-ink" />
               Specifications
             </div>
             <div className="space-y-2">
@@ -346,7 +347,7 @@ export function BulkProductCard({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="size-7 shrink-0 text-muted-foreground hover:text-destructive-ink hover:bg-destructive/10"
                     onClick={() => removeSpec(s.id)}
                   >
                     <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />
@@ -368,6 +369,6 @@ export function BulkProductCard({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Card>
   );
 }

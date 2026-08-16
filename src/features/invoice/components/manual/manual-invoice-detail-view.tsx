@@ -13,6 +13,7 @@ import {
   useManualInvoiceDetail,
 } from "../../api/invoice.queries";
 import { ManualInvoiceDetailSkeleton } from "./manual-invoice-detail-skeleton";
+import { MetaLabel } from "@/components/shared/meta-label";
 import {
   customerName,
   formatInvoiceDate,
@@ -93,34 +94,34 @@ export function ManualInvoiceDetailView({
       <div className="space-y-1">
         <Link
           href="/invoices?tab=manual"
-          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
         >
           <AppIcon icon="solar:arrow-left-linear" className="h-3 w-3" />
           Back
         </Link>
-        <h1 className="text-2xl font-black tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Invoice Details
         </h1>
       </div>
 
       {/* Summary header */}
-      <Card className="border border-border bg-card p-8 rounded-xl">
+      <Card className="p-8">
         <div className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
           {/* Left */}
           <div className="space-y-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+              <MetaLabel className="block mb-1">
                 Invoice Number
-              </p>
+              </MetaLabel>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black text-foreground">
+                <span className="text-lg font-semibold text-foreground">
                   {invoice.invoiceNumber || invoice.manualInvoiceId}
                 </span>
                 <CopyButton
                   value={invoice.invoiceNumber || invoice.manualInvoiceId}
                 />
               </div>
-              <span className="mt-2 inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+              <span className="mt-2 inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-ink">
                 Manual
               </span>
             </div>
@@ -142,20 +143,20 @@ export function ManualInvoiceDetailView({
             </InlineDetail>
             <div className="flex gap-12 pt-1">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                <MetaLabel className="block mb-1">
                   Total Amount
-                </p>
-                <p className="text-lg font-black text-foreground">
+                </MetaLabel>
+                <p className="text-lg font-semibold text-foreground">
                   {formatPrice(invoice.totalAmount)}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                <MetaLabel className="block mb-1">
                   Status
-                </p>
+                </MetaLabel>
                 <span
                   className={cn(
-                    "inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold",
+                    "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold",
                     meta.className,
                   )}
                 >
@@ -168,13 +169,13 @@ export function ManualInvoiceDetailView({
       </Card>
 
       {/* Customer + billing */}
-      <Card className="grid grid-cols-1 gap-x-12 gap-y-6 border border-border bg-card p-8 rounded-xl md:grid-cols-2">
+      <Card className="grid grid-cols-1 gap-x-12 gap-y-6 p-8 md:grid-cols-2">
         <div>
-          <h3 className="mb-4 text-sm font-black text-foreground">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
             Customer Information
           </h3>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p className="flex items-center gap-2 font-bold text-foreground">
+            <p className="flex items-center gap-2 font-semibold text-foreground">
               <AppIcon icon="solar:user-linear" className="h-4 w-4 shrink-0" />
               {detailCustomerName(invoice)}
             </p>
@@ -199,7 +200,7 @@ export function ManualInvoiceDetailView({
           </div>
         </div>
         <div>
-          <h3 className="mb-4 text-sm font-black text-foreground">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
             Billing Address
           </h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -211,8 +212,8 @@ export function ManualInvoiceDetailView({
       <ManualDetailItems items={invoice.lineItems} />
 
       {/* Amount summary */}
-      <Card className="border border-border bg-card p-8 rounded-xl">
-        <h3 className="mb-4 text-sm font-black text-foreground">
+      <Card className="p-8">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           Amount Summary
         </h3>
         <div className="space-y-3">
@@ -229,25 +230,25 @@ export function ManualInvoiceDetailView({
             value={formatPrice(invoice.taxAmount)}
           />
           <div className="flex items-center justify-between border-t border-border pt-3">
-            <span className="text-sm font-black text-foreground">
+            <span className="text-sm font-semibold text-foreground">
               Total Amount
             </span>
-            <span className="text-lg font-black text-foreground">
+            <span className="text-lg font-semibold text-foreground">
               {formatPrice(invoice.totalAmount)}
             </span>
           </div>
         </div>
       </Card>
 
-      <Card className="border border-border bg-card p-8 rounded-xl">
-        <h3 className="mb-2 text-sm font-black text-foreground">Issued by</h3>
+      <Card className="p-8">
+        <h3 className="mb-2 text-sm font-semibold text-foreground">Issued by</h3>
         <p className="text-sm font-medium text-muted-foreground">
           {issuerName(invoice)}
         </p>
       </Card>
 
-      <Card className="border border-border bg-card p-8 rounded-xl">
-        <h3 className="mb-2 text-sm font-black text-foreground">Notes</h3>
+      <Card className="p-8">
+        <h3 className="mb-2 text-sm font-semibold text-foreground">Notes</h3>
         <p className="text-sm font-medium text-muted-foreground">
           {invoice.notes || "—"}
         </p>
@@ -258,7 +259,7 @@ export function ManualInvoiceDetailView({
           <Button
             variant="destructive"
             onClick={() => setCancelOpen(true)}
-            className="h-12 rounded-lg px-12 font-black"
+            className="h-12 rounded-lg px-12 font-medium"
           >
             Cancel Invoice
           </Button>
@@ -296,7 +297,7 @@ function InlineDetail({
       <span className="min-w-[120px] shrink-0 text-sm text-muted-foreground">
         {label}:
       </span>
-      <span className="text-sm font-bold text-foreground">{children}</span>
+      <span className="text-sm font-semibold text-foreground">{children}</span>
     </div>
   );
 }
@@ -323,7 +324,7 @@ function CopyButton({ value }: { value: string }) {
       aria-label="Copy invoice number"
     >
       {copied ? (
-        <span className="text-green-500 font-bold">Copied!</span>
+        <span className="text-success-ink font-semibold">Copied!</span>
       ) : (
         <AppIcon icon="solar:copy-linear" className="h-4 w-4" />
       )}
@@ -334,17 +335,17 @@ function CopyButton({ value }: { value: string }) {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="font-bold text-muted-foreground">{label}:</span>
-      <span className="font-bold text-foreground">{value}</span>
+      <span className="font-semibold text-muted-foreground">{label}:</span>
+      <span className="font-semibold text-foreground">{value}</span>
     </div>
   );
 }
 
 function ManualDetailItems({ items }: { items: ManualInvoiceLineItem[] }) {
   return (
-    <Card className="overflow-hidden border border-border bg-card p-0 rounded-xl">
+    <Card className="overflow-hidden p-0">
       <div className="p-8 pb-4">
-        <h3 className="text-sm font-black text-foreground">Items</h3>
+        <h3 className="text-sm font-semibold text-foreground">Items</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left">
@@ -354,7 +355,7 @@ function ManualDetailItems({ items }: { items: ManualInvoiceLineItem[] }) {
                 (h) => (
                   <th
                     key={h}
-                    className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground first:pl-8"
+                    className="px-6 py-3 text-xs font-medium text-muted-foreground first:pl-8"
                   >
                     {h}
                   </th>
@@ -365,7 +366,7 @@ function ManualDetailItems({ items }: { items: ManualInvoiceLineItem[] }) {
           <tbody className="divide-y divide-border/60">
             {items.map((item, i) => (
               <tr key={item.id ?? i} className="text-sm">
-                <td className="px-6 py-4 pl-8 font-bold text-foreground">
+                <td className="px-6 py-4 pl-8 font-semibold text-foreground">
                   <span
                     className="block max-w-[240px] truncate"
                     title={item.productName}
@@ -379,13 +380,13 @@ function ManualDetailItems({ items }: { items: ManualInvoiceLineItem[] }) {
                 <td className="px-6 py-4 text-muted-foreground">
                   {item.variantName || "—"}
                 </td>
-                <td className="px-6 py-4 font-bold text-foreground">
+                <td className="px-6 py-4 font-semibold text-foreground">
                   {item.quantity}
                 </td>
-                <td className="px-6 py-4 font-bold text-foreground">
+                <td className="px-6 py-4 font-semibold text-foreground">
                   {formatPrice(item.unitPrice)}
                 </td>
-                <td className="px-6 py-4 font-black text-foreground">
+                <td className="px-6 py-4 font-semibold text-foreground">
                   {formatPrice(
                     item.totalPrice ?? item.quantity * item.unitPrice,
                   )}
@@ -404,11 +405,11 @@ function ManualInvoiceNotFound() {
     <div className="flex min-h-[50vh] flex-col items-center justify-center space-y-4">
       <AppIcon
         icon="solar:danger-circle-linear"
-        className="h-14 w-14 text-destructive"
+        className="h-14 w-14 text-destructive-ink"
       />
-      <h2 className="text-xl font-black text-foreground">Invoice not found</h2>
+      <h2 className="text-xl font-semibold text-foreground">Invoice not found</h2>
       <Link href="/invoices?tab=manual">
-        <Button variant="outline" className="rounded-lg px-8 font-bold">
+        <Button variant="outline" className="rounded-lg px-8 font-medium">
           Back to invoices
         </Button>
       </Link>

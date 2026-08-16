@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { AnalyticsChartCard } from "./analytics-chart-card";
 import { ChartEmpty, ChartLoading } from "./chart-states";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 export interface DonutSlice {
   key: string;
@@ -46,7 +47,7 @@ export function SnapshotDonutCard({
   title,
   subtitle,
   icon,
-  iconClass = "bg-primary/10 text-primary",
+  iconClass = "bg-primary/10 text-primary-ink",
   href,
   linkLabel = "View all",
   centerValue,
@@ -112,12 +113,12 @@ export function SnapshotDonutCard({
               </PieChart>
             </ChartContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold tabular-nums leading-none">
+              <span className="text-2xl font-semibold tabular-nums leading-none">
                 {centerValue.toLocaleString()}
               </span>
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <MetaLabel>
                 {centerLabel}
-              </span>
+              </MetaLabel>
             </div>
           </div>
 
@@ -138,7 +139,7 @@ export function SnapshotDonutCard({
                       {s.label}
                     </span>
                   </span>
-                  <span className="shrink-0 font-bold tabular-nums">
+                  <span className="shrink-0 font-semibold tabular-nums">
                     {s.value.toLocaleString()}
                     <span className="ml-1 font-medium text-muted-foreground">
                       {pct}%

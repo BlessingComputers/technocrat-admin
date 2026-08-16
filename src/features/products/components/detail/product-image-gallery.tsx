@@ -16,7 +16,7 @@ export function ProductImageGallery({
   return (
     <div className="pt-6 space-y-4">
       <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-        <AppIcon icon="solar:gallery-linear" className="size-5 text-primary" />
+        <AppIcon icon="solar:gallery-linear" className="size-5 text-primary-ink" />
         Image Gallery
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

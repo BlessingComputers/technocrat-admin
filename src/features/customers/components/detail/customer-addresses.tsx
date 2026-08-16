@@ -22,9 +22,9 @@ export function CustomerAddresses({ addresses }: CustomerAddressesProps) {
   if (!addresses || addresses.length === 0) return null;
 
   return (
-    <Card className="p-8 border border-border bg-card rounded-xl">
-      <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-3">
-        <AppIcon icon="solar:map-point-linear" className="w-5 h-5 text-primary" />
+    <Card className="p-8">
+      <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-3">
+        <AppIcon icon="solar:map-point-linear" className="w-5 h-5 text-primary-ink" />
         Addresses
       </h3>
       <div className="space-y-4">
@@ -34,13 +34,13 @@ export function CustomerAddresses({ addresses }: CustomerAddressesProps) {
             className="p-4 bg-muted/40 rounded-lg border border-border"
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-black text-foreground">
+              <p className="text-xs font-semibold text-foreground">
                 {[address.firstName, address.lastName]
                   .filter(Boolean)
                   .join(" ") || "Address"}
               </p>
               {address.isDefault && (
-                <span className="text-[8px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-medium text-primary-ink bg-primary/10 px-2 py-0.5 rounded-full">
                   Default
                 </span>
               )}
@@ -49,7 +49,7 @@ export function CustomerAddresses({ addresses }: CustomerAddressesProps) {
               {formatLine(address)}
             </p>
             {address.phone && (
-              <p className="text-[11px] text-muted-foreground font-bold mt-1">
+              <p className="text-xs text-muted-foreground font-semibold mt-1">
                 {address.phone}
               </p>
             )}

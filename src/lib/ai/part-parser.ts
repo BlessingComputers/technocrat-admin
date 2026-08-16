@@ -49,7 +49,7 @@ export interface ParsePartResult {
 }
 
 const SYSTEM_PROMPT = `
-You are a Parts Data Architect for Blessing Computers, an electronics retailer.
+You are a Parts Data Architect for Technocrat Nigeria, an electronics retailer.
 Your task is to parse raw supplier listings of PARTS (components like chargers,
 keyboards, screens, batteries) into structured JSON for a bulk upload editor.
 

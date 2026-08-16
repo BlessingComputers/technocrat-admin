@@ -10,6 +10,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { usePartTypes, useCreatePartType } from "../api/parts.queries";
 import { PartTypesGridSkeleton } from "./parts-skeletons";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /**
  * Part Types management (rendered by {@link PartTypesView} at
@@ -39,10 +40,10 @@ export function PartTypesPanel() {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-lg border border-border p-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <Card className="p-4">
+        <MetaLabel className="block mb-2">
           Add a part type
-        </p>
+        </MetaLabel>
         <div className="flex items-center gap-2">
           <Input
             value={name}
@@ -80,7 +81,7 @@ export function PartTypesPanel() {
       {isLoading ? (
         <PartTypesGridSkeleton />
       ) : types.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card py-16 text-center">
+        <Card className="gap-0 border-dashed py-16 text-center">
           <AppIcon
             icon="solar:widget-5-linear"
             className="mx-auto mb-3 size-12 text-muted-foreground/30"
@@ -89,15 +90,15 @@ export function PartTypesPanel() {
           <p className="text-sm text-muted-foreground">
             Add types like Charger, Keyboard, or Battery to classify parts.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {types.map((t) => (
             <Card
               key={t.id}
-              className="flex items-center gap-3 rounded-xl border border-border p-3"
+              className="flex items-center gap-3 p-3"
             >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
                 <AppIcon icon="solar:widget-5-linear" className="size-4" />
               </div>
               <div className="min-w-0 flex-1">

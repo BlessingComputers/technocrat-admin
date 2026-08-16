@@ -39,6 +39,7 @@ import {
 } from "./bulk/bulk-helpers";
 import { formatNaira, parseNaira } from "../schemas/product-form";
 import { chunkBySize } from "../utils/image-chunks";
+import { Card } from "@/components/ui/card";
 
 // Default markup is 0 — uploads land with selling price EQUAL to cost; profit is
 // activated later via the markup engine. Staff can still raise it per-batch.
@@ -340,7 +341,7 @@ export function BulkUploadView() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <Link
         href="/catalogues"
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-primary transition-colors"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Products
@@ -361,11 +362,11 @@ export function BulkUploadView() {
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {rows.length} row{rows.length === 1 ? "" : "s"} ·{" "}
-          <span className="font-bold text-foreground">{validCount} ready</span>
+          <span className="font-semibold text-foreground">{validCount} ready</span>
           {rows.length - validCount > 0 && (
             <>
               {" · "}
-              <span className="font-bold text-warning">
+              <span className="font-semibold text-warning-ink">
                 {rows.length - validCount} need
                 {rows.length - validCount === 1 ? "s" : ""} attention
               </span>
@@ -426,7 +427,7 @@ export function BulkUploadView() {
       )}
 
       {rows.length === 0 ? (
-        <div className="py-16 text-center bg-card rounded-2xl border border-dashed border-border">
+        <Card className="gap-0 py-16 text-center border-dashed">
           <AppIcon
             icon="solar:cloud-upload-linear"
             className="size-12 text-muted-foreground/30 mx-auto mb-3"
@@ -435,7 +436,7 @@ export function BulkUploadView() {
           <p className="text-sm text-muted-foreground">
             Paste a list above, or add a product manually to get started.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-3">
           <AnimatePresence initial={false}>

@@ -20,6 +20,7 @@ import { resolveNotificationRoute } from "../utils/resolve-notification-route";
 import { formatRelativeTime } from "../utils/format";
 import { notificationIcon } from "../utils/notification-icon";
 import type { StaffNotification } from "../types/notification";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /**
  * Topbar staff-notification bell (ticket A6). Backed by the REST feed
@@ -63,7 +64,7 @@ export function NotificationBell() {
         >
           <AppIcon icon="solar:bell-linear" className="size-[18px]" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold leading-4 text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
@@ -75,14 +76,14 @@ export function NotificationBell() {
         className="w-80 rounded-xl border-border/60 p-0"
       >
         <div className="flex items-center justify-between px-3 py-2.5">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <MetaLabel>
             Notifications
-          </span>
+          </MetaLabel>
           {unreadCount > 0 && (
             <button
               type="button"
               onClick={() => markAllRead.mutate()}
-              className="text-xs font-medium text-primary hover:underline"
+              className="text-xs font-medium text-primary-ink hover:underline"
             >
               Mark all read
             </button>
@@ -134,7 +135,7 @@ export function NotificationBell() {
                     className={cn(
                       "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
                       n.isImportant
-                        ? "bg-destructive/10 text-destructive"
+                        ? "bg-destructive/10 text-destructive-ink"
                         : "bg-muted text-muted-foreground",
                     )}
                   >
@@ -145,18 +146,18 @@ export function NotificationBell() {
                       <span
                         className={cn(
                           "truncate text-sm text-foreground",
-                          n.isImportant ? "font-bold" : "font-semibold",
+                          n.isImportant ? "font-semibold" : "font-semibold",
                         )}
                       >
                         {n.title}
                         {n.isImportant && (
                           <AppIcon
                             icon="solar:danger-circle-linear"
-                            className="ml-1 inline-block size-3 shrink-0 align-middle text-destructive"
+                            className="ml-1 inline-block size-3 shrink-0 align-middle text-destructive-ink"
                           />
                         )}
                       </span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {formatRelativeTime(n.createdAt)}
                       </span>
                     </div>
@@ -178,7 +179,7 @@ export function NotificationBell() {
                         e.stopPropagation();
                         remove.mutate(n.id);
                       }}
-                      className="rounded p-0.5 text-muted-foreground/60 opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+                      className="rounded p-0.5 text-muted-foreground/60 opacity-0 transition-opacity hover:bg-muted hover:text-destructive-ink group-hover:opacity-100 focus-visible:opacity-100"
                     >
                       <AppIcon
                         icon="solar:trash-bin-trash-linear"

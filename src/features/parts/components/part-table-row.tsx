@@ -77,7 +77,7 @@ export function PartTableRow({
               type="button"
               onClick={() => onView(p)}
               title={p.name}
-              className="block max-w-[280px] truncate text-left text-sm font-semibold leading-tight text-foreground transition-colors hover:text-primary hover:underline"
+              className="block max-w-[280px] truncate text-left text-sm font-semibold leading-tight text-foreground transition-colors hover:text-primary-ink hover:underline"
             >
               {p.name}
             </button>
@@ -96,7 +96,7 @@ export function PartTableRow({
               {p.isFeatured && (
                 <Badge
                   variant="outline"
-                  className="gap-1 px-1.5 py-0 text-xs uppercase tracking-wide text-warning"
+                  className="gap-1 px-1.5 py-0 text-xs text-warning-ink"
                 >
                   <AppIcon icon="solar:star-bold" className="size-2.5" />
                   Featured
@@ -105,7 +105,7 @@ export function PartTableRow({
               {!primaryImage && (
                 <Badge
                   variant="warning"
-                  className="gap-1 px-1.5 py-0 text-xs uppercase tracking-wide"
+                  className="gap-1 px-1.5 py-0 text-xs"
                   title="This part has no images — add them from its page"
                 >
                   <AppIcon icon="solar:gallery-linear" className="size-2.5" />
@@ -131,7 +131,7 @@ export function PartTableRow({
       {/* Pricing */}
       <TableCell className="font-mono text-sm font-semibold tracking-tight tabular-nums text-foreground">
         {p.price == null ? (
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             On request
           </span>
         ) : (
@@ -148,7 +148,7 @@ export function PartTableRow({
       <TableCell>
         <Badge
           variant={p.isActive ? "success" : "muted"}
-          className="rounded-full px-2.5 py-1 text-xs uppercase tracking-wide"
+          className="rounded-full px-2.5 py-1 text-xs"
         >
           {p.isActive ? "Active" : "Inactive"}
         </Badge>
@@ -188,7 +188,7 @@ export function PartTableRow({
                 <>
                   <AppIcon
                     icon="solar:check-circle-linear"
-                    className="mr-2 size-4 text-success"
+                    className="mr-2 size-4 text-success-ink"
                   />
                   Activate
                 </>
@@ -197,7 +197,7 @@ export function PartTableRow({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(p)}
-              className="font-bold text-destructive focus:bg-destructive/10 focus:text-destructive"
+              className="font-medium text-destructive-ink focus:bg-destructive/10 focus:text-destructive-ink"
             >
               <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
               Delete permanently

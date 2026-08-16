@@ -12,7 +12,7 @@ import { BentoTile } from "./bento";
  * composed page rather than a bulleted list.
  *
  * Compose them inside `<Bento>`; give each a `span` and pick one focal `tone`
- * (`inverted`/`gold`) per mosaic to hold the Maroon-Owns-Action / Gold-As-Jewel
+ * (`inverted`/`jewel`) per mosaic to hold the Green-Owns-Action / jewel-as-edge
  * rules (DESIGN.md). `bgIcon` drops the giant faded corner glyph of the tile.
  */
 export function StepCard({
@@ -27,7 +27,7 @@ export function StepCard({
   n: number;
   title: string;
   span?: 4 | 5 | 6 | 7 | 8 | 12;
-  tone?: "muted" | "card" | "accent" | "gold" | "inverted" | "dark";
+  tone?: "muted" | "card" | "accent" | "jewel" | "inverted" | "dark";
   /** Iconify Solar name for the giant faded corner glyph. */
   bgIcon?: string;
   children: ReactNode;
@@ -37,19 +37,19 @@ export function StepCard({
     <BentoTile span={span} tone={tone} bgIcon={bgIcon}>
       <div
         className={cn(
-          "mb-4 flex size-11 items-center justify-center rounded-xl text-base font-black tabular-nums",
-          tone === "gold"
-            ? "bg-gold/15 text-gold-foreground"
+          "mb-4 flex size-11 items-center justify-center rounded-xl text-base font-semibold tabular-nums",
+          tone === "jewel"
+            ? "bg-jewel/15 text-jewel-ink"
             : dark
               ? "bg-primary-foreground/15 text-primary-foreground"
-              : "bg-primary/10 text-primary",
+              : "bg-primary/10 text-primary-ink",
         )}
       >
         {String(n).padStart(2, "0")}
       </div>
       <h3
         className={cn(
-          "text-base font-black tracking-tight",
+          "text-base font-semibold tracking-tight",
           dark ? "text-primary-foreground" : "text-foreground",
         )}
       >
@@ -57,7 +57,7 @@ export function StepCard({
       </h3>
       <div
         className={cn(
-          "mt-2 space-y-3 text-sm leading-relaxed [&_b]:font-bold",
+          "mt-2 space-y-3 text-sm leading-relaxed [&_b]:font-semibold",
           dark
             ? "text-primary-foreground/80 [&_b]:text-primary-foreground"
             : "text-muted-foreground [&_b]:text-foreground",
@@ -91,7 +91,7 @@ export function StepPoint({
         aria-hidden
         className={cn(
           "mt-0.5 size-4 shrink-0",
-          dark ? "text-primary-foreground/70" : "text-primary",
+          dark ? "text-primary-foreground/70" : "text-primary-ink",
         )}
       />
       <span>{children}</span>

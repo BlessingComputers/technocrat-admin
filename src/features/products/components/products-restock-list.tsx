@@ -29,14 +29,14 @@ export function ProductsRestockList() {
   );
 
   return (
-    <Card className="flex h-full flex-col gap-0 overflow-hidden rounded-xl border border-border bg-card p-0">
+    <Card className="flex h-full flex-col gap-0 overflow-hidden p-0">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning-ink">
             <AppIcon icon="solar:danger-triangle-bold" className="size-5" />
           </span>
           <div className="space-y-0.5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+            <h3 className="text-base font-semibold text-foreground">
               Needs Restock
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -46,7 +46,7 @@ export function ProductsRestockList() {
         </div>
         <Link
           href="/catalogues/all?stock=low"
-          className="shrink-0 text-xs font-medium text-primary hover:underline"
+          className="shrink-0 text-xs font-medium text-primary-ink hover:underline"
         >
           View all →
         </Link>
@@ -55,16 +55,16 @@ export function ProductsRestockList() {
       {isLoading ? (
         <RecentProductsSnapshotSkeleton />
       ) : isError ? (
-        <div className="px-4 py-8 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="px-4 py-8 text-center text-xs font-medium text-muted-foreground">
           Couldn’t load restock queue
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center">
           <AppIcon
             icon="solar:check-circle-bold"
-            className="size-8 text-success"
+            className="size-8 text-success-ink"
           />
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             Everything is in stock
           </span>
         </div>

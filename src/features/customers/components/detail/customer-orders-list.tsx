@@ -15,13 +15,13 @@ interface CustomerOrdersListProps {
 function orderTone(status?: string): string {
   const s = status?.toUpperCase() ?? "";
   if (s === "COMPLETED" || s === "DELIVERED" || s === "PAYMENT_CONFIRMED") {
-    return "bg-success/15 text-success";
+    return "bg-success/15 text-success-ink";
   }
   if (s.includes("CANCEL") || s.includes("REJECT")) {
-    return "bg-destructive/12 text-destructive";
+    return "bg-destructive/12 text-destructive-ink";
   }
   if (s === "PENDING" || s === "AWAITING_PAYMENT" || s === "PROOF_SUBMITTED") {
-    return "bg-warning/15 text-warning";
+    return "bg-warning/15 text-warning-ink";
   }
   return "bg-muted text-muted-foreground";
 }
@@ -35,12 +35,12 @@ export function CustomerOrdersList({
   isLoading,
 }: CustomerOrdersListProps) {
   return (
-    <Card className="p-8 border border-border bg-card rounded-xl">
-      <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-3">
-        <AppIcon icon="solar:bag-4-linear" className="w-5 h-5 text-primary" />
+    <Card className="p-8">
+      <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-3">
+        <AppIcon icon="solar:bag-4-linear" className="w-5 h-5 text-primary-ink" />
         Order History
         {!isLoading && (
-          <span className="ml-auto text-xs font-black text-muted-foreground">
+          <span className="ml-auto text-xs font-semibold text-muted-foreground">
             {orders.length}
           </span>
         )}
@@ -65,10 +65,10 @@ export function CustomerOrdersList({
               className="flex items-center justify-between gap-4 py-4 -mx-2 px-2 rounded-lg hover:bg-muted/40 transition-colors group"
             >
               <div className="min-w-0">
-                <p className="font-black text-foreground text-sm tracking-tight truncate group-hover:text-primary transition-colors">
+                <p className="font-semibold text-foreground text-sm tracking-tight truncate group-hover:text-primary-ink transition-colors">
                   {orderRef(order)}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-bold mt-0.5">
+                <p className="text-xs text-muted-foreground font-semibold mt-0.5">
                   {formatDate(order.createdAt)}
                   {order.items && order.items.length > 0 && (
                     <span> · {order.items.length} item{order.items.length > 1 ? "s" : ""}</span>
@@ -79,19 +79,19 @@ export function CustomerOrdersList({
                 {order.orderStatus && (
                   <span
                     className={cn(
-                      "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                      "px-2.5 py-1 rounded-full text-xs font-medium",
                       orderTone(order.orderStatus),
                     )}
                   >
                     {order.orderStatus.replace(/_/g, " ")}
                   </span>
                 )}
-                <p className="font-black text-foreground text-sm tracking-tighter w-24 text-right">
+                <p className="font-semibold text-foreground text-sm tracking-tighter w-24 text-right">
                   {formatPrice(toAmount(order.totalAmount))}
                 </p>
                 <AppIcon
                   icon="solar:alt-arrow-right-linear"
-                  className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors"
+                  className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary-ink transition-colors"
                 />
               </div>
             </Link>

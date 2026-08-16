@@ -64,7 +64,7 @@ function PermissionPicker({
                 {p.name}
               </label>
               {p.description && (
-                <p className="text-[11px] text-muted-foreground font-mono">
+                <p className="text-xs text-muted-foreground font-mono">
                   {p.description}
                 </p>
               )}
@@ -170,7 +170,7 @@ export function RolesTab() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="role-name">
-                  Role Name <span className="text-destructive">*</span>
+                  Role Name <span className="text-destructive-ink">*</span>
                 </Label>
                 <Input
                   id="role-name"
@@ -238,7 +238,7 @@ export function RolesTab() {
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-base">{role.name}</CardTitle>
                     {role.isSystem && (
-                      <Badge variant="warning" className="text-[10px] uppercase h-5">
+                      <Badge variant="warning" className="text-xs h-5">
                         System
                       </Badge>
                     )}
@@ -267,7 +267,7 @@ export function RolesTab() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="text-destructive-ink hover:bg-destructive/10 hover:text-destructive-ink"
                       onClick={() => setDeleteTarget(role)}
                       disabled={
                         deleteRoleMutation.isPending &&

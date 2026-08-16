@@ -45,7 +45,7 @@ export function ManualInvoiceTable({
             {HEADERS.map((header) => (
               <th
                 key={header}
-                className="px-6 py-3.5 text-[13px] font-medium text-muted-foreground first:pl-8"
+                className="px-6 py-3.5 text-xs font-medium text-muted-foreground first:pl-8"
               >
                 {header}
               </th>
@@ -73,7 +73,7 @@ export function ManualInvoiceTable({
                   {inv.customerName || "—"}
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+                  <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-ink">
                     Manual
                   </span>
                 </td>
@@ -86,7 +86,7 @@ export function ManualInvoiceTable({
                 <td className="px-6 py-4 pr-8">
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold whitespace-nowrap",
+                      "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap",
                       meta.className,
                     )}
                   >

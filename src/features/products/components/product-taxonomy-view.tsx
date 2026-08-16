@@ -14,7 +14,7 @@ export function ProductTaxonomyView() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <Link
         href="/catalogues"
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-primary transition-colors"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Products

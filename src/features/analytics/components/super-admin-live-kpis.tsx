@@ -1,4 +1,4 @@
-import { AppIcon } from "@/components/shared/app-icon";
+import { StatsBar } from "@/components/shared/stats-bar";
 import { formatPrice } from "@/lib/utils/format";
 import { KpiSplitCard } from "./kpi-split-card";
 import { NewCustomersCard } from "./new-customers-card";
@@ -45,12 +45,11 @@ export function SuperAdminLiveKpis({ data }: SuperAdminLiveKpisProps) {
   const manualRefPct = pct(manualRef, totalRef);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <StatsBar>
       <KpiSplitCard
-        icon={<AppIcon icon="solar:chart-2-bold" className="size-5" />}
-        iconColorClass="bg-primary/10 text-primary"
+        icon="solar:chart-2-linear"
+        tone="primary"
         badgeLabel="Live Combined"
-        badgeColorClass="bg-success/10 text-success"
         title="Total Revenue"
         value={formatPrice(totalRev)}
         split={{
@@ -76,10 +75,9 @@ export function SuperAdminLiveKpis({ data }: SuperAdminLiveKpisProps) {
       />
 
       <KpiSplitCard
-        icon={<AppIcon icon="solar:cart-large-2-bold" className="size-5" />}
-        iconColorClass="bg-warning/15 text-warning"
+        icon="solar:cart-large-2-linear"
+        tone="warning"
         badgeLabel="Live Combined"
-        badgeColorClass="bg-success/10 text-success"
         title="Total Orders"
         value={totalOrd.toLocaleString()}
         split={{
@@ -109,10 +107,9 @@ export function SuperAdminLiveKpis({ data }: SuperAdminLiveKpisProps) {
       <NewCustomersCard customers={customers} />
 
       <KpiSplitCard
-        icon={<AppIcon icon="solar:dollar-minimalistic-bold" className="size-5" />}
-        iconColorClass="bg-destructive/12 text-destructive"
+        icon="solar:dollar-minimalistic-linear"
+        tone="primary"
         badgeLabel="Adjustments"
-        badgeColorClass="bg-destructive/10 text-destructive"
         title="Total Refunds"
         value={formatPrice(totalRef)}
         split={{
@@ -138,6 +135,6 @@ export function SuperAdminLiveKpis({ data }: SuperAdminLiveKpisProps) {
           },
         ]}
       />
-    </div>
+    </StatsBar>
   );
 }

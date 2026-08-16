@@ -20,13 +20,17 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
+      // Sharp instrument (ticket 07): the header is ruled off from the content
+      // it labels, so every route opens on a definite masthead instead of
+      // floating text. The rule is the single most-repeated piece of the new
+      // surface language — it appears on all 62 routes.
       className={cn(
-        "flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8",
+        "flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 border-b border-border pb-5",
         className,
       )}
     >
       <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold text-foreground tracking-tight">
+        <h1 className="font-heading text-2xl font-semibold text-foreground tracking-tight">
           {title}
         </h1>
         {description && (

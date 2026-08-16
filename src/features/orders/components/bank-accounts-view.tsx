@@ -83,7 +83,7 @@ export function BankAccountsView() {
       >
         <Button
           onClick={openCreateDialog}
-          className="rounded-lg bg-primary text-primary-foreground font-black px-6 h-12"
+          className="rounded-lg bg-primary text-primary-foreground font-medium px-6 h-12"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 w-5 h-5" />
           Add Account

@@ -11,7 +11,7 @@ export default function ProductsBrowseLoading() {
         description="Search, filter, and manage the full catalog"
       />
       <SkeletonFilterBar />
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <ProductsTableSkeleton />
       </Card>
     </div>

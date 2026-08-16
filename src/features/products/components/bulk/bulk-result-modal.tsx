@@ -46,9 +46,9 @@ export function BulkResultModal({
         : "partial";
 
   const ICON: Record<typeof outcome, { icon: string; className: string }> = {
-    success: { icon: "solar:check-circle-bold", className: "bg-success/10 text-success" },
-    partial: { icon: "solar:danger-circle-bold", className: "bg-warning/10 text-warning" },
-    failed: { icon: "solar:close-circle-bold", className: "bg-destructive/10 text-destructive" },
+    success: { icon: "solar:check-circle-bold", className: "bg-success/10 text-success-ink" },
+    partial: { icon: "solar:danger-circle-bold", className: "bg-warning/10 text-warning-ink" },
+    failed: { icon: "solar:close-circle-bold", className: "bg-destructive/10 text-destructive-ink" },
   };
 
   const TITLE: Record<typeof outcome, string> = {
@@ -125,10 +125,10 @@ function FailedRowsList({ rows }: { rows: BulkBatchStatusRow[] }) {
     <div className="max-h-48 overflow-y-auto divide-y divide-border/60 rounded-lg border border-border">
       {rows.map((r) => (
         <div key={r.row} className="px-3 py-2 text-xs">
-          <p className="font-bold text-foreground truncate">
+          <p className="font-semibold text-foreground truncate">
             {r.productName || `Row ${r.row}`}
           </p>
-          <p className="text-destructive">{humanizeBulkRowError(r.error)}</p>
+          <p className="text-destructive-ink">{humanizeBulkRowError(r.error)}</p>
         </div>
       ))}
     </div>

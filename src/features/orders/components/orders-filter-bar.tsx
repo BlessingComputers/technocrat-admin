@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,6 +14,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { AppIcon } from "@/components/shared/app-icon";
+import {
+  FilterBar,
+  FilterSearch,
+  filterControlClass,
+} from "@/components/shared/filter-bar";
 import { cn } from "@/lib/utils/cn";
 import type { AdminOrderListParams } from "../types/orders";
 
@@ -46,19 +50,12 @@ export function OrdersFilterBar({
   );
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="relative flex-1 group">
-        <AppIcon
-          icon="solar:magnifer-linear"
-          className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-        />
-        <Input
-          placeholder="Search Order No., Email, or Customer Name..."
-          className="pl-12 h-12 rounded-md border border-border bg-card focus:ring-primary/20 font-medium"
-          value={params.search || ""}
-          onChange={(e) => onParamsChange({ ...params, search: e.target.value })}
-        />
-      </div>
+    <FilterBar>
+      <FilterSearch
+        placeholder="Search Order No., Email, or Customer Name..."
+        value={params.search || ""}
+        onChange={(e) => onParamsChange({ ...params, search: e.target.value })}
+      />
 
       <Select
         value={params.source || "all"}
@@ -69,10 +66,10 @@ export function OrdersFilterBar({
           })
         }
       >
-        <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[160px]">
+        <SelectTrigger className={filterControlClass}>
           <SelectValue placeholder="All Sources" />
         </SelectTrigger>
-        <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+        <SelectContent>
           <SelectItem value="all">All Sources</SelectItem>
           <SelectItem value="gateway">Gateway</SelectItem>
           <SelectItem value="manual">Bank Transfer</SelectItem>
@@ -85,10 +82,10 @@ export function OrdersFilterBar({
           onParamsChange({ ...params, orderStatus: val === "ALL" ? "" : val })
         }
       >
-        <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[200px]">
+        <SelectTrigger className={filterControlClass}>
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
-        <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+        <SelectContent>
           <SelectItem value="ALL">All Statuses</SelectItem>
           <SelectItem value="PROOF_SUBMITTED">Pending Review</SelectItem>
           <SelectItem value="AWAITING_PAYMENT">Awaiting Payment</SelectItem>
@@ -103,9 +100,9 @@ export function OrdersFilterBar({
           <Button
             variant="outline"
             className={cn(
-              "h-12 px-6 rounded-md bg-card border border-border hover:bg-muted/50 flex items-center gap-2",
+              "gap-2",
               (params.paymentStatus || (params.sortBy && params.sortBy !== "newest")) &&
-                "border-primary text-primary bg-primary/5 hover:bg-primary/10",
+                "border-primary text-primary-ink bg-primary/5 hover:bg-primary/10",
             )}
           >
             <AppIcon icon="solar:filter-linear" className="w-4 h-4 text-muted-foreground" />
@@ -119,7 +116,7 @@ export function OrdersFilterBar({
         </PopoverTrigger>
         <PopoverContent
           align="end"
-          className="w-80 p-6 bg-card border border-border rounded-md shadow-soft-lg space-y-6"
+          className="w-80 space-y-6 p-6 shadow-soft-lg"
         >
           <div className="space-y-1">
             <h4 className="text-sm font-semibold text-foreground">
@@ -144,10 +141,10 @@ export function OrdersFilterBar({
                   })
                 }
               >
-                <SelectTrigger className="h-10 w-full bg-muted/50 border border-border text-xs font-medium text-foreground">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Payments" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+                <SelectContent>
                   {/* Normalized across both order sources by /all-orders. */}
                   <SelectItem value="ALL">All Payments</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
@@ -171,10 +168,10 @@ export function OrdersFilterBar({
                   })
                 }
               >
-                <SelectTrigger className="h-10 w-full bg-muted/50 border border-border text-xs font-medium text-foreground">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Newest First" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+                <SelectContent>
                   <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="oldest">Oldest First</SelectItem>
                   <SelectItem value="amount_desc">Highest Amount</SelectItem>
@@ -194,6 +191,6 @@ export function OrdersFilterBar({
           )}
         </PopoverContent>
       </Popover>
-    </div>
+    </FilterBar>
   );
 }

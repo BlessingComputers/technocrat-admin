@@ -8,7 +8,7 @@ type Tone = "success" | "info" | "warning" | "danger" | "muted";
 
 const TONE_CLASSES: Record<Tone, string> = {
   success: "bg-success/15 text-success border-success/25",
-  info: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+  info: "bg-info/10 text-info-ink border-info/20",
   warning: "bg-warning/15 text-warning border-warning/25",
   danger: "bg-destructive/12 text-destructive border-destructive/25",
   muted: "bg-muted text-muted-foreground border-border",
@@ -31,24 +31,43 @@ export function customerStatusClasses(status?: string): string {
   return TONE_CLASSES[customerStatusTone(status)];
 }
 
-/** Loyalty tiers get a metallic-ish tone; unknown tiers fall back to muted. */
-export function loyaltyTierTone(tier?: string): Tone {
+/**
+ * Loyalty tiers are METALS, not statuses.
+ *
+ * They used to borrow the status tones — which meant BRONZE rendered in
+ * `danger` red, GOLD in warning amber and PLATINUM in info blue: a customer's
+ * standing looked like an alert. Each tier now uses its own `--tier-*` token
+ * so the medal reads as the metal it is. Unknown tiers still fall back to the
+ * neutral status tone, because an unrecognised tier is genuinely "no tier".
+ */
+type TierTone = "bronze" | "silver" | "gold" | "platinum";
+
+const TIER_CLASSES: Record<TierTone, string> = {
+  bronze: "bg-tier-bronze/15 text-tier-bronze-ink border-tier-bronze/30",
+  silver: "bg-tier-silver/15 text-tier-silver-ink border-tier-silver/30",
+  gold: "bg-tier-gold/15 text-tier-gold-ink border-tier-gold/30",
+  platinum:
+    "bg-tier-platinum/15 text-tier-platinum-ink border-tier-platinum/30",
+};
+
+export function loyaltyTierTone(tier?: string): TierTone | null {
   switch (tier?.toUpperCase()) {
     case "PLATINUM":
-      return "info";
+      return "platinum";
     case "GOLD":
-      return "warning";
+      return "gold";
     case "SILVER":
-      return "muted";
+      return "silver";
     case "BRONZE":
-      return "danger";
+      return "bronze";
     default:
-      return "muted";
+      return null;
   }
 }
 
 export function loyaltyTierClasses(tier?: string): string {
-  return TONE_CLASSES[loyaltyTierTone(tier)];
+  const tone = loyaltyTierTone(tier);
+  return tone ? TIER_CLASSES[tone] : TONE_CLASSES.muted;
 }
 
 export function invoiceStatusTone(status?: string): Tone {

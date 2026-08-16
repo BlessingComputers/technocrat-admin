@@ -16,6 +16,7 @@ import {
   useReorderProductImages,
 } from "../../api/products.queries";
 import type { NewProductImage, ProductImage } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -273,9 +274,9 @@ export function ImageUploadSection({
       {sortedImages.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <MetaLabel className="block">
               Current Images
-            </p>
+            </MetaLabel>
             <span className="text-xs text-muted-foreground italic">
               Drag to reorder
             </span>
@@ -312,7 +313,7 @@ export function ImageUploadSection({
                         variant="secondary"
                         size="icon"
                         disabled={busy}
-                        className="size-8 rounded-md text-warning hover:scale-110 transition-transform"
+                        className="size-8 rounded-md text-warning-ink hover:scale-110 transition-transform"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -338,7 +339,7 @@ export function ImageUploadSection({
                       variant="secondary"
                       size="icon"
                       disabled={busy}
-                      className="size-8 rounded-md text-destructive hover:scale-110 transition-transform"
+                      className="size-8 rounded-md text-destructive-ink hover:scale-110 transition-transform"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -360,7 +361,7 @@ export function ImageUploadSection({
         <div className="bg-muted/30 border border-dashed border-border rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary-ink" />
               <div className="flex flex-col">
                 <p className="text-sm font-semibold text-foreground">
                   {isDeferred
@@ -477,8 +478,8 @@ export function ImageUploadSection({
                       }
                       className={
                         status === "done"
-                          ? "size-7 text-success"
-                          : "size-7 text-primary animate-spin"
+                          ? "size-7 text-success-ink"
+                          : "size-7 text-primary-ink animate-spin"
                       }
                     />
                   </div>
@@ -502,7 +503,7 @@ export function ImageUploadSection({
                         type="button"
                         variant="secondary"
                         size="icon"
-                        className="size-7 rounded-md text-warning hover:scale-110 transition-transform"
+                        className="size-7 rounded-md text-warning-ink hover:scale-110 transition-transform"
                         onClick={() => setPendingPrimary(pf.id)}
                         disabled={uploadImages.isPending}
                       >
@@ -533,7 +534,7 @@ export function ImageUploadSection({
         <div className="size-10 bg-muted rounded-full flex items-center justify-center mb-2 group-hover:bg-primary/10 transition-colors">
           <AppIcon
             icon="solar:cloud-upload-linear"
-            className="size-5 text-muted-foreground group-hover:text-primary transition-colors"
+            className="size-5 text-muted-foreground group-hover:text-primary-ink transition-colors"
           />
         </div>
         <p className="text-sm font-semibold mb-1 text-foreground">Select Images</p>

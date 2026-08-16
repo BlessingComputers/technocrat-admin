@@ -24,7 +24,7 @@ export function PartSpecificationsSection() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-full bg-warning/15">
-            <AppIcon icon="solar:info-circle-linear" className="size-4 text-warning" />
+            <AppIcon icon="solar:info-circle-linear" className="size-4 text-warning-ink" />
           </div>
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -95,7 +95,7 @@ export function PartSpecificationsSection() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                className="h-9 w-9 text-muted-foreground opacity-0 transition-opacity hover:text-destructive-ink group-hover:opacity-100"
                 onClick={() => remove(index)}
               >
                 <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />

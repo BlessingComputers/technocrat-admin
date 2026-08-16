@@ -188,7 +188,7 @@ export function MarkupRulesView() {
         </Button>
       </PageHeader>
 
-      <Card className="overflow-hidden border border-border rounded-lg bg-card p-0 gap-0">
+      <Card className="overflow-hidden p-0 gap-0">
         <MarkupRulesTable
           rules={rules}
           isLoading={isLoading}

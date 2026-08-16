@@ -38,7 +38,7 @@ export function ConversationTabs({
             {label}
             <span
               className={cn(
-                "flex min-w-4 items-center justify-center rounded-full px-1 text-[11px] font-semibold",
+                "flex min-w-4 items-center justify-center rounded-full px-1 text-xs font-semibold",
                 isActive
                   ? "bg-background/20 text-background"
                   : "bg-background text-muted-foreground",

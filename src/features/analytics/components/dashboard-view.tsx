@@ -51,7 +51,7 @@ export function DashboardView() {
           <RefreshButton
             onRefresh={handleRefresh}
             isRefreshing={isLoading || isFetching}
-            className="h-9 font-medium text-xs uppercase tracking-wide gap-2"
+            className="h-9 font-medium text-xs gap-2"
           />
         </div>
       </PageHeader>

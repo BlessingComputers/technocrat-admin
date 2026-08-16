@@ -78,7 +78,7 @@ export function PricingMarkupRulesDoc() {
           <StepCard
             n={3}
             span={7}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:check-circle-linear"
             title="Apply it"
           >
