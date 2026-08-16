@@ -12,12 +12,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Initiate Google OAuth
-         * @description Redirects the customer to Google OAuth consent screen.
+         * Initiate Google OAuth (full redirect flow)
+         * @description Redirects the customer to Google's account picker / consent screen. This is the
+         *     "Sign in with Google" **button** flow — three navigations (site → Google → back). For the
+         *     one-click, no-navigation alternative, see `POST /google/one-tap` below.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    redirectTo?: string;
+                    returnOrigin?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -35,6 +40,175 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/customer/google/one-tap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Google One Tap sign-in (no redirect)
+         * @description **What this is.** Google One Tap renders a small prompt (top corner of the page) showing the
+         *     visitor's actual Google account, if their browser already has an active Google session. Signing in
+         *     never navigates away from the page — contrast with `GET /google` above, which is a full
+         *     site → Google → site redirect chain. This endpoint is the *second half* of that flow: it takes the
+         *     credential Google's own script hands to the page and turns it into a customer session, the same way
+         *     `GET /google/callback` does for the redirect flow (same underlying service call, same
+         *     account-linking rules, same staff-email block) — just without the authorization-code round trip,
+         *     because the browser already has a signed proof of identity from Google directly.
+         *
+         *     ---
+         *
+         *     ### Why this can't be a server-only integration
+         *
+         *     Detecting "is this browser already signed into Google" happens inside Google's own iframe/FedCM
+         *     context, in the browser. There is no server-side equivalent. The credential this endpoint accepts
+         *     is the artifact of that browser-side detection — a signed Google ID token (a JWT), not an
+         *     authorization code. So the frontend *must* run Google's Identity Services script and collect the
+         *     credential client-side; this endpoint only ever verifies and exchanges what the browser already
+         *     obtained.
+         *
+         *     ---
+         *
+         *     ### Implementation sequence (frontend)
+         *
+         *     1. **Load Google's script** (`https://accounts.google.com/gsi/client`) once, e.g. in the root
+         *        layout. Skip all of this entirely if `NEXT_PUBLIC_GOOGLE_CLIENT_ID` isn't set, or if the
+         *        visitor already has a session (check your existing session cookie first — don't prompt someone
+         *        who's already signed in).
+         *     2. **Mint a nonce yourself, server-side**, before initializing the prompt. This has to happen on
+         *        *your* server (a Next.js route handler, etc.), not in client JS — a nonce the browser could
+         *        generate/inspect isn't binding to anything. Store it in an httpOnly cookie scoped to the page/
+         *        route that will use it, single-use.
+         *     3. **Initialize Google's prompt** with that nonce and `use_fedcm_for_prompt: true`. Set
+         *        `auto_select: false` unless you specifically want Google to skip the prompt and sign a
+         *        single-account visitor in silently.
+         *     4. **On the credential callback** Google fires when the visitor accepts: send `{ credential, nonce }`
+         *        to *your own* backend route (not directly to this API — see the JSON-body note below), which
+         *        forwards it to `POST /api/auth/customer/google/one-tap`.
+         *     5. **On a 200**, read `accessToken` / `refreshToken` / `expiresIn` from the body and set them as
+         *        your own first-party httpOnly cookies (same shape/names your existing auth flow already uses),
+         *        then refetch whatever query drives your signed-in header state. No page navigation needed.
+         *     6. **On any 4xx**, fail quietly — log it, don't show an error to the visitor. One Tap is an
+         *        enhancement over the existing "Sign in" button, not a replacement; that button must keep working
+         *        even if every One Tap attempt fails.
+         *
+         *     ---
+         *
+         *     ### The nonce is not optional
+         *
+         *     Google signs whatever nonce value the client passed it *into* the ID token itself, as the token's
+         *     own `nonce` claim. This endpoint checks that claim against the `nonce` field in the request body —
+         *     **not** against anything stored server-side on the backend; the binding lives entirely inside the
+         *     signed JWT. That means:
+         *     - The nonce your frontend sends here must be the *exact* value passed to Google's `initialize()`
+         *       call for the prompt that produced this specific `credential`.
+         *     - If you skip this (send an empty/omitted nonce, or one that doesn't match), a captured/replayed
+         *       credential would otherwise be valid for its full ID-token lifetime (~1 hour) — this check is what
+         *       prevents that, not a nice-to-have.
+         *     - Generate the nonce server-side and mirror it into an httpOnly cookie, single-use, so the page
+         *       itself never had the ability to choose or predict the value it sends back.
+         *
+         *     ---
+         *
+         *     ### Why JSON body, not Set-Cookie
+         *
+         *     The browser never calls this backend endpoint directly — your frontend's *own server-side* route
+         *     handler does (it's the one holding the nonce cookie and calling Google). A `Set-Cookie` header from
+         *     this response would land on this API's origin, not your storefront's, and be useless to the browser.
+         *     Tokens come back in the JSON body specifically so your route handler can turn them into cookies on
+         *     the correct (your) origin.
+         *
+         *     ---
+         *
+         *     ### Non-backend prerequisites — this 404s/401s until these are done
+         *
+         *     - **Google Cloud Console**, same OAuth client as `GOOGLE_CUSTOMER_CLIENT_ID`: add your storefront
+         *       origin(s) under **Authorized JavaScript origins**. One Tap validates the request's *origin*, not
+         *       a redirect URI — the redirect URIs already registered for `/google/callback` do **not** cover
+         *       this.
+         *     - **Frontend env var** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — the same client ID as
+         *       `GOOGLE_CUSTOMER_CLIENT_ID` on this API. Public by design (it's the client ID, not the secret).
+         *
+         *     ---
+         *
+         *     ### Error codes
+         *
+         *     | Status | Code | Meaning |
+         *     |---|---|---|
+         *     | 400 | `MISSING_CREDENTIAL` | `credential` missing/not a string |
+         *     | 400 | `MISSING_NONCE` | `nonce` missing/not a string |
+         *     | 400 | `GOOGLE_EMAIL_UNVERIFIED` | Google account's email isn't verified |
+         *     | 401 | `GOOGLE_PROFILE_ERROR` | Token verified but Google returned no email |
+         *     | 401 | `GOOGLE_NONCE_MISMATCH` | Token's signed nonce doesn't match the `nonce` sent — see above |
+         *     | 403 | `EMAIL_IS_STAFF` | This email belongs to a staff account — customer login blocked |
+         *     | 403 | `ACCOUNT_INACTIVE` | Customer account is suspended or otherwise inactive |
+         *     | 429 | — | Rate limited — max 10 requests/min per IP |
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleOneTapRequest"];
+                };
+            };
+            responses: {
+                /** @description Signed in successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["GoogleOneTapResponse"];
+                        };
+                    };
+                };
+                /** @description Missing credential/nonce, or unverified Google email — see error codes table */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid Google profile or nonce mismatch — see error codes table */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff email, or inactive account — see error codes table */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Too many requests — max 10/min per IP */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1615,6 +1789,8 @@ export interface paths {
          *     - **parts** — matched by **partNumber**, name, description, or partType. So typing a part number returns that part. Only searched when a text query (`q`) is present; public callers see active, in-stock parts only (max 20).
          *
          *     Response is sectioned (Option A): `data.products` is the full product search result (with facets + pagination); `data.parts` is the matching parts list. A part-search failure never breaks product results — `data.parts` just comes back empty.
+         *
+         *     `data.products.suggestions` — "you might also like": similar alternatives found via `more_like_this`, seeded from the search text and soft-biased toward the top exact match's category. Always populated alongside exact results when there's a text query with at least one match; `[]` if there's no text query, no exact matches, or the lookup itself fails (never blocks the main results).
          */
         get: {
             parameters: {
@@ -1648,7 +1824,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Sectioned search results: products (with facets) and parts */
+                /** @description Sectioned search results: products (with facets + similar-alternative suggestions) and parts */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1668,6 +1844,8 @@ export interface paths {
                                     facets?: {
                                         [key: string]: unknown;
                                     };
+                                    /** @description "You might also like" — similar alternatives, not exact matches. See endpoint description. */
+                                    suggestions?: components["schemas"]["Product"][];
                                 };
                                 parts: {
                                     /** @description Matching parts (PartResponse[]) */
@@ -1945,8 +2123,8 @@ export interface paths {
          *     | Parameter | Type | Default | Description |
          *     |-----------|------|---------|-------------|
          *     | q | string | — | Free-text search (matches product name and description, case-insensitive) |
-         *     | categoryId | uuid | — | Filter by exact category UUID |
-         *     | categorySlug | string | — | Filter by category slug (alternative to categoryId) |
+         *     | categoryId | uuid | — | Filter by category UUID — matches this category AND any of its subcategories |
+         *     | categorySlug | string | — | Filter by category slug (alternative to categoryId) — same subcategory-inclusive matching |
          *     | brandId | uuid | — | Filter by exact brand UUID |
          *     | brandSlug | string | — | Filter by brand slug (alternative to brandId) |
          *     | condition | enum | — | Filter by variant condition: `NEW`, `USED`, `REFURBISHED`, `OPEN_BOX` |
@@ -22853,6 +23031,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        GoogleOneTapResponse: {
+            /** @description JWT access token */
+            accessToken: string;
+            /** @description JWT refresh token — persist this too, there is no cookie fallback for One Tap */
+            refreshToken: string;
+            /**
+             * @description Access token lifetime in seconds
+             * @example 900
+             */
+            expiresIn: number;
+        };
+        GoogleOneTapRequest: {
+            /** @description The Google ID token JWT, exactly as handed to the page by Google Identity Services' credential callback. */
+            credential: string;
+            /** @description The same nonce value passed to Google's prompt initialize() call for this credential — must match the nonce claim signed inside the token. */
+            nonce: string;
+        };
         TokenPairResponse: {
             /** @description JWT access token — also set as httpOnly cookie */
             accessToken: string;
@@ -23485,7 +23680,10 @@ export interface components {
             sortOrder: number;
             /** Format: uuid */
             parentId: string | null;
+            /** @description Products filed directly under this category (not its subcategories). */
             productCount: number;
+            /** @description productCount plus every descendant subcategory's productCount — the honest total for this category including its subtree. */
+            subtreeProductCount: number;
             children: unknown[];
             /** Format: date-time */
             createdAt: string;
