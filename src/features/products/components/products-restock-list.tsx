@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
+import { getProductTitle } from "@/lib/utils/product-name";
 import { useProducts } from "../api/products.queries";
 import { RESTOCK_PREVIEW_LIMIT } from "../constants/product-display";
 import { ProductStockBadge } from "./product-stock-badge";
@@ -91,8 +92,11 @@ export function ProductsRestockList() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {p.name}
+                <p
+                  className="truncate text-sm font-semibold text-foreground"
+                  title={p.name}
+                >
+                  {getProductTitle(p.name)}
                 </p>
                 <p className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
                   {formatPrice(p.lowestPrice || 0)}

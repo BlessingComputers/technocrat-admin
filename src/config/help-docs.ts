@@ -338,7 +338,7 @@ export const helpDocs: HelpDoc[] = [
       "points",
       "bronze",
       "silver",
-      "jewel",
+      "gold",
       "platinum",
       "lifetime value",
       "spend",
@@ -502,9 +502,11 @@ export const helpDocHref = (slug: string) => `${HELP_BASE}/${slug}`;
  * so it can evolve (contact person, and later a link into internal Chat) without
  * touching every doc (ADR-0011).
  */
+import { BRAND } from "@/config/brand";
+
 export const HELP_SUPPORT = {
   title: "Still stuck?",
-  body: "Reach out to your system administrator or the Technocrat tech team for a hand.",
+  body: `Reach out to your system administrator or the ${BRAND.supportTeam} for a hand.`,
   /** Optional in-app destination (e.g. internal Chat) once wired. */
   href: undefined as string | undefined,
   cta: undefined as string | undefined,

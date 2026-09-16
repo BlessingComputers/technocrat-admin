@@ -2,7 +2,7 @@
 //
 // Source order:
 //   1. $API_DOCS_URL, else `<backend origin>/api-docs.json` where the origin is
-//      the single backend seam, NEXT_PUBLIC_BACKEND_URL (ADR-0015) — fetched
+//      the single backend seam, NEXT_PUBLIC_BACKEND_URL — fetched
 //      live. No host is hardcoded here: repointing the app must also repoint
 //      codegen, or the types would silently come from the previous backend.
 //   2. scripts/api-docs.json — the committed snapshot, used when the URL is
@@ -76,7 +76,7 @@ async function loadSpec() {
   try {
     res = await fetch(DOCS_URL, { headers, signal: AbortSignal.timeout(30_000) });
   } catch (err) {
-    return useSnapshot(err.message);
+    return loadSnapshot(err.message);
   }
 
   if (withToken && (res.status === 401 || res.status === 403)) {
@@ -87,7 +87,7 @@ async function loadSpec() {
     process.exit(1);
   }
   if (!res.ok) {
-    return useSnapshot(
+    return loadSnapshot(
       res.status === 401
         ? "HTTP 401: set API_DOCS_TOKEN in .env.codegen"
         : `HTTP ${res.status}`,
@@ -101,7 +101,7 @@ async function loadSpec() {
   return SNAPSHOT;
 }
 
-function useSnapshot(reason) {
+function loadSnapshot(reason) {
   console.warn(`⚠ live fetch failed (${reason}); using snapshot`);
   readFileSync(SNAPSHOT, "utf8"); // throws if the snapshot is missing too
   return SNAPSHOT;

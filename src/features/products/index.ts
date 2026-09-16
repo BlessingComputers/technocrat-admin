@@ -6,6 +6,7 @@ export { ProductsHubView } from "./components/products-hub-view";
 export type { HubPartsStats } from "./components/products-hub-view";
 export { ProductBrowseView } from "./components/product-browse-view";
 export { ProductDetailView } from "./components/detail/product-detail-view";
+export type { ProductPartsSlotArgs } from "./components/detail/product-detail-view";
 export { ProductFormView } from "./components/product-form-view";
 export { ProductTaxonomyView } from "./components/product-taxonomy-view";
 export { BulkUploadView } from "./components/bulk-upload-view";

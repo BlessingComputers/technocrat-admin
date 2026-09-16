@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, FormProvider, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ import {
   useUpdateProduct,
 } from "../../api/products.queries";
 import type { NewProductImage, ProductDetail } from "../../types/products";
+import { splitCategoryId } from "../../utils/category-tree";
 import {
   productFormSchema,
   toCreateDto,
@@ -59,6 +60,25 @@ export function ProductForm({ initialData }: ProductFormProps) {
     resolver: zodResolver(productFormSchema),
     defaultValues: toFormDefaults(initialData),
   });
+
+  // Editing: the saved product carries one flat `categoryId`, which may be a
+  // subcategory. The form edits it as parent + child, so re-derive that split
+  // against the category tree as soon as it lands — otherwise a product filed
+  // under "Workstations" would reload showing an empty Category and lose its
+  // subcategory the moment anything else was saved.
+  const savedCategoryId = initialData?.categoryId;
+  const splitApplied = useRef(false);
+  useEffect(() => {
+    // Latch only once the split actually resolves. Latching on a failed lookup
+    // would strand the form on whichever render happened to run before
+    // useCategories() settled, leaving both dropdowns blank for good.
+    if (splitApplied.current) return;
+    const { parent, child } = splitCategoryId(savedCategoryId, categories);
+    if (!parent) return;
+    splitApplied.current = true;
+    form.setValue("categoryId", parent.id);
+    form.setValue("subcategoryId", child?.id ?? "");
+  }, [categories, savedCategoryId, form]);
 
   // Stable identity — ImageUploadSection reports the queue from an effect.
   const handlePendingChange = useCallback(

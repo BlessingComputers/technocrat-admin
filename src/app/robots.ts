@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 /**
  * Block all crawlers on the admin subdomain. This is the only
- * public-facing thing on the admin host (admin.technocratng.com).
+ * public-facing thing on the configured admin host.
  */
 export default function robots(): MetadataRoute.Robots {
   return {

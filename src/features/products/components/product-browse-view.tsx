@@ -54,8 +54,16 @@ function conditionLabel(key: string): string {
  * here. Drops the old `max-w-7xl` cap to fill the wider canvas (ADR-0010).
  */
 export function ProductBrowseView() {
-  const { params, searchInput, setFilter, setSearch, setPage, setSort, reset } =
-    useProductFilters();
+  const {
+    params,
+    searchInput,
+    setFilter,
+    setSearch,
+    setPage,
+    setLimit,
+    setSort,
+    reset,
+  } = useProductFilters();
   const router = useRouter();
   // Products-only counts — the same numbers the hub shows under its Products
   // filter, so the two surfaces can never disagree.
@@ -220,7 +228,11 @@ export function ProductBrowseView() {
             )
           }
         />
-        <ProductsPagination meta={meta} onPageChange={setPage} />
+        <ProductsPagination
+          meta={meta}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
       </Card>
 
       <ProductBulkEditDialog

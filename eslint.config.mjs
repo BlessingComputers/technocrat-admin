@@ -88,7 +88,13 @@ const eslintConfig = [
             // shared components are foundational UI — depend on lib + types
             {
               from: { type: "components" },
-              allow: { to: { type: ["lib", "types"] } },
+              allow: { to: { type: ["lib", "types", "config"] } },
+            },
+
+            // Layout components orchestrate app-wide feature widgets.
+            {
+              from: { type: "components", internalPath: "layouts/**" },
+              allow: { to: { type: ["features"] } },
             },
 
             // lib is framework- and feature-agnostic — types + the validated

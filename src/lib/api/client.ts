@@ -233,6 +233,14 @@ async function baseFetch<T = unknown>(
         }
       }
 
+      if (
+        response.status === 403 &&
+        typeof window !== "undefined" &&
+        !url.includes("/auth/staff/profile")
+      ) {
+        window.dispatchEvent(new CustomEvent("api:permission-denied"));
+      }
+
       if (response.status === 401 && !_isRetry) {
         if (url.includes("/refresh")) {
           throw new ApiError(errData?.message || "Unauthorized", 401, data);

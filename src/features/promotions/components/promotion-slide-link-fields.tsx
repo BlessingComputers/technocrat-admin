@@ -17,13 +17,13 @@ import {
   usePromotionBrandOptions,
   usePromotionCategoryOptions,
   usePromotionProductSearch,
+  useStorefrontPages,
 } from "../api/promotions.queries";
 import {
   buildBrandPath,
   buildCategoryPath,
   normalizeDestination,
   parseDestination,
-  STOREFRONT_PAGES,
   validateDestination,
   type DestinationKind,
 } from "../utils/slide-destination";
@@ -140,6 +140,11 @@ export function PromotionSlideLinkFields({
     usePromotionCategoryOptions(value.kind === "category");
   const { data: brands = [], isLoading: loadingBrands } =
     usePromotionBrandOptions(value.kind === "brand");
+  // Asked of the storefront, which derives it from its own build, so a page
+  // that shipped there is offered here without an edit in this repo.
+  const { data: storefrontPages, isLoading: loadingPages } = useStorefrontPages(
+    value.kind === "page",
+  );
 
   const error = slideLinkError(value);
 
@@ -292,22 +297,31 @@ export function PromotionSlideLinkFields({
       {value.kind === "page" && (
         <div className="space-y-1.5">
           <Label htmlFor={`${idPrefix}-path`}>Page address</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {STOREFRONT_PAGES.map((page) => (
-              <button
-                key={page.path}
-                type="button"
-                onClick={() =>
-                  onChange({ ...value, externalUrl: page.path, targetName: page.label })
-                }
-                aria-pressed={value.externalUrl === page.path}
-                data-on={value.externalUrl === page.path}
-                className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground data-[on=true]:border-primary data-[on=true]:bg-primary/10 data-[on=true]:text-primary-ink"
-              >
-                {page.label}
-              </button>
-            ))}
-          </div>
+          {loadingPages ? (
+            // Same height as the chip row it replaces, so the field below does
+            // not jump when the list resolves.
+            <div className="flex h-[26px] items-center text-xs text-muted-foreground">
+              Loading pages…
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {(storefrontPages?.pages ?? []).map((page) => (
+                <button
+                  key={page.path}
+                  type="button"
+                  title={page.description ?? page.path}
+                  onClick={() =>
+                    onChange({ ...value, externalUrl: page.path, targetName: page.label })
+                  }
+                  aria-pressed={value.externalUrl === page.path}
+                  data-on={value.externalUrl === page.path}
+                  className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground data-[on=true]:border-primary data-[on=true]:bg-primary/10 data-[on=true]:text-primary-ink"
+                >
+                  {page.label}
+                </button>
+              ))}
+            </div>
+          )}
           <Input
             id={`${idPrefix}-path`}
             placeholder="/product?category=laptops&sort=price_asc"
@@ -327,6 +341,15 @@ export function PromotionSlideLinkFields({
             storefront link works — it is trimmed to the path. Opens in the same
             tab.
           </p>
+          {storefrontPages?.source === "fallback" && (
+            // Says why the row is short, and that the short row is not the
+            // limit. Without this the manager reads a missing page as a page
+            // they are not allowed to link to.
+            <p className="text-xs text-muted-foreground">
+              Could not reach the storefront, so these are the common pages
+              only. Any other address still works — type its path above.
+            </p>
+          )}
         </div>
       )}
 

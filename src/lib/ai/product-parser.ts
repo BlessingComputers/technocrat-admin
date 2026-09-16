@@ -81,7 +81,7 @@ export interface ParseProductResult {
 export const MAX_LISTINGS_PER_CALL = 15;
 
 const SYSTEM_PROMPT = `
-You are a Product Data Architect for Technocrat Nigeria, an electronics retailer.
+You are a Product Data Architect for an electronics retailer.
 Your task is to parse raw supplier listings into structured JSON for a bulk upload editor.
 
 INSTRUCTIONS:

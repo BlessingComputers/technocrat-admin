@@ -1,27 +1,7 @@
-/* =============================================================================
- * Technocrat Admin — token layer
- * Resolved by .scratch/technocrat-admin/issues/02-design-system.md
- *
- * PASTE TARGET: technocrat-admin/src/app/globals.css (replaces the cloned
- * Blessing block wholesale — @theme inline, :root, and .dark).
- * The @layer base / @layer utilities / .page-animate tail of the cloned file
- * is unchanged and is NOT reproduced here.
- *
- * Decisions this file encodes:
- *   · Green is the whole story — no gold/jewel tier. `--gold` and
- *     `--gold-foreground` are DELETED, not re-hued. Grep the clone for
- *     `gold` before shipping; every hit is a restyle task.
- *   · Outfit throughout (the Figma frame's Inter is not adopted).
- *   · Shape comes from Figma 301:920, hue from technocrat-frontend.
- *   · Dark mode at parity: the lightness ladder below is Blessing's measured
- *     ramp, carried over unchanged. Only hue moved (256.85 -> 264) and
- *     maroon -> green. Do not "tidy" the lightness values; the ratios in the
- *     comments were measured against them.
- * ========================================================================== */
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./brand-tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -38,15 +18,26 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-jewel: var(--jewel);
-  --color-jewel-foreground: var(--jewel-foreground);
-  --color-jewel-ink: var(--jewel-ink);
-  --color-primary-ink: var(--primary-ink);
-  --color-secondary-ink: var(--secondary-ink);
-  --color-success-ink: var(--success-ink);
-  --color-warning-ink: var(--warning-ink);
-  --color-info-ink: var(--info-ink);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
   --color-destructive-ink: var(--destructive-ink);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning: var(--warning);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-ink: var(--success-ink);
+  --color-success: var(--success);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-ink: var(--gold-ink);
   --color-whatsapp: var(--whatsapp);
   --color-whatsapp-foreground: var(--whatsapp-foreground);
   --color-whatsapp-ink: var(--whatsapp-ink);
@@ -58,23 +49,12 @@
   --color-tier-gold-ink: var(--tier-gold-ink);
   --color-tier-platinum: var(--tier-platinum);
   --color-tier-platinum-ink: var(--tier-platinum-ink);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-warning: var(--warning);
-  --color-success-foreground: var(--success-foreground);
-  --color-success: var(--success);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
+  --color-gold: var(--gold);
   --color-info-foreground: var(--info-foreground);
+  --color-info-ink: var(--info-ink);
   --color-info: var(--info);
+  --color-secondary-ink: var(--secondary-ink);
+  --color-primary-ink: var(--primary-ink);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -85,15 +65,6 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-
-  /* Radius multipliers carried from Blessing admin; the BASE is not.
-     REVERSES ticket 02, which kept --radius: 0.5rem because it measured well
-     against Figma 301:920. That measurement still holds — but 07 decided the
-     two admins must not look alike, and the frame is Blessing-shaped (it was
-     drawn from it), so matching it guarantees the resemblance. The base now
-     adopts technocrat-frontend's 0.3725rem: the tighter shape is the one thing
-     that makes this app read as *Technocrat*, not merely as un-Blessing.
-     Cards land at 10.7px (was 14.4), controls at 4.8px (was 6.4). */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -101,97 +72,104 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-
-  /* Elevation, REPURPOSED by ticket 07. The values are Blessing's (large
-     spread, very low opacity — the house rule), but the MEANING changed:
-     shadow no longer marks a resting card, it marks a surface that is
-     genuinely raised. Cards at rest are defined by their hairline alone.
-     `shadow-soft` = hover/raised, `shadow-soft-lg` = overlays (dialog, popover,
-     dropdown). A resting card carrying shadow-soft is now a defect. */
+  /*
+   * Soft elevation (ADR-0009): large spread, very low opacity — the
+   * design-system card/surface shadow. Prefer these over Tailwind's default
+   * scale (shadow-2xl is 25% opacity). `shadow-soft` for cards, `shadow-soft-lg`
+   * for raised surfaces (modals, popovers, the date-filter panel).
+   */
   --shadow-soft: 0 12px 32px -8px rgb(0 0 0 / 0.06);
   --shadow-soft-lg: 0 24px 56px -12px rgb(0 0 0 / 0.07);
 }
 
-/* -----------------------------------------------------------------------------
- * LIGHT
- * Green canvas-and-card: a barely green-tinted grey canvas with white cards —
- * NOT technocrat-frontend's darker-card-on-lighter-canvas inversion.
- * Depth comes from the CANVAS/CARD contrast plus a crisp hairline, not from a
- * resting shadow (ticket 07 reversed that half of Blessing's device).
- * -------------------------------------------------------------------------- */
-:root {
-  /* Shared with technocrat-frontend. See the radius note in @theme above. */
-  --radius: 0.3725rem;
+/*
+ * Design system (ADR-0009 · docs/design/README.md).
+ * Palette ported from blessingcomputers/globals.css then tuned to the Invoice
+ * comp: maroon primary · navy secondary · gold accent · green success.
+ *
+ * Sidebar = the card surface in both themes (white in light, the KPI-card dark
+ * in dark) — no tint. The light content canvas is a slight cool gray so white
+ * cards/chrome pop. Active nav item is maroon (primary) in both themes.
+ */
+/* Two text suffixes, and they are NOT interchangeable (ported from the
+   storefront's globals.css, which reasons this out in full):
 
-  /* Canvas is tinted toward the brand hue at chroma 0.002 — enough that white
-     cards read as lit panels, not enough to register as "green". */
-  --background: oklch(0.972 0.002 150);
+   `-foreground` is text placed ON that colour as a solid surface. It is pinned
+   to the surface, so it does NOT flip between themes — `text-gold-foreground`
+   on `bg-gold` is correct in both.
+   `-ink` is that colour used AS text, on the page, a card, or a low-alpha tint
+   (`bg-warning/15`). It MUST flip, because the thing behind it flips.
+
+   The test is not which colour it is, it is what the text is sitting ON.
+   `bg-destructive text-white` is a solid surface and does not flip;
+   `text-destructive-ink` on a form is text and does.
+
+   Every ratio below is MEASURED, not estimated, against the worst realistic
+   pairing: the role's own 15% tint laid over `--accent` (the hover surface, the
+   lightest thing a status chip can land on in light mode). Before these tokens
+   existed, EVERY status role failed AA as text — measured 1.90:1 to 4.59:1 in
+   light and 1.89:1 to 3.37:1 in dark. That is what the `.dark` block's "NOT
+   fixed here" note below was describing; it is fixed here now. */
+:root {
+  --radius: var(--brand-radius);
+  --background: oklch(0.97 0.003 256.85); /* slight cool-gray canvas */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-
-  /* Technocrat Green — from technocrat-frontend, the shipped storefront brand.
-     Owns the one real action per screen, active nav, focus ring, hero series. */
-  --primary: oklch(0.55 0.2 145);
-  --primary-foreground: oklch(0.99 0 0);
-  /* Green AS TEXT — 4.66:1. `--primary` as text measured 3.37:1. See the
-     `-ink` vs `-foreground` note at the top of the DARK block. */
-  --primary-ink: oklch(0.455 0.183 145);
-
-  /* Graphite — the Figma frame's Secondary/main (#1F2937). Grounding emphasis
-     and secondary buttons, where green would over-claim. */
-  --secondary: oklch(0.2795 0.0296 264);
-  --secondary-foreground: oklch(0.99 0 0);
-  /* Graphite AS TEXT — 9.55:1. Same value as the surface in light; flips in
-     dark, where the graphite itself would measure 1.01:1 on a card. */
-  --secondary-ink: oklch(0.2795 0.0296 264);
-
+  --primary: var(--brand-primary);
+  --primary-foreground: oklch(0.985 0 0);
+  /* Blessing Maroon AS TEXT — 4.98:1. Goes DEEPER and less chromatic than
+     `--primary`, not merely darker, and that is the whole point: maroon (h 29.28)
+     and Alert Red (h 27.33) sit two degrees apart, so a contrast-only fix landed
+     this 1.4 OKLab units from `--destructive-ink` — close enough that a link and
+     an error message were the same colour. This pair is 6.4 units apart. */
+  --primary-ink: oklch(0.47 0.185 29.2768);
+  --secondary: oklch(0.2781 0.0296 256.85);
+  --secondary-foreground: oklch(0.985 0 0);
+  /* Slate Navy AS TEXT — 9.57:1. `--secondary` is a *surface* role and barely
+     moves between themes (navy panels stay navy), so used as text it measured
+     1.18:1 on the dark page. Identical value in light, flips in dark. */
+  --secondary-ink: oklch(0.2781 0.0296 256.85);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-
-  /* Neutral hover/focus surface — shadcn's `accent` ROLE, not a brand accent.
-     There is no jewel tier in this system; this slot stays near-neutral so
-     hovers never read as a green selection. */
-  --accent: oklch(0.95 0.003 150);
+  /* Neutral hover/focus surface — shadcn's `accent` role (primitive hovers,
+     dropdown/select focus, skeleton). Kept neutral so it isn't gold-tinted. */
+  --accent: oklch(0.95 0.004 256.85);
   --accent-foreground: oklch(0.205 0 0);
-
+  /* The palette's gold accent (ADR-0009) — its own token for intentional use
+     (KPI chips, etc.), NOT the primitives' hover slot. */
+  --gold: oklch(0.735 0.1462 84.27);
+  --gold-foreground: oklch(0.2843 0.0562 83.83);
+  /* Gold AS TEXT — 4.60:1. Note this is NOT `--gold-foreground`: the near-black
+     Gold Ink is correct on *solid* gold and stays there, but on a `bg-gold/15`
+     chip it is the wrong instrument. Solid gold as text measured 1.90:1. */
+  --gold-ink: oklch(0.505 0.116 84.27);
   --destructive: oklch(0.577 0.245 27.325);
-  /* 4.68:1. No collision risk with `--primary-ink` here, unlike Blessing —
-     Technocrat's brand hue is green, so red as text is unambiguous. */
-  --destructive-ink: oklch(0.467 0.221 27.325);
-
-  /* Success sits in the SAME hue family as --primary by design (see the
-     Green-Does-Double-Duty rule). It is deliberately lighter and slightly
-     cooler than primary so a 15% success chip never reads as a disabled
-     primary button. Approximates the frame's Green/success #16A34A. */
-  --success: oklch(0.63 0.17 149);
+  /* Alert Red AS TEXT — 4.60:1, and 6.4 OKLab units from `--primary-ink` (see
+     the note there). Darker AND hotter than `--destructive`: the chroma is what
+     keeps it apart from maroon once the lightness drops. */
+  --destructive-ink: oklch(0.45 0.245 27.325);
+  /* TODO(designer): confirm success/warning against her green/gold ramps. */
+  --success: oklch(0.627 0.17 152);
   --success-foreground: oklch(0.985 0 0);
-  /* 4.70:1. ⚠️ This lands 4.2 OKLab units from `--primary-ink` — as TEXT the
-     two greens are close, and deliberately so: the Green-Does-Double-Duty rule
-     separates action from status by FORM, not by hue. A status green only ever
-     appears inside a labelled chip; a primary green as text is a link or an
-     emphasis. Do not try to pull these apart by shifting the hue — that
-     reintroduces a second brand green, which is what the rule forbids. */
-  --success-ink: oklch(0.47 0.146 149);
-
-  /* Amber is now purely semantic — with no jewel tier it means "needs
-     attention" and nothing else. */
+  /* 4.66:1. `--success` as text measured 2.55:1 — every green status chip in
+     the app was failing AA on its own tint. */
+  --success-ink: oklch(0.467 0.146 152);
   --warning: oklch(0.68 0.16 65);
   --warning-foreground: oklch(0.985 0 0);
-  /* 4.67:1. `--warning` as text measured 2.35:1 — the worst in the set. */
+  /* 4.66:1. `--warning` as text measured 2.35:1, the worst in the set — amber
+     is intrinsically light, so it can never be its own text colour. */
   --warning-ink: oklch(0.5 0.134 65);
-
-  /* WhatsApp's own channel green — a third-party MARK, not a palette role.
-     ⚠️ This is the one sanctioned exception to the Green-Does-Double-Duty Rule:
-     it is a third green, and it is allowed only because it identifies WhatsApp,
-     which loses its meaning if recoloured. Never reach for it as an accent, a
-     status, or a stand-in for `--primary`; the WhatsApp slice and the chat
-     popup's channel badge are its whole surface area. Ported from the
-     storefront (`blessingcomputers/src/app/globals.css`), which measured it.
-     `--whatsapp` is 2.01:1 on white, so it is a SURFACE only and can never be
-     the text token — hence the -ink role. */
+  /* WhatsApp's own channel green — a third-party MARK, not a palette role, and
+     the one hue in this file that sits outside ADR-0009 on purpose: it
+     identifies WhatsApp, which loses its meaning if recoloured. Never reach for
+     it as an accent or a status; the WhatsApp slice and the chat popup's
+     channel badge are its whole surface area. Ported from the storefront
+     (`blessingcomputers/src/app/globals.css`), which measured it. `--whatsapp`
+     is 2.01:1 on white, so it is a SURFACE only and can never be the text
+     token — hence the -ink role. */
   --whatsapp: oklch(0.76 0.17 152);
   --whatsapp-foreground: oklch(0.29 0.08 152);
   --whatsapp-ink: oklch(0.5 0.13 152); /* 5.26:1 at its worst light surface */
@@ -203,6 +181,9 @@
      — a customer's loyalty tier rendered in error red. That is the bug these
      tokens exist to fix, and the reason they are not `--warning`/`--muted`.
      Fenced to `loyaltyTierClasses()`; never an accent, never a status.
+     ⚠️ `--tier-gold` is NOT `--gold`. `--gold` is this app's brand accent and
+     obeys the Gold-As-Jewel Rule; `--tier-gold` is a medal. Do not collapse
+     them — a GOLD-tier customer is not a branded surface.
      Each base is a SURFACE only (used at /15), hence the paired -ink roles.
      Measured OKLCH -> sRGB -> WCAG, alpha composited on gamma-encoded sRGB;
      ratios below are ink on the metal's own 15% tint over `--accent`, the
@@ -216,126 +197,137 @@
   --tier-platinum: oklch(0.86 0.025 240); /* #c3d4e0 — cool, to stay legibly
                                              apart from neutral silver */
   --tier-platinum-ink: oklch(0.47 0.03 245); /* 5.65:1 */
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: var(--brand-ring);
+  /* Brand data-viz ramp — strictly the ADR-0009 palette, no off-palette hues:
+     maroon (primary) → gold (accent) → blue (secondary hue) → green (success)
+     → deep maroon. chart-1 is the hero (primary). */
+  --chart-1: oklch(0.559998 0.229498 29.2768);
+  --chart-2: oklch(0.735 0.1462 84.27);
+  --chart-3: oklch(0.5 0.12 256.85);
+  --chart-4: oklch(0.627 0.17 152);
+  --chart-5: oklch(0.42 0.15 29.2768);
 
-  /* Approximates the frame's Grey/03 border #E9ECEF. */
-  --border: oklch(0.925 0.002 150);
-  --input: oklch(0.925 0.002 150);
-  --ring: oklch(0.55 0.2 145);
-
-  /* Data-viz ramp — the ONE place this system leaves the brand hue, because a
-     five-slice categorical donut cannot be read in tints of a single green.
-     The families are the frame's donut: green, blue, orange-red, periwinkle,
-     charcoal — regularised to an even lightness band so no slice dominates and
-     each can be lifted for dark mode. chart-1 is the brand green: it is the
-     hero for single-series charts (the revenue line in the frame). */
-  --chart-1: oklch(0.55 0.2 145);
-  --chart-2: oklch(0.55 0.13 245);
-  --chart-3: oklch(0.64 0.17 35);
-  --chart-4: oklch(0.72 0.09 275);
-
-  /* JEWEL — replaces Blessing's deleted gold (ticket 07). Decorative variety
-     ONLY: help-centre tiles, bento edges, non-status icon chips. It is the
-     chart ramp's periwinkle, deliberately, because the chart ramp is the one
-     region DESIGN.md sanctions for non-semantic hue. Do NOT use it for state —
-     that is what success/warning/info/destructive are for. Text-safe: it is
-     used as `text-jewel` on tints, so it must stay dark enough in light. */
-  --jewel: oklch(0.52 0.11 275);
-  --jewel-foreground: oklch(0.99 0 0);
-  /* 4.68:1. The comment above notes jewel "must stay dark enough in light"
-     because it is used as `text-jewel` on tints — that requirement now belongs
-     to this token, which frees `--jewel` to be chosen for how it looks. */
-  --jewel-ink: oklch(0.485 0.107 275);
-  --chart-5: oklch(0.42 0.02 250);
-
-  /* Neutral informational state. Shares chart-2's blue so an info chip and an
-     info series agree. Replaces any ad-hoc sky-*. */
-  --info: oklch(0.55 0.13 245);
+  /* Brand blue accent (secondary hue, lifted to be legible as an accent — the
+     navy `--secondary` is too dark for tinted chips). Replaces ad-hoc sky-*. */
+  --info: oklch(0.5 0.12 256.85);
   --info-foreground: oklch(0.985 0 0);
-  --info-ink: oklch(0.48 0.122 245); /* 4.65:1 */
+  /* 4.65:1. `--info` was the one role that already passed flat (4.59:1), but
+     only just, and it fails the moment the chip lands on a hovered row. */
+  --info-ink: oklch(0.48 0.118 256.85);
 
-  /* Chrome (sidebar + topbar) = the card surface. White against the canvas.
-     Nav label ink is the frame's warm `stone` #343330, NOT the cool page ink —
-     a deliberate softening of the chrome against the harder content text.
-
-     ACTIVE ITEM: per Figma 404:1729 the active row is a SOLID, FULL-BLEED
-     green fill with white text — it is not Blessing's tinted-surface +
-     brand-text treatment. So the active state maps to sidebar-PRIMARY, and
-     sidebar-ACCENT stays a neutral hover fill. Getting these two backwards is
-     the single easiest way to render a sidebar that looks nothing like the
-     design, so: primary = active, accent = hover. */
+  /* Chrome (sidebar + topbar share this) — pure white in light mode. */
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.325 0.005 75);
-  --sidebar-primary: oklch(0.55 0.2 145);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.002 150);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.925 0.002 150);
-  --sidebar-ring: oklch(0.55 0.2 145);
+  --sidebar-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.559998 0.229498 29.2768);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.95 0.022 29.2768);
+  --sidebar-accent-foreground: oklch(0.559998 0.229498 29.2768);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.559998 0.229498 29.2768);
 }
 
-/* -----------------------------------------------------------------------------
- * DARK
- * The lightness ladder below is Blessing admin's measured ramp, carried over
- * UNCHANGED. Only the hue moved (256.85 navy -> 264 graphite, matching the
- * light theme's --secondary) and maroon became green. The ladder:
- *
- *    background .225 < card = sidebar .275 < secondary .2795
- *                    < muted .295 < popover .315 < accent .340
- *
- * Chrome and cards share a plane; the canvas recedes below both; `bg-muted`
- * reads INSIDE a card; popover floats ABOVE one; accent (the hover fill) sits
- * above everything it can land on. Those relationships are why the values look
- * arbitrary — they are not. Do not round them off.
- *
- * CARRIED-OVER DEBT — RESOLVED (sweep class B, 2026-08-09). `text-primary`,
- * `text-info`, and every status colour used as text on its own tint sat below
- * AA in dark (measured 1.89:1 to 3.37:1). The `-ink` text-only roles below fix
- * it; each value is MEASURED against the role's own 15% tint over `--accent`,
- * the lightest surface a chip can land on.
- *
- * `-foreground` = text ON that colour as a solid surface; pinned, does NOT flip.
- * `-ink` = that colour used AS text on a page, card or tint; MUST flip.
- * The test is not which colour it is, it is what the text sits ON.
- *
- * STILL OPEN, because it is a surface problem and not an `-ink` one:
- * `bg-destructive text-white` measures 2.89:1. Fixing it moves `--destructive`
- * as a fill, i.e. every destructive button — a design change, not a token add.
- * -------------------------------------------------------------------------- */
+/* The dark surface ramp (ported from blessingcomputers/globals.css).
+   -----------------------------------------------------------------
+   The old ramp read as one flat black, and measuring it showed three separate
+   faults rather than just "too dark":
+
+   1. THE STEPS WERE INVISIBLE. `--muted` vs `--card` measured 1.04:1 and
+      `--popover` was *identical* to `--card`. `bg-muted` is this app's most-used
+      surface (288 uses against 191 `bg-card`) and it lives inside cards — table
+      rows, chips, avatar placeholders, empty states — so a muted fill on a card
+      was, to the eye, the same colour as the card. Seven surface tokens,
+      roughly three visible surfaces.
+   2. THE HUES DISAGREED. Background 248.44, card/muted/accent 268.3, secondary
+      273.42, sidebar 268.3 at chroma 0.006 — three different cool casts at
+      chroma low enough (0.006-0.044) that none of them resolved. Near-neutrals
+      mixed at that chroma is what makes a dark theme look muddy rather than
+      tinted.
+   3. THE CHROME CONTRADICTED THE LIGHT THEME. The `:root` note above states the
+      rule — sidebar = the card surface, no tint — but dark put the sidebar at
+      0.275 against cards at 0.2603, i.e. floating chrome. The difference was
+      1.06:1, so it bought nothing visible while breaking the rule.
+
+   All seven surfaces now sit on the brand navy (hue 256.85, the Slate Navy of
+   `--secondary` in the light theme) and step monotonically in lightness:
+
+      background .225 < card = sidebar .275 < secondary .2781
+                      < muted .295 < popover .315 < accent .340
+
+   Chrome and cards share a plane and the canvas recedes below both, which is
+   exactly the light-theme relationship (white sidebar + white cards on a cool
+   gray canvas) and restores the ADR-0009 rule. The ordering above `--card` is
+   the one this app's usage demands: `bg-muted` must read *inside* a card
+   (1.07:1), `--popover` must float above one (1.15:1), and `--accent` is the
+   hover fill so it has to sit above everything it can land on — card 1.26:1,
+   muted 1.18:1, popover 1.10:1.
+
+   There was room for the lift because the text tokens had enormous headroom.
+   All text moved up with the surfaces to keep that margin; the ratios below are
+   measured, not estimated, and the worst text pairing in the matrix is
+   `--muted-foreground` on `--accent` at 5.10:1.
+
+   FIXED, by the `-ink` token layer added above and below. The problem was that
+   `--primary` etc. are solid fills as well as text colours, so their values
+   can't be tuned for text without moving every button and badge — which is
+   exactly what a separate text-only role solves. Measured before/after:
+     · `text-primary` — was 1.89:1 at worst, now `text-primary-ink` at 5.82:1.
+     · `text-info` — was 2.54:1, now `text-info-ink` at 4.60:1.
+     · every status colour as text on its own tint (the status chips) was
+       between 1.89:1 and 3.37:1; all now clear 4.5:1.
+   STILL OPEN, because it is a *surface* problem and not an `-ink` one:
+     · `bg-destructive text-white` measures 2.89:1. Fixing it means moving
+       `--destructive` as a fill, which moves every destructive button and
+       badge — a deliberate design change, not a token addition. */
 .dark {
-  --background: oklch(0.225 0.012 264);
-  --foreground: oklch(0.985 0.005 264);
-  --card: oklch(0.275 0.014 264);
-  --card-foreground: oklch(0.985 0.005 264);
-  --popover: oklch(0.315 0.015 264);
-  --popover-foreground: oklch(0.985 0.005 264);
-
-  /* Lifted from the light green: 0.55 is too dark to carry as a fill on a
-     dark canvas, and this matches technocrat-frontend's own dark primary. */
-  --primary: oklch(0.72 0.19 145);
-  --primary-foreground: oklch(0.145 0 0);
-  --primary-ink: oklch(0.765 0.182 145); /* 4.64:1 */
-
-  /* Pinned graphite panel — the same value as the light theme's --secondary,
-     so the panel does not shift hue between themes. */
-  --secondary: oklch(0.2795 0.0296 264);
+  --background: oklch(0.225 0.012 256.85);
+  /* 16.38:1 on the page, 14.20:1 on a card, 11.26:1 on `--accent`. */
+  --foreground: oklch(0.985 0.005 256.85);
+  --card: oklch(0.275 0.014 256.85);
+  --card-foreground: oklch(0.985 0.005 256.85);
+  /* Above the card, not level with it — a dropdown or dialog is a layer on top
+     of the page, and at 1.00:1 it read as part of whatever it covered. */
+  --popover: oklch(0.315 0.015 256.85);
+  --popover-foreground: oklch(0.985 0.005 256.85);
+  --primary: var(--brand-primary);
+  --primary-foreground: oklch(0.985 0 0);
+  /* Maroon AS TEXT, lifted above the surface rather than dropped below it —
+     the inversion is the whole `-ink` idea. 5.82:1, and 5.0 OKLab units from
+     `--destructive-ink` so the link/error distinction survives the theme. */
+  --primary-ink: oklch(0.8 0.13 29.2768);
+  /* Pinned navy panel. Now the same value as the light theme's `--secondary`,
+     which is what "pinned" should have meant all along — the panel no longer
+     shifts hue between themes. */
+  --secondary: oklch(0.2781 0.0296 256.85);
   --secondary-foreground: oklch(0.985 0 0);
-  /* Graphite AS TEXT flips to a cool near-white — the graphite itself measured
-     1.01:1 on a dark card, i.e. invisible. */
-  --secondary-ink: oklch(0.92 0.02 264);
-
-  --muted: oklch(0.295 0.014 264);
-  --muted-foreground: oklch(0.74 0.014 264);
-  --accent: oklch(0.34 0.018 264);
-  --accent-foreground: oklch(0.985 0.005 264);
-
+  /* Navy AS TEXT flips to a cool near-white, because the navy it would
+     otherwise be measured 1.01:1 on a dark card — invisible. */
+  --secondary-ink: oklch(0.92 0.02 256.85);
+  /* The workhorse fill, and it has to read *inside* a card (1.07:1) — that is
+     the single biggest visible change in this theme. */
+  --muted: oklch(0.295 0.014 256.85);
+  /* Lifted with the surfaces: 6.90:1 on the page, 6.43:1 on a card, 5.10:1 on
+     `--accent`, the lightest surface in the set. */
+  --muted-foreground: oklch(0.74 0.014 256.85);
+  /* The hover surface, and the top of the ramp — it has to sit clearly above
+     every surface it can land on or a row hover reads as nothing happening. */
+  --accent: oklch(0.34 0.018 256.85);
+  --accent-foreground: oklch(0.985 0.005 256.85);
+  --gold: oklch(0.78 0.15 84.27);
+  /* Stays near-black: still correct on *solid* gold, in both themes (8.57:1). */
+  --gold-foreground: oklch(0.22 0.05 83.83);
+  /* 4.63:1 on a gold tint. This is the pair the `-ink`/`-foreground` split
+     exists for: near-black on solid gold, warm gold on a gold chip. */
+  --gold-ink: oklch(0.795 0.148 84.27);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-ink: oklch(0.824 0.17 22.216); /* 4.60:1 */
-  --success: oklch(0.72 0.16 149);
-  --success-foreground: oklch(0.16 0.03 149);
-  --success-ink: oklch(0.77 0.153 149); /* 4.67:1 */
+  --destructive-ink: oklch(0.824 0.17 22.216); /* 4.61:1 */
+  --success: oklch(0.7 0.16 152);
+  --success-foreground: oklch(0.16 0.03 152);
+  --success-ink: oklch(0.765 0.151 152); /* 4.66:1 */
   --warning: oklch(0.78 0.15 70);
   --warning-foreground: oklch(0.2 0.04 65);
-  --warning-ink: oklch(0.8 0.147 70); /* 4.67:1 */
+  --warning-ink: oklch(0.8 0.147 70); /* 4.66:1 */
   --whatsapp: oklch(0.78 0.16 152);
   --whatsapp-foreground: oklch(0.29 0.08 152);
   --whatsapp-ink: oklch(0.76 0.13 152); /* 8.39:1 on the page */
@@ -351,52 +343,38 @@
   --tier-gold-ink: oklch(0.86 0.11 88); /* 5.59:1 */
   --tier-platinum: oklch(0.88 0.025 240);
   --tier-platinum-ink: oklch(0.9 0.025 240); /* 6.03:1 */
+  /* 10% white was a 1.2:1 hairline on the old near-black page. The surfaces are
+     lighter now, so the alpha rises with them to hold the same definition —
+     the border, not a shadow, is what defines a surface at rest. Carries the
+     navy cast so it doesn't read as a cool-gray line on a navy panel. */
+  --border: oklch(1 0.02 256.85 / 12%);
+  --input: oklch(1 0.02 256.85 / 18%);
+  --ring: var(--brand-ring);
+  /* Brand data-viz ramp (dark) — strict palette, lifted for the dark canvas. */
+  --chart-1: oklch(0.62 0.2 29.2768);
+  --chart-2: oklch(0.8 0.15 84.27);
+  --chart-3: oklch(0.64 0.13 256.85);
+  --chart-4: oklch(0.7 0.16 152);
+  --chart-5: oklch(0.74 0.17 29.2768);
 
-  /* The border, not a shadow, is what defines a surface at rest in dark.
-     Carries the graphite cast so it doesn't read as a cool-grey line. */
-  --border: oklch(1 0.02 264 / 12%);
-  --input: oklch(1 0.02 264 / 18%);
-  --ring: oklch(0.72 0.19 145);
+  --info: oklch(0.64 0.13 256.85);
+  --info-foreground: oklch(0.16 0.03 256.85);
+  --info-ink: oklch(0.765 0.115 256.85); /* 4.60:1 */
 
-  /* Same five families, lifted for the dark canvas. */
-  --chart-1: oklch(0.72 0.19 145);
-  --chart-2: oklch(0.68 0.13 245);
-  --chart-3: oklch(0.72 0.16 35);
-  --chart-4: oklch(0.78 0.09 275);
-
-  /* Jewel lifts for dark, same as every other hue on this ladder. */
-  --jewel: oklch(0.78 0.1 275);
-  --jewel-foreground: oklch(0.16 0.03 275);
-  --jewel-ink: oklch(0.8 0.098 275); /* 4.63:1 */
-  --chart-5: oklch(0.62 0.02 250);
-
-  --info: oklch(0.68 0.13 245);
-  --info-foreground: oklch(0.16 0.03 245);
-  --info-ink: oklch(0.77 0.119 245); /* 4.61:1 */
-
-  /* Chrome = the card surface, same rule as light. Active = solid green fill
-     (sidebar-primary), hover = neutral lift (sidebar-accent) — the same
-     mapping as light, so the frame's treatment survives the theme switch. */
-  --sidebar: oklch(0.275 0.014 264);
-  --sidebar-foreground: oklch(0.985 0.005 264);
-  --sidebar-primary: oklch(0.72 0.19 145);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.34 0.018 264);
-  --sidebar-accent-foreground: oklch(0.985 0.005 264);
-  --sidebar-border: oklch(1 0.02 264 / 12%);
-  --sidebar-ring: oklch(0.72 0.19 145);
+  /* Chrome (sidebar + topbar) = the card surface, per the `:root` rule above:
+     chrome and cards share a plane, the canvas recedes below both. */
+  --sidebar: oklch(0.275 0.014 256.85);
+  --sidebar-foreground: oklch(0.985 0.005 256.85);
+  --sidebar-primary: oklch(0.559998 0.229498 29.2768);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  /* Maroon active surface. Lifted and given back its chroma so it still reads
+     as maroon against the now-lighter chrome: 1.26:1 on `--sidebar` (it was
+     1.16:1), with the label at 11.28:1 on it. */
+  --sidebar-accent: oklch(0.35 0.09 29.2768);
+  --sidebar-accent-foreground: oklch(0.985 0.005 256.85);
+  --sidebar-border: oklch(1 0.02 256.85 / 12%);
+  --sidebar-ring: oklch(0.559998 0.229498 29.2768);
 }
-
-/* -----------------------------------------------------------------------------
- * BASE + UTILITIES
- *
- * Restored by issues/07-restyle-depth.md. Ticket 06 pasted the token asset over
- * this file and dropped the tail, which was the ONLY thing applying Outfit
- * (`html { font-sans }`), the canvas background (`body { bg-background }`), and
- * the hairline border colour (`* { border-border }` — without it every `border`
- * utility falls back to Tailwind 4's `currentColor` and renders ink-dark).
- * The build stayed green throughout, because CSS never errors.
- * -------------------------------------------------------------------------- */
 
 @layer base {
   * {

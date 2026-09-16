@@ -20,7 +20,10 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
   return (
     <Card className="p-8 sm:p-10">
       <h3 className="text-xl font-semibold text-foreground mb-8 flex items-center gap-3">
-        <AppIcon icon="solar:clock-circle-linear" className="w-6 h-6 text-primary-ink" />
+        <AppIcon
+          icon="solar:clock-circle-linear"
+          className="w-6 h-6 text-primary-ink"
+        />
         Audit Trail
       </h3>
 
@@ -40,7 +43,10 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
       ) : (
         <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
           {entries.map((entry, idx) => (
-            <div key={entry.id} className="relative flex items-start gap-6 group">
+            <div
+              key={entry.id}
+              className="relative flex items-start gap-6 group"
+            >
               <div
                 className={cn(
                   "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 z-10 transition-transform group-hover:scale-110",
@@ -78,7 +84,7 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
                     </span>
                     {entry.actorName && entry.actorId && (
                       <span className="text-xs text-muted-foreground/60 font-medium">
-                        ({entry.actorId})
+                        ({entry.actorName})
                       </span>
                     )}
                   </div>

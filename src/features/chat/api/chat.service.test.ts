@@ -111,6 +111,19 @@ describe("chatService.listConversations — assigned-admin identity", () => {
   });
 });
 
+describe("chatService.listConversations malformed rows", () => {
+  it("drops malformed rows instead of trusting every array element", async () => {
+    get.mockResolvedValue({
+      status: "success",
+      data: [null, "invalid", { id: 42 }, { id: "valid", name: "Ada" }],
+    });
+
+    await expect(chatService.listConversations()).resolves.toMatchObject([
+      { id: "valid", name: "Ada" },
+    ]);
+  });
+});
+
 describe("chatService.setAiState — AI stop/resume (A5)", () => {
   it("PATCHes the conversation's /ai route with the requested state", async () => {
     patch.mockResolvedValue({ status: "success", data: { aiState: "OFF" } });

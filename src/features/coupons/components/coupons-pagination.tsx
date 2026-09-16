@@ -2,30 +2,23 @@
 
 import { Button } from "@/components/ui/button";
 
-interface DealsPaginationProps {
+interface CouponsPaginationProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 }
 
-/**
- * Prev / Next pager for the deals list.
- *
- * Feature-local and deliberately plain, matching the pagers the other list
- * views in this admin carry (customers, orders, invoices). The page count is
- * the server's: `GET /deals` pages, and the list view passes its `meta` through.
- */
-export function DealsPagination({
+export function CouponsPagination({
   page,
   totalPages,
   onPageChange,
-}: DealsPaginationProps) {
+}: CouponsPaginationProps) {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex justify-center gap-2 border-t border-border bg-muted/20 p-3">
+    <div className="flex justify-center gap-2 pt-8">
       <Button
-        disabled={page === 1}
+        disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         variant="outline"
         className="rounded-md text-xs font-medium"

@@ -1,5 +1,5 @@
 /**
- * Resolve the backend origin for dev-time scripts (ADR-0015).
+ * Resolve the backend origin for dev-time scripts.
  *
  * The app reads `NEXT_PUBLIC_BACKEND_URL` through Next's env loading; scripts
  * run under plain node and get none of that, so they parse the env files
@@ -56,7 +56,7 @@ export function backendOrigin() {
 
     if (!found) {
         throw new Error(
-            `Missing ${key}. It is the single backend seam (ADR-0015) — set it in ` +
+            `Missing ${key}. It is the single backend seam — set it in ` +
             `.env.development (see ARCHITECTURE.md) or pass it inline:\n` +
             `  ${key}=https://your-backend npm run gen:api`,
         );

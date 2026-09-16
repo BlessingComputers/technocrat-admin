@@ -33,14 +33,9 @@ export type DestinationKind =
   | "external";
 
 /**
- * The storefront's catalog route and its filter keys.
- *
- * PROVISIONAL. `technocrat-frontend` has no catalog yet — it ships `/company`,
- * `/services` and `/contact` and nothing else — so these carry the shape the
- * Blessing storefront uses, on the expectation that Technocrat's catalog clones
- * it. Confirm them against the real routes the first time a promotion is
- * pointed at a category, and treat a change as a data migration of every saved
- * slide, not a config tweak.
+ * The storefront's catalog route and its filter keys, mirrored from
+ * `blessingcomputers/src/features/catalog/lib/catalog-filter-config.ts`. Two
+ * repos, one contract; changing a key there is a data migration here.
  */
 const CATALOG_PATH = "/product";
 const CATALOG_PARAM = { category: "category", brand: "brand", page: "page" };
@@ -53,22 +48,10 @@ export function buildBrandPath(slug: string): string {
   return `${CATALOG_PATH}?${CATALOG_PARAM.page}=1&${CATALOG_PARAM.brand}=${encodeURIComponent(slug)}`;
 }
 
-/**
- * Quick picks for "page" mode. Not a closed list — the field beside them takes
- * any path — so a route that ships after this list was written is still
- * linkable the day it lands.
- *
- * Only the first four exist in `technocrat-frontend` today. The catalog entries
- * follow `CATALOG_PATH` above and carry its provisional caveat.
- */
-export const STOREFRONT_PAGES: Array<{ path: string; label: string }> = [
-  { path: "/", label: "Home" },
-  { path: "/company", label: "Company" },
-  { path: "/services", label: "Services" },
-  { path: "/contact", label: "Contact" },
-  { path: "/product?page=1", label: "All products" },
-  { path: "/parts", label: "Parts catalog" },
-];
+// Quick picks for "page" mode used to live here as a hardcoded array, and went
+// stale the first time the storefront shipped a page nobody mirrored across.
+// They now come from the storefront at runtime: `lib/storefront-pages.ts` holds
+// the outage fallback, `api/storefront-pages.client.ts` does the fetch.
 
 /** An internal path: one leading slash, and not a protocol-relative host. */
 export function isInternalPath(value: string): boolean {

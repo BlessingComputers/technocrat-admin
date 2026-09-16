@@ -1,7 +1,7 @@
 /**
  * Centralized, validated, dependency-free environment access.
  *
- * ## The backend seam (ADR-0015)
+ * ## The backend seam
  *
  * **`NEXT_PUBLIC_BACKEND_URL` is the only variable that names the backend.**
  * Everything else that needs a backend address is *derived* from it here:
@@ -13,7 +13,7 @@
  *
  * Do not reintroduce a second host-bearing variable. Pointing this app at a
  * different backend — Technocrat's own, when it exists — must stay a one-line
- * change. See `docs/adr/0015-single-backend-origin-seam.md`.
+ * change.
  *
  * ## Two surfaces, kept apart on purpose (ADR-0003; MIGRATION Phase 2)
  *
@@ -89,11 +89,13 @@ const DEFAULT_IMAGE_HOSTS = [
 interface ServerEnv {
   /**
    * Full backend base URL for server-side fetches + the `/api` rewrite.
-   * Derived from `NEXT_PUBLIC_BACKEND_URL` — never its own variable (ADR-0015).
+   * Derived from `NEXT_PUBLIC_BACKEND_URL` — never its own variable.
    */
   apiBaseUrl: string;
   /** Hostnames allowed in `next/image`'s `remotePatterns`. */
   imageHosts: string[];
+  /** Customer storefront origin used by server-side promotion link discovery. */
+  storefrontUrl: string | undefined;
   /** Groq key — primary provider for the AI smart-paste routes. Optional — the adapter validates it. */
   groqApiKey: string | undefined;
   /** Claude (Anthropic) key — rate-limit fallback for the smart-paste routes. Optional — the adapter validates it. */
@@ -116,6 +118,7 @@ export function serverEnv(): ServerEnv {
   return {
     apiBaseUrl: `${origin}/api`,
     imageHosts: hosts?.length ? hosts : DEFAULT_IMAGE_HOSTS,
+    storefrontUrl: process.env.STOREFRONT_URL,
     groqApiKey: process.env.GROQ_API_KEY,
     claudeApiKey: process.env.CLAUDE_API_KEY,
   };

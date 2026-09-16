@@ -104,7 +104,7 @@ export function RecipientFormDialog({
               type="email"
               inputMode="email"
               autoComplete="off"
-              placeholder="name@technocratng.com"
+              placeholder="name@blessingcomputers.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               maxLength={255}

@@ -26,6 +26,13 @@ export async function proxyUploadToBackend(
   req: Request,
   backendPath: string,
   maxDurationSeconds: number,
+  /**
+   * The verb to use upstream. Defaults to POST because every caller was a
+   * create until promotion slides gained in-place image replacement, which is
+   * a multipart PATCH — same latency profile, same reason to avoid the edge
+   * rewrite, different method.
+   */
+  method: "POST" | "PATCH" | "PUT" = "POST",
 ): Promise<Response> {
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
@@ -55,7 +62,7 @@ export async function proxyUploadToBackend(
 
   try {
     const backendRes = await fetch(target, {
-      method: "POST",
+      method,
       headers,
       body,
       signal: controller.signal,

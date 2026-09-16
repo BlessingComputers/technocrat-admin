@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
+import { getProductSpecLine, getProductTitle } from "@/lib/utils/product-name";
 import type { ProductSummary } from "../types/products";
 import { SOURCE_LABEL } from "../constants/product-display";
 import { ProductStockBadge } from "./product-stock-badge";
@@ -34,6 +35,11 @@ export function ProductTableRow({
 }: ProductTableRowProps) {
   const detailHref = `/catalogues/${p.id}`;
   const editHref = `/catalogues/${p.id}/edit`;
+  // Supplier names are spec dumps, so the row showed one truncated string that
+  // was mostly RAM and storage. Same split the storefront and the detail page
+  // use: the name on the link, the specs on the line under it.
+  const title = getProductTitle(p.name);
+  const specLine = getProductSpecLine(p);
   const isRange =
     p.lowestPrice && p.highestPrice && p.lowestPrice !== p.highestPrice;
   const priceText = isRange
@@ -86,8 +92,16 @@ export function ProductTableRow({
               title={p.name}
               className="block max-w-[280px] truncate text-left font-semibold text-sm leading-tight text-foreground hover:text-primary-ink hover:underline transition-colors"
             >
-              {p.name}
+              {title}
             </Link>
+            {specLine && (
+              <span
+                className="block max-w-[280px] truncate text-xs text-muted-foreground"
+                title={specLine}
+              >
+                {specLine}
+              </span>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
                 {p.productId}

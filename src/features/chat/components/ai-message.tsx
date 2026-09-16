@@ -1,5 +1,6 @@
 import { AppIcon } from "@/components/shared/app-icon";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { ChatProductCards } from "./chat-product-cards";
 import { formatTime } from "../utils/chat-format";
 import type { ChatMessage } from "../types/chat";
 
@@ -53,6 +54,8 @@ export function AiMessage({ message }: { message: ChatMessage }) {
       <div className="max-w-[75%] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>
+
+      <ChatProductCards products={message.products} />
 
       <span className="px-1 text-xs text-muted-foreground">
         {formatTime(message.createdAt)}

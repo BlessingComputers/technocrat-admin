@@ -127,14 +127,15 @@ export function DealDetailView({ dealId }: { dealId: string }) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {/* The status badge rides in the actions slot rather than inside the
-          title: this admin's PageHeader takes a plain string, and its ruled
-          masthead is house identity — not something a feature bends. */}
       <PageHeader
-        title={deal.name}
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            {deal.name}
+            <DealStatusBadge status={deal.status} />
+          </span>
+        }
         description={`${deal.dealId} · created ${formatDealTime(deal.createdAt)}`}
       >
-        <DealStatusBadge status={deal.status} />
         <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
           <Link href="/pricing/deals">
             <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />

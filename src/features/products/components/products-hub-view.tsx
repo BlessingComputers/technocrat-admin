@@ -388,7 +388,7 @@ function CatalogEntryCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-colors duration-150 hover:border-primary/25 hover:bg-muted/40",
+        "group relative flex flex-col gap-5 rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.22)]",
         styles.border,
       )}
     >

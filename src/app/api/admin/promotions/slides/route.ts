@@ -32,3 +32,33 @@ export async function POST(req: Request) {
     maxDuration,
   );
 }
+
+/**
+ * In-place image replacement for a single slide. The backend's
+ * `PATCH /:id/slides/:slideId` accepts multipart as well as JSON and swaps
+ * `file` / `mobileFile` upload-then-delete, so a failed upload never leaves a
+ * slide imageless.
+ *
+ * It shares this route rather than getting its own because `slideId` has to
+ * arrive as a query param for the same reason `promotionId` does — a `[id]`
+ * segment here would be swallowed by the catch-all `/api/*` rewrite. A
+ * metadata-only edit does NOT come through here; that stays a plain JSON PATCH
+ * straight to the backend.
+ */
+export async function PATCH(req: Request) {
+  const params = new URL(req.url).searchParams;
+  const promotionId = params.get("promotionId");
+  const slideId = params.get("slideId");
+  if (!promotionId || !slideId) {
+    return NextResponse.json(
+      { success: false, message: "Missing promotionId or slideId." },
+      { status: 400 },
+    );
+  }
+  return proxyUploadToBackend(
+    req,
+    `/v1/promotions/${promotionId}/slides/${slideId}`,
+    maxDuration,
+    "PATCH",
+  );
+}

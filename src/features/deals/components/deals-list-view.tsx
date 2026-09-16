@@ -6,6 +6,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { RefreshButton } from "@/components/shared/refresh-button";
 import { AppIcon } from "@/components/shared/app-icon";
+import {
+  DataPagination,
+  PAGE_SIZES,
+} from "@/components/shared/data-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePermissions } from "@/lib/auth/use-permissions";
@@ -14,7 +18,6 @@ import { cn } from "@/lib/utils/cn";
 import { useDeals } from "../api/deals.queries";
 import type { DealStatus } from "../types/deals";
 import { DealsTable } from "./deals-table";
-import { DealsPagination } from "./deals-pagination";
 
 /** Chip row order: the two you act on first, then the archive. */
 const FILTERS: { value: DealStatus | "ALL"; label: string }[] = [
@@ -25,8 +28,6 @@ const FILTERS: { value: DealStatus | "ALL"; label: string }[] = [
   { value: "ENDED", label: "Ended" },
 ];
 
-const PAGE_SIZE = 20;
-
 /**
  * `/pricing/deals`: deals filtered by status and paged, both on the server.
  *
@@ -36,7 +37,7 @@ const PAGE_SIZE = 20;
  *
  * The chips carry no per-status counts. The list only knows the total for the
  * filter it asked for, and five extra requests for five numbers is a poor
- * trade. The active chip shows its total.
+ * trade. The active chip shows its total; the footer repeats it.
  */
 export function DealsListView() {
   const { can } = usePermissions();
@@ -44,11 +45,12 @@ export function DealsListView() {
 
   const [filter, setFilter] = useState<DealStatus | "ALL">("ALL");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
 
   const { data, isLoading, isError, isFetching, refetch } = useDeals({
     status: filter === "ALL" ? undefined : filter,
     page,
-    limit: PAGE_SIZE,
+    limit,
   });
   const deals = data?.data ?? [];
   const meta = data?.meta;
@@ -62,6 +64,11 @@ export function DealsListView() {
 
   const changeFilter = (next: DealStatus | "ALL") => {
     setFilter(next);
+    setPage(1);
+  };
+
+  const changeLimit = (next: number) => {
+    setLimit(next);
     setPage(1);
   };
 
@@ -122,11 +129,15 @@ export function DealsListView() {
           onRetry={() => refetch()}
           isFiltered={filter !== "ALL"}
         />
-        {meta && (
-          <DealsPagination
+        {meta && meta.total > PAGE_SIZES[0] && (
+          <DataPagination
             page={meta.page}
             totalPages={meta.totalPages}
+            total={meta.total}
+            limit={meta.limit}
             onPageChange={setPage}
+            onLimitChange={changeLimit}
+            noun="deals"
           />
         )}
       </Card>
