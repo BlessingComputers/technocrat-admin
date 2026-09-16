@@ -10,6 +10,7 @@ import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 
 import {
@@ -32,10 +33,42 @@ import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
 import { ruleScopeLabel } from "./markup-rule-utils";
 
-/** Part markup-rules management (Parts tab of `/pricing`). */
+/**
+ * Why a create failed, when the server will not say.
+ *
+ * A duplicate scope is the likeliest cause. Since `59919cd` closed ask 27,
+ * `createPartMarkupRule` refuses one with a real `409
+ * MARKUP_RULE_SCOPE_CONFLICT` whose message names the blocking rule ("… (rule:
+ * PMR-1234). Update it instead."), and that message is the only place the id
+ * appears; there is no structured `conflictingRuleId`. So show it verbatim
+ * rather than paraphrasing it.
+ *
+ * Production is behind that fix and still turns the same refusal into a 500
+ * with its message replaced, so the 5xx branch keeps the older guess.
+ */
+function createErrorMessage(err: unknown): string {
+  const status = err instanceof ApiError ? err.status : undefined;
+  if (status === 409) {
+    // `raw` skips the generic 409 default ("This conflicts with existing
+    // data…"), which would bury the rule id the server sent.
+    const named = getErrorMessage(err, "", { raw: true }).trim();
+    if (named && !/^request failed with status/i.test(named)) {
+      return `${named} The list has been reloaded.`;
+    }
+    return "Couldn’t create the rule — a rule already covers this scope. The list has been reloaded; check it and edit that rule instead.";
+  }
+  if (status !== undefined && status >= 500) {
+    return "Couldn’t create the rule — a rule may already cover this scope. The list has been reloaded; check it and edit that rule instead.";
+  }
+  return getErrorMessage(err, "Failed to create rule.");
+}
+
+/** Part markup-rules management (Parts half of `/pricing/markup`). */
 export function PartsPricingView() {
+  // MARKUP only. Deals are the same rows with a negative percentage and they
+  // live on /pricing/deals; an existing one does not appear here any more.
   const { data: rules = [], isLoading, isError, isFetching, refetch } =
-    usePartMarkupRules();
+    usePartMarkupRules("MARKUP");
   const { data: categories = [] } = usePartCategories();
   const { data: brands = [] } = usePartBrands();
   const { data: partTypes = [] } = usePartTypes();
@@ -67,6 +100,10 @@ export function PartsPricingView() {
           applyTo: values.applyTo,
           notes: values.notes || undefined,
           isActive: values.isActive,
+          // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
+          // clear it server-side, but only on the row being edited, and that
+          // row is a markup — the backend ignores both fields on a positive
+          // percentage. A deal's expiry is edited from /pricing/deals.
         },
       });
       toast.promise(promise, {
@@ -90,9 +127,9 @@ export function PartsPricingView() {
     toast.promise(promise, {
       loading: "Creating rule…",
       success: "Rule created. Use Preview & Apply to reprice existing parts.",
-      error: (err) => getErrorMessage(err, "Failed to create rule."),
+      error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => {});
+    promise.then(() => setFormOpen(false)).catch(() => refetch());
   };
 
   const confirmDelete = () => {
@@ -135,8 +172,8 @@ export function PartsPricingView() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title="Parts Pricing"
-        description="Percentage markup rules, scoped by category, brand, and part type"
+        title="Parts Markup"
+        description="Standing markup rules, scoped by part, category, brand and type. Sales live under Deals."
       >
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
         <Button asChild variant="outline" className="h-10 rounded-lg font-medium">

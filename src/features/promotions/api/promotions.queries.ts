@@ -13,6 +13,8 @@ export const promotionsKeys = {
   list: (params: PromotionsListParams) =>
     [...promotionsKeys.all, "list", params] as const,
   detail: (id: string) => [...promotionsKeys.all, "detail", id] as const,
+  categories: ["promotions", "categories"] as const,
+  brands: ["promotions", "brands"] as const,
 };
 
 export function usePromotions(params: PromotionsListParams = {}) {
@@ -122,6 +124,29 @@ export function usePromotionProductSearch(query: string) {
     queryFn: () => promotionsService.searchProducts(trimmed),
     enabled: trimmed.length >= 2,
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Categories for a slide's link picker. Gated on the category tab actually
+ * being open, so editing a caption never pulls the whole tree.
+ */
+export function usePromotionCategoryOptions(enabled: boolean) {
+  return useQuery({
+    queryKey: promotionsKeys.categories,
+    queryFn: () => promotionsService.listCategoryOptions(),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Brands for a slide's link picker, gated the same way. */
+export function usePromotionBrandOptions(enabled: boolean) {
+  return useQuery({
+    queryKey: promotionsKeys.brands,
+    queryFn: () => promotionsService.listBrandOptions(),
+    enabled,
+    staleTime: 5 * 60_000,
   });
 }
 

@@ -10,6 +10,8 @@ interface ProductsStatsBarProps {
   lowStockHref: string;
   /** Browse-view deep link for the out-of-stock card. */
   outOfStockHref: string;
+  /** Renders the placeholder value while the counts resolve. */
+  isLoading?: boolean;
 }
 
 const CARDS: {
@@ -48,6 +50,7 @@ export function ProductsStatsBar({
   stats,
   lowStockHref,
   outOfStockHref,
+  isLoading,
 }: ProductsStatsBarProps) {
   const hrefByKey: Partial<Record<keyof ProductStats, string>> = {
     lowStock: lowStockHref,
@@ -63,13 +66,14 @@ export function ProductsStatsBar({
             icon={card.icon}
             tone={card.tone}
             label={card.title}
-            value={stats[card.key]}
+            value={stats[card.key].toLocaleString()}
+            loading={isLoading}
             href={hrefByKey[card.key]}
           />
         ))}
       </StatsBar>
 
-      {stats.needsRestock > 0 && (
+      {!isLoading && stats.needsRestock > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm text-warning-ink">
           <AppIcon
             icon="solar:danger-circle-linear"

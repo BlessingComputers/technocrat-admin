@@ -16,6 +16,7 @@ import { STAFF_ROOM_ID, useChatStore } from "../store/chat.store";
 import { notificationKeys } from "@/lib/api/notification-keys";
 import { showChatToast } from "../components/chat-toast";
 import { notifyDesktop } from "./use-desktop-notifications";
+import { isAiHoldMessage } from "../utils/ai-hold-message";
 import type { ChatMessage, ConversationSummary } from "../types/chat";
 
 const HEARTBEAT_MS = 30_000;
@@ -242,6 +243,10 @@ export function useChatSocket(opts: UseChatSocketOptions = {}) {
     socket.on("connect_error", onConnectError);
 
     socket.on("chat:message:received", (payload) => {
+      // The AI's hold filler reassures a customer through a 1 to 4 second
+      // wait. Staff see the real reply moments later, so drop it before the
+      // store: it would otherwise bump unread and overwrite the row preview.
+      if (isAiHoldMessage(payload)) return;
       const message: ChatMessage = {
         id: payload.id,
         conversationId: payload.conversationId,

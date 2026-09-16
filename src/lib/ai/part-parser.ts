@@ -1,11 +1,10 @@
 /**
  * Part parsing from raw pasted text (AI smart-paste for the parts bulk view).
  *
- * Shares the Claude adapter (Haiku 4.5) with the product parser via `./llm`
- * (the shared-infra extraction that was deferred when parts first landed). The
- * prompt-building and response-parsing are pure; the LLM call sits behind the
- * `ChatCompleter` seam so tests can pass an in-memory fake. A single dynamic
- * route still awaits the later products refactor.
+ * Shares the provider adapter with the product parser via `./llm`, and the
+ * deterministic slug/price/chunking helpers via `./text`. The prompt-building
+ * and response-parsing are pure; the LLM call sits behind the `ChatCompleter`
+ * seam so tests can pass an in-memory fake.
  */
 
 import {
@@ -14,6 +13,12 @@ import {
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
+import {
+  assignUniqueSlugs,
+  chunkListings,
+  extractPriceTokens,
+  priceMatchesRawText,
+} from "./text";
 
 // Re-exported so existing import sites (routes, tests) keep resolving these
 // from the parser module after the shared-adapter extraction.
@@ -23,6 +28,7 @@ export type { ChatCompleter, ChatMessage };
 /** One parsed part — one supplier line becomes one part (parts have no variants). */
 export interface AiParsedPart {
   name?: string;
+  /** Derived in code from `name`, not returned by the model. */
   slug?: string;
   partNumber?: string | null;
   partTypeId?: string | null;
@@ -48,6 +54,9 @@ export interface ParsePartResult {
   parts: AiParsedPart[];
 }
 
+/** Listings per LLM call. See the product parser for the reasoning. */
+export const MAX_LISTINGS_PER_CALL = 15;
+
 const SYSTEM_PROMPT = `
 You are a Parts Data Architect for Technocrat Nigeria, an electronics retailer.
 Your task is to parse raw supplier listings of PARTS (components like chargers,
@@ -62,40 +71,42 @@ INSTRUCTIONS:
 2. "name" — a clear part name: [Brand] [Part type] [model/compat], plus key
    specs. Exclude the price token and decorative emoji/bullets.
 
-3. Generate a URL-friendly "slug" from the name (lowercase, hyphens only).
-
-4. "price": numeric supplier price. Strip @, #, ₦, N, commas, spaces, and expand
-   shorthand: "@45k" → 45000, "#55,000" → 55000. Put it in BOTH "price" and
+3. "price": numeric supplier price. Strip @, #, ₦, N, commas, spaces, and expand
+   shorthand: "@45k" → 45000, "#55,000" → 55000. Copy the digits exactly — never
+   round, and never shift the decimal place. Put it in BOTH "price" and
    "costPrice" (selling price is adjusted later via markup). If no price, null.
 
-5. "stockQuantity": "SOLD OUT" → 0; a count like "(4 units)" → that number;
+4. "stockQuantity": "SOLD OUT" → 0; a count like "(4 units)" → that number;
    otherwise 10.
 
-6. "isActive" — ALWAYS false (uploads start as drafts).
+5. "isActive" — ALWAYS false (uploads start as drafts).
 
-7. "partNumber" — the manufacturer/supplier part code if present, else null.
+6. "partNumber" — the manufacturer/supplier part code if present, else null.
 
-8. "ownerSku" — the SKU of the product this part belongs to, if the listing
+7. "ownerSku" — the SKU of the product this part belongs to, if the listing
    states it; else null.
 
-9. Categorization (match against the provided lists, return the matched ID):
+8. Categorization (match against the lists given below, return the matched ID).
+   Use ONLY ids that appear in those lists — never invent an id, and never put a
+   name where an id is asked for:
    - "categoryId": MOST LIKELY Category ID by comparing the part to category
      names; null if none matches.
    - "partTypeId": MOST LIKELY Part Type ID (charger, keyboard, screen, battery,
      …); null if none matches.
    - "brandId": correct Brand ID; null if none matches.
 
-10. "specifications": extract specs as { "name", "value" } pairs (Material,
-    Capacity, Compatibility, Connector, …). Don't duplicate the part number here.
+9. "specifications": extract specs as { "name", "value" } pairs (Material,
+   Capacity, Compatibility, Connector, …). Don't duplicate the part number here.
 
-11. Write a short "description" (1-2 sentences).
+10. Write a short "description" (1-2 sentences).
+
+11. Do NOT output a slug. The system generates it from the name.
 
 OUTPUT FORMAT — a JSON object with a single "parts" array:
 {
   "parts": [
     {
       "name": "string",
-      "slug": "string",
       "partNumber": "string | null",
       "partTypeId": "string | null",
       "categoryId": "string | null",
@@ -114,8 +125,10 @@ OUTPUT FORMAT — a JSON object with a single "parts" array:
 
 /**
  * Structured Outputs schema: constrains the reply so `parseCompletionContent`
- * never faces malformed JSON. ID validity against the provided lists is still
- * enforced afterwards by `normalizeParts` — a schema can't express it.
+ * never faces malformed JSON. Enforced on both providers (Anthropic via
+ * `output_config`, Groq via strict `json_schema`). ID validity against the
+ * provided lists is still enforced afterwards by `normalizeParts` — a schema
+ * can't express it. `slug` is absent by design: it is derived from `name`.
  */
 const PARTS_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -128,7 +141,6 @@ const PARTS_SCHEMA: Record<string, unknown> = {
         additionalProperties: false,
         properties: {
           name: { type: "string" },
-          slug: { type: "string" },
           partNumber: { type: ["string", "null"] },
           partTypeId: { type: ["string", "null"] },
           categoryId: { type: ["string", "null"] },
@@ -154,7 +166,6 @@ const PARTS_SCHEMA: Record<string, unknown> = {
         },
         required: [
           "name",
-          "slug",
           "partNumber",
           "partTypeId",
           "categoryId",
@@ -173,9 +184,14 @@ const PARTS_SCHEMA: Record<string, unknown> = {
   required: ["parts"],
 };
 
-/** Pure: assemble the system + user messages. */
+/**
+ * Pure: assemble the system + user messages.
+ *
+ * The reference lists sit in the SYSTEM message so the Claude leg's
+ * `cache_control` covers them — see the product parser for the full reasoning.
+ */
 export function buildParseMessages(input: ParsePartInput): ChatMessage[] {
-  const userPrompt = `
+  const reference = `
 CATEGORIES (use these IDs):
 ${JSON.stringify(input.categories)}
 
@@ -184,13 +200,11 @@ ${JSON.stringify(input.partTypes)}
 
 BRANDS (use these IDs):
 ${JSON.stringify(input.brands)}
-
-RAW PART TEXT TO PARSE:
-${input.rawText}
 `;
+
   return [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userPrompt },
+    { role: "system", content: `${SYSTEM_PROMPT}${reference}` },
+    { role: "user", content: `RAW PART TEXT TO PARSE:\n${input.rawText}` },
   ];
 }
 
@@ -209,14 +223,16 @@ export function parseCompletionContent(content: string): ParsePartResult {
   return { parts: parts as AiParsedPart[] };
 }
 
-/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback on 429. */
+/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback. */
 export const parseCompleter: ChatCompleter = createFallbackCompleter({
   schema: PARTS_SCHEMA,
+  schemaName: "parts",
 });
 
 /**
  * Defense against shape drift: coerce numbers, force draft status, validate the
- * matched IDs against the provided lists (a hallucinated id degrades to null).
+ * matched IDs against the provided lists (a hallucinated id degrades to null),
+ * and check each price against the prices the paste actually states.
  */
 function normalizeParts(
   parts: AiParsedPart[],
@@ -225,6 +241,10 @@ function normalizeParts(
   const catIds = new Set(input.categories.map((c) => c.id));
   const brandIds = new Set(input.brands.map((b) => b.id));
   const typeIds = new Set(input.partTypes.map((t) => t.id));
+  // Empty means this paste uses a price format the extractor doesn't recognise,
+  // in which case the cross-check is skipped rather than nulling good prices.
+  const priceTokens = extractPriceTokens(input.rawText);
+
   for (const p of parts) {
     p.isActive = false;
     p.partNumber =
@@ -236,10 +256,26 @@ function normalizeParts(
         ? p.ownerSku.trim()
         : null;
     p.price = typeof p.price === "number" && p.price > 0 ? p.price : null;
+    // A price the paste never states means the model dropped or shifted a
+    // digit. Null it so the editor flags the row rather than shipping it.
+    if (
+      p.price != null &&
+      priceTokens.length > 0 &&
+      !priceMatchesRawText(p.price, priceTokens)
+    ) {
+      p.price = null;
+    }
     p.costPrice =
       typeof p.costPrice === "number" && p.costPrice > 0
         ? p.costPrice
         : (p.price ?? null);
+    if (
+      p.costPrice != null &&
+      priceTokens.length > 0 &&
+      !priceMatchesRawText(p.costPrice, priceTokens)
+    ) {
+      p.costPrice = p.price ?? null;
+    }
     p.stockQuantity =
       typeof p.stockQuantity === "number" && p.stockQuantity >= 0
         ? p.stockQuantity
@@ -254,13 +290,23 @@ function normalizeParts(
   return parts;
 }
 
-/** Parse raw part text into structured parts. */
+/**
+ * Parse raw part text into structured parts. Long pastes are chunked into
+ * separate sequential calls and merged, then normalized and de-duplicated across
+ * the whole batch — see the product parser for why sequential.
+ */
 export async function parsePartText(
   input: ParsePartInput,
   complete: ChatCompleter = parseCompleter,
 ): Promise<ParsePartResult> {
-  const messages = buildParseMessages(input);
-  const content = await complete(messages);
-  const result = parseCompletionContent(content);
-  return { parts: normalizeParts(result.parts, input) };
+  const chunks = chunkListings(input.rawText, MAX_LISTINGS_PER_CALL);
+  const parts: AiParsedPart[] = [];
+
+  for (const rawText of chunks) {
+    const messages = buildParseMessages({ ...input, rawText });
+    const content = await complete(messages);
+    parts.push(...parseCompletionContent(content).parts);
+  }
+
+  return { parts: assignUniqueSlugs(normalizeParts(parts, input)) };
 }

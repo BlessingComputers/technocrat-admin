@@ -129,6 +129,16 @@ const BASES = [
   "bolt", // stats: max latency KPI
   "shield-cross", // access-gate restricted state (also used by payments' gate,
   // which was missing this from the subset — fixed here since it's the same icon)
+  // nav regroup: Pricing and Payments children (six-group sidebar)
+  "graph-up", // Pricing > Markup
+  "sale", // Pricing > Deals
+  "calculator", // Pricing > Tax
+  "wallet-money", // Payments parent (the nav asked for this one all
+  // along and it was never in the subset, so the row rendered iconless)
+  "card-transfer", // Payments > Transactions
+  // help centre: the deals guide (Blessing pulls this in for its Coupons nav
+  // row; this app has no such row, but the guide still needs the glyph)
+  "ticket",
 ];
 
 /**

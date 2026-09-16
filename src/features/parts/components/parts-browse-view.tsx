@@ -11,6 +11,12 @@ import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { BulkSelectionBar } from "@/components/shared/bulk-selection-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AppIcon } from "@/components/shared/app-icon";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
@@ -38,6 +44,10 @@ import { PartBulkEditDialog } from "./part-bulk-edit-dialog";
  * Parts catalog working view (route `/catalogues/parts`). Filter + pagination
  * state lives in the URL via {@link usePartFilters} (ADR-0005). Reached from the
  * Parts card on the `/catalogues` hub; links back there.
+ *
+ * Owns its own KPI strip and its own create actions — single AND bulk — so this
+ * list is symmetrical with `/catalogues/all` rather than being the one place you
+ * could browse parts but not add one.
  */
 export function PartsBrowseView() {
   const router = useRouter();
@@ -138,12 +148,12 @@ export function PartsBrowseView() {
     <div className="space-y-6">
       <PageHeader
         title="All Parts"
-        description="Every part across all products — search and audit. Add parts from a product's Parts tab."
+        description="Every part across all products — search, audit, and add"
       >
         <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
-          <Link href="/catalogues/all?page=1&limit=20">
+          <Link href="/catalogues">
             <AppIcon icon="solar:arrow-left-linear" className="mr-2 size-4" />
-            Back to products
+            Back to catalogue
           </Link>
         </Button>
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
@@ -154,20 +164,39 @@ export function PartsBrowseView() {
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
-          <Link href="/pricing?tab=parts">
+          <Link href="/pricing/markup?kind=parts">
             <AppIcon icon="solar:tag-price-linear" className="mr-2 size-4" />
             Pricing
           </Link>
         </Button>
-        <Button
-          asChild
-          className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground"
-        >
-          <Link href="/catalogues/parts/bulk">
-            <AppIcon icon="solar:cloud-upload-linear" className="mr-2 size-5" />
-            Bulk Upload
-          </Link>
-        </Button>
+        {/* Single-part create used to be reachable only from a product’s Parts
+            tab, so this list could import in bulk but not add one part. Both
+            routes now sit together, mirroring the products list. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground">
+              <AppIcon icon="solar:add-circle-linear" className="mr-2 size-5" />
+              Add Part
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem
+              onClick={() => router.push("/catalogues/parts/new")}
+            >
+              <AppIcon icon="solar:cpu-bolt-linear" className="mr-2 size-4" />
+              Single part
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push("/catalogues/parts/bulk")}
+            >
+              <AppIcon
+                icon="solar:cloud-upload-linear"
+                className="mr-2 size-4"
+              />
+              Bulk upload
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </PageHeader>
 
       <PartsStatsBar

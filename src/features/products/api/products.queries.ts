@@ -25,7 +25,6 @@ export const productKeys = {
   lists: () => [...productKeys.all, "list"] as const,
   list: (filters: ProductsListParams) =>
     [...productKeys.lists(), filters] as const,
-  stats: () => [...productKeys.all, "stats"] as const,
   detail: (id: string) => [...productKeys.all, "detail", id] as const,
   bulkBatch: (batchId: string) =>
     [...productKeys.all, "bulk-batch", batchId] as const,
@@ -45,13 +44,6 @@ export function useProducts(
     queryFn: () => productsService.getProducts(filters),
     placeholderData: keepPreviousData, // avoid flicker between pages/filters
     ...options,
-  });
-}
-
-export function useProductStats() {
-  return useQuery({
-    queryKey: productKeys.stats(),
-    queryFn: () => productsService.getProductsStats(),
   });
 }
 
@@ -121,7 +113,6 @@ export function useCreateProduct() {
     }) => productsService.createProduct(data, images, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -138,7 +129,6 @@ export function useUpdateProduct() {
     }) => productsService.updateProduct(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
       queryClient.invalidateQueries({
         queryKey: productKeys.detail(variables.id),
       });
@@ -153,7 +143,6 @@ export function useUpdateProductStatus() {
       productsService.updateProductStatus(id, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -164,7 +153,6 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => productsService.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -175,7 +163,6 @@ export function usePermanentlyDeleteProduct() {
     mutationFn: (id: string) => productsService.permanentlyDeleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -187,7 +174,6 @@ export function useBulkEditProducts() {
       productsService.bulkEditProducts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -199,7 +185,6 @@ export function useBulkDeleteProducts() {
       productsService.bulkDeleteProducts(productIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -214,7 +199,6 @@ export function useBulkCreateProducts() {
     }) => productsService.bulkCreateProducts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }

@@ -46,7 +46,7 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
           </Avatar>
           <div className="min-w-0">
             <Link
-              href={`/users/uploads/${staff.id}`}
+              href={`/uploads/${staff.id}`}
               className="block truncate text-sm font-semibold hover:text-primary-ink hover:underline"
             >
               {staff.name}

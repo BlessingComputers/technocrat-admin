@@ -6,10 +6,9 @@ import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
 import { useProducts } from "../api/products.queries";
+import { RESTOCK_PREVIEW_LIMIT } from "../constants/product-display";
 import { ProductStockBadge } from "./product-stock-badge";
 import { RecentProductsSnapshotSkeleton } from "./products-skeletons";
-
-const LIMIT = 6;
 
 /**
  * Actionable "needs restock" queue for the products hub: out-of-stock items
@@ -18,14 +17,14 @@ const LIMIT = 6;
  * Inventory Health donut (the donut shows *how much*, this shows *which items*).
  */
 export function ProductsRestockList() {
-  const out = useProducts({ stock: "out", limit: LIMIT });
-  const low = useProducts({ stock: "low", limit: LIMIT });
+  const out = useProducts({ stock: "out", limit: RESTOCK_PREVIEW_LIMIT });
+  const low = useProducts({ stock: "low", limit: RESTOCK_PREVIEW_LIMIT });
 
   const isLoading = out.isLoading || low.isLoading;
   const isError = out.isError || low.isError;
   const items = [...(out.data?.data ?? []), ...(low.data?.data ?? [])].slice(
     0,
-    LIMIT,
+    RESTOCK_PREVIEW_LIMIT,
   );
 
   return (

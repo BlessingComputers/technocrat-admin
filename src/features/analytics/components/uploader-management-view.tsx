@@ -19,7 +19,7 @@ import { SetTargetDialog } from "./set-target-dialog";
 import type { UploaderSummary } from "../types/upload-analytics";
 
 /**
- * Full-page upload management (route `/users/uploads`). The dashboard section is
+ * Full-page upload management (route `/uploads`). The dashboard section is
  * an at-a-glance view; this is the managed surface — proper date range, search,
  * sort, and (super admins only) per-uploader target management.
  */

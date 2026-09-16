@@ -202,6 +202,33 @@ describe("socket → store funnel (#29 seam)", () => {
     expect(state.messagesByConversation["conv-other"][0].body).toBe("hello?");
     expect(state.unreadByConversation["conv-other"]).toBe(1);
   });
+
+  // Contract v4 hold filler: ephemeral, and superseded seconds later by the
+  // real reply. Letting it through bumped unread and overwrote the preview.
+  it("drops the AI hold message before the store and unread count", () => {
+    useChatStore.setState({ selectedId: "conv-open" });
+    renderSocketHook();
+    act(() => fake.simulateConnect());
+
+    act(() =>
+      fake.serverEmit("chat:message:received", {
+        id: "m-hold",
+        conversationId: "conv-other",
+        senderId: "ai-assistant",
+        senderType: "SYSTEM",
+        senderName: "Technocrat Assistant",
+        body: "Give me just a moment while I check that for you!",
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+        idempotencyKey: "ai:hold:conv-other:uuid-1",
+      }),
+    );
+
+    const state = useChatStore.getState();
+    expect(state.messagesByConversation["conv-other"]).toBeUndefined();
+    expect(state.unreadByConversation["conv-other"]).toBeUndefined();
+    expect(state.previewByConversation["conv-other"]).toBeUndefined();
+  });
 });
 
 describe("aiState adoption (ticket A4)", () => {

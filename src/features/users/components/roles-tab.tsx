@@ -129,7 +129,7 @@ export function RolesTab() {
   };
 
   const handleSavePerms = () => {
-    if (!selectedRole) return;
+    if (!selectedRole || selectedPerms.length === 0) return;
     syncPermsMutation.mutate(
       { roleId: selectedRole.id, permissionIds: selectedPerms },
       { onSuccess: () => setManageOpen(false) },
@@ -339,6 +339,14 @@ export function RolesTab() {
                 idPrefix="manage-perm"
               />
             </ScrollArea>
+            {/* The backend 422s an empty permission set since ef38868, so an
+                empty role cannot be saved, only deleted. */}
+            {selectedPerms.length === 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                A role needs at least one permission. To remove every
+                permission, delete the role.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -348,7 +356,10 @@ export function RolesTab() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSavePerms} disabled={syncPermsMutation.isPending}>
+            <Button
+              onClick={handleSavePerms}
+              disabled={syncPermsMutation.isPending || selectedPerms.length === 0}
+            >
               {syncPermsMutation.isPending ? (
                 <AppIcon
                   icon="solar:refresh-linear"

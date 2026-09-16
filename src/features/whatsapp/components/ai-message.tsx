@@ -55,7 +55,9 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
       </div>
 
       {/* `whitespace-pre-wrap` is required, not cosmetic: the escalation note
-          arrives as "[AI handover · reason]\nsummary" and collapses without it. */}
+          arrives as "[AI handover · reason]\nsummary" — or, for a
+          per-message skip, "[AI skipped this message · reason]" — and
+          collapses without it. */}
       <div className="max-w-[min(32rem,80%)] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-3.5 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>

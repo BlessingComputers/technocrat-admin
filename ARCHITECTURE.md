@@ -484,8 +484,8 @@ The API base, the emergency-unblock URL, both sockets, and the codegen scripts a
 | `NEXT_PUBLIC_API_BASE_URL` | public | Mount point of the same-origin proxy on *our* domain, normally `/api`. A path, not a host — not part of the seam |
 | `IMAGE_ASSET_HOSTS` | build-time | Comma-separated hostnames for `next/image` `remotePatterns`. Optional; defaults live in `config/env.ts`. Needs a rebuild, not a restart |
 | `NEXT_PUBLIC_SOCKET_POLLING_FALLBACK` | public | Set to `"true"` to restore Socket.IO's polling→websocket upgrade for chat + WhatsApp. Default is WebSocket-only (App Platform 504s held-open long-polls). Escape hatch only — no code change needed |
-| `GROQ_API_KEY` | server-only | AI smart-paste routes (products + parts), primary provider |
-| `CLAUDE_API_KEY` | server-only | AI smart-paste routes, Claude Haiku 4.5 fallback on Groq rate-limit |
+| `CLAUDE_API_KEY` | server-only | AI smart-paste routes (products + parts), primary provider — Claude Haiku 4.5 |
+| `GROQ_API_KEY` | server-only | AI smart-paste routes, Groq fallback. Demoted 2026-08-19: the free `on_demand` tier caps at 8k tokens/minute and one parse runs ~22k, so Groq rejected every request with a 413. Raising the tier re-enables it with no code change |
 
 **Never reference `GROQ_API_KEY` or `CLAUDE_API_KEY` in client components** — read them
 through `serverEnv()`, which throws if touched in the browser. If a client component

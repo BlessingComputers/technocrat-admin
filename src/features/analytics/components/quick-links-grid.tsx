@@ -67,7 +67,7 @@ const QUICK_LINKS: QuickLink[] = [
   {
     title: "Uploads",
     description: "Bulk product uploads",
-    href: "/users/uploads",
+    href: "/uploads",
     icon: "solar:cloud-upload-bold-duotone",
     iconClass: "bg-info/10 text-info-ink",
     group: "products",

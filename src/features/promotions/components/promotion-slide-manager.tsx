@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,10 +13,14 @@ import {
   useUploadSlides,
 } from "../api/promotions.queries";
 import {
+  describeSlideLink,
   EMPTY_SLIDE_LINK,
   PromotionSlideLinkFields,
+  slideLinkError,
+  slideToLinkValue,
   type SlideLinkValue,
 } from "./promotion-slide-link-fields";
+import { parseDestination } from "../utils/slide-destination";
 import type { PromotionSlide } from "../types/promotions";
 import { MetaLabel } from "@/components/shared/meta-label";
 
@@ -31,13 +35,32 @@ interface PendingFile {
   link: SlideLinkValue;
 }
 
-function slideToLinkValue(slide: PromotionSlide): SlideLinkValue {
-  return {
-    description: slide.description ?? "",
+/**
+ * The corner badge on a saved slide's thumbnail. Naming the kind rather than
+ * saying "Link" is the point: a grid of banners is where staff notice that one
+ * of them points at the wrong category.
+ */
+function slideLinkBadge(
+  slide: PromotionSlide,
+): { icon: string; label: string } | null {
+  const { kind } = parseDestination({
     productSlug: slide.productSlug ?? null,
-    productName: slide.productSlug,
     externalUrl: slide.externalUrl ?? null,
-  };
+  });
+  switch (kind) {
+    case "product":
+      return { icon: "solar:box-linear", label: "Product" };
+    case "category":
+      return { icon: "solar:widget-linear", label: "Category" };
+    case "brand":
+      return { icon: "solar:tag-linear", label: "Brand" };
+    case "page":
+      return { icon: "solar:document-linear", label: "Page" };
+    case "external":
+      return { icon: "solar:link-linear", label: "External" };
+    default:
+      return null;
+  }
 }
 
 export function PromotionSlideManager({
@@ -99,8 +122,26 @@ export function PromotionSlideManager({
       return prev.filter((f) => f.id !== id);
     });
 
+  /**
+   * The first pending slide whose link is half-finished, e.g. brand mode with
+   * nothing chosen. Blocking the whole batch is deliberate: the upload is one
+   * multipart call, so letting three good slides through and dropping the
+   * fourth would need staff to work out which one to redo.
+   */
+  const pendingLinkError = useMemo(() => {
+    for (const [index, pf] of pendingFiles.entries()) {
+      const error = slideLinkError(pf.link);
+      if (error) return `Slide ${index + 1}: ${error}`;
+    }
+    return null;
+  }, [pendingFiles]);
+
   const handleUploadPending = async () => {
     if (pendingFiles.length === 0) return;
+    if (pendingLinkError) {
+      toast.error(pendingLinkError);
+      return;
+    }
     const files = pendingFiles.map((pf) => pf.file);
     const metadata = pendingFiles.map((pf) => ({
       description: pf.link.description || null,
@@ -129,6 +170,11 @@ export function PromotionSlideManager({
 
   const handleSaveEdit = () => {
     if (!editingSlideId) return;
+    const linkError = slideLinkError(editValue);
+    if (linkError) {
+      toast.error(linkError);
+      return;
+    }
     const promise = updateSlide.mutateAsync({
       slideId: editingSlideId,
       data: {
@@ -199,17 +245,15 @@ export function PromotionSlideManager({
                   alt={slide.description ?? ""}
                   className="pointer-events-none h-full w-full object-cover"
                 />
-                {(slide.productSlug || slide.externalUrl) && (
-                  <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
-                    <AppIcon
-                      icon={
-                        slide.productSlug ? "solar:box-linear" : "solar:link-linear"
-                      }
-                      className="size-3"
-                    />
-                    {slide.productSlug ? "Product" : "Link"}
-                  </div>
-                )}
+                {(() => {
+                  const badge = slideLinkBadge(slide);
+                  return badge ? (
+                    <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
+                      <AppIcon icon={badge.icon} className="size-3" />
+                      {badge.label}
+                    </div>
+                  ) : null;
+                })()}
                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     type="button"
@@ -278,12 +322,16 @@ export function PromotionSlideManager({
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleUploadPending}
-                disabled={uploadSlides.isPending}
+                disabled={uploadSlides.isPending || Boolean(pendingLinkError)}
               >
                 {uploadSlides.isPending ? "Uploading…" : "Upload now"}
               </Button>
             </div>
           </div>
+
+          {pendingLinkError && (
+            <p className="text-xs text-destructive-ink">{pendingLinkError}</p>
+          )}
 
           <div className="space-y-2">
             {pendingFiles.map((pf) => (
@@ -304,9 +352,21 @@ export function PromotionSlideManager({
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {(pf.file.size / (1024 * 1024)).toFixed(1)} MB
-                      {pf.link.productSlug && " · linked to a product"}
-                      {pf.link.externalUrl && " · linked to a URL"}
+                      {describeSlideLink(pf.link) &&
+                        ` · ${describeSlideLink(pf.link)}`}
                     </p>
+                    {/* Surfaced on the collapsed row, not only inside the
+                        expanded editor, so a half-finished link is visible
+                        without opening every slide to find it. */}
+                    {slideLinkError(pf.link) && (
+                      <p className="flex items-center gap-1 text-xs font-medium text-destructive-ink">
+                        <AppIcon
+                          icon="solar:danger-triangle-linear"
+                          className="size-3.5 shrink-0"
+                        />
+                        {slideLinkError(pf.link)}
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="button"

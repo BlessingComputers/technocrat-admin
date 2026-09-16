@@ -42,7 +42,10 @@ function buildListParams(params?: PartsListParams): QueryParams {
     q: params?.search || undefined,
     categoryId: params?.categoryId || undefined,
     brandId: params?.brandId || undefined,
-    partType: params?.partType || undefined,
+    // Exact FK match. The legacy `partType` name-substring param still exists
+    // on the backend but only applies when `partTypeId` is absent, and a
+    // dropdown value can never match a type name anyway.
+    partTypeId: params?.partTypeId || undefined,
     isActive:
       params?.isActive !== undefined ? String(params.isActive) : undefined,
     isInStock:

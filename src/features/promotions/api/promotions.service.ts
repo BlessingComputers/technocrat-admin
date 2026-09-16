@@ -70,10 +70,74 @@ export const promotionsService = {
     );
     return (res?.data ?? []).map((p) => ({ id: p.slug, name: p.name }));
   },
+
+  /**
+   * The category tree, flattened for a slide's link picker. Same
+   * feature-boundary reasoning as `searchProducts` — the endpoint lives in
+   * `lib/`, so reading it here does not make promotions depend on
+   * `features/products`.
+   */
+  listCategoryOptions: async (): Promise<PromotionCategoryOption[]> => {
+    const tree = await api.get<RawCategoryNode[]>(products.categories);
+    const flat: PromotionCategoryOption[] = [];
+    const walk = (nodes: RawCategoryNode[], depth: number) => {
+      for (const node of nodes ?? []) {
+        if (!node?.slug) continue;
+        flat.push({ slug: node.slug, name: node.name, depth });
+        // `children` is `Category[] | string[]` off the API; ids are useless
+        // here, so only walk when they arrived expanded.
+        const children = node.children;
+        if (Array.isArray(children) && typeof children[0] === "object") {
+          walk(children as RawCategoryNode[], depth + 1);
+        }
+      }
+    };
+    walk(tree ?? [], 0);
+    return flat;
+  },
+
+  /**
+   * Brands, flattened for a slide's link picker. Inactive ones are dropped: a
+   * slide pointing at one would land on an empty listing.
+   */
+  listBrandOptions: async (): Promise<PromotionBrandOption[]> => {
+    const brands = await api.get<RawBrand[]>(products.brands);
+    return (brands ?? [])
+      .filter((b) => b?.slug && b.isActive !== false)
+      .map((b) => ({ slug: b.slug, name: b.name }));
+  },
 };
+
+interface RawCategoryNode {
+  id: string;
+  name: string;
+  slug: string;
+  children?: RawCategoryNode[] | string[];
+}
+
+interface RawBrand {
+  id: string;
+  name: string;
+  slug: string;
+  isActive?: boolean;
+}
 
 /** A product search result, keyed by SLUG (what a slide's `productSlug` needs). */
 export interface PromotionProductOption {
   id: string;
+  name: string;
+}
+
+/** A category a slide's link can point at. */
+export interface PromotionCategoryOption {
+  slug: string;
+  name: string;
+  /** Nesting level, so the picker can indent rather than flatten the tree. */
+  depth: number;
+}
+
+/** A brand a slide's link can point at. */
+export interface PromotionBrandOption {
+  slug: string;
   name: string;
 }

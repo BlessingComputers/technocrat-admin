@@ -96,6 +96,16 @@ export const API_ENDPOINTS = {
     adminReindex: (id: string) => endpoint(`/v1/products/admin/reindex/${id}`),
     adminSync: endpoint("/v1/products/admin/sync"),
     adminCacheClear: endpoint("/v1/products/admin/cache/clear"),
+    // Deals — a named, schedulable group of markup rules spanning products AND
+    // parts in one row. Starting one materialises each stored target into the
+    // same markup-rule rows `/flash-sales` writes, stamped with the deal's id.
+    // All five need `priceMarkup:*`, part targets included.
+    deals: {
+      list: endpoint("/v1/products/deals"),
+      detail: (id: string) => endpoint(`/v1/products/deals/${id}`),
+      start: (id: string) => endpoint(`/v1/products/deals/${id}/start`),
+      end: (id: string) => endpoint(`/v1/products/deals/${id}/end`),
+    },
     pricing: {
       markupRules: endpoint("/v1/products/pricing/markup-rules"),
       markupRule: (id: string) =>
@@ -260,6 +270,15 @@ export const API_ENDPOINTS = {
     slides: (id: string) => endpoint(`/v1/promotions/${id}/slides`),
     slide: (id: string, slideId: string) =>
       endpoint(`/v1/promotions/${id}/slides/${slideId}`),
+  },
+  // Sales notification recipients — the admin-managed list the "new sale" email
+  // is sent to (fired from the backend's onPaymentSuccess). All five routes
+  // require `salesNotifications:manage`, seeded into the admin role. Note the
+  // `/emails` sub-path: the module base is `/v1/sales-notifications` and the
+  // recipient collection hangs off it, so ids resolve at `/emails/:id`.
+  salesNotifications: {
+    emails: endpoint("/v1/sales-notifications/emails"),
+    email: (id: string) => endpoint(`/v1/sales-notifications/emails/${id}`),
   },
   // Monitor — request/error/anomaly log viewer over the backend's own Mongo
   // logging DB. Every route requires SUPER_ADMIN (backend-enforced, not an

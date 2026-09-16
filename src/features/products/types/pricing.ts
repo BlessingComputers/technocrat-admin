@@ -12,6 +12,15 @@
 export type MarkupApplyTo = "PRICE" | (string & {});
 
 /**
+ * Which half of the pricing system a rule belongs to. Computed server-side from
+ * the sign of `markupPercentage`, which validation rejects at zero, so the two
+ * values are exhaustive.
+ *
+ * The Markup screen and the Deals screen are the same rows split on this field.
+ */
+export type MarkupRuleType = "MARKUP" | "DISCOUNT";
+
+/**
  * Percentage bounds. A positive value marks the price up; a negative value is a
  * discount (the backend accepts negatives). The form takes a positive magnitude
  * plus a Markup/Discount toggle, so these express each direction's magnitude:
@@ -35,6 +44,18 @@ export interface MarkupRule {
    */
   productId: string | null;
   markupPercentage: number;
+  /**
+   * MARKUP or DISCOUNT, derived server-side from the sign of
+   * `markupPercentage`.
+   *
+   * ONLY PRESENT ON READS. The list and detail endpoints attach it; create,
+   * update, cancel and flash-sale responses do not, even though the OpenAPI
+   * schema marks it required (backend ask 25). Never test this field on a value
+   * that came back from a write — call `ruleTypeOf` instead, which falls back to
+   * the sign. Feeding a create response straight into a list keyed on
+   * `ruleType` makes the new rule vanish from the list it was just created in.
+   */
+  ruleType?: MarkupRuleType;
   applyTo: MarkupApplyTo;
   isActive: boolean;
   notes: string | null;
@@ -46,10 +67,77 @@ export interface MarkupRule {
   createdAt: string;
   updatedAt: string;
   /**
+   * Whether a coupon may be used on a cart containing an item this rule has
+   * discounted. Defaults to `false` server-side, which rejects the coupon for
+   * the *whole* cart, not just the discounted line. Ignored on a positive
+   * (markup) rule.
+   */
+  allowCouponStacking: boolean;
+  /**
+   * When a timed sale stops applying, or `null` for one that runs until it is
+   * cancelled. Ignored on a positive (markup) rule.
+   *
+   * A passed expiry does NOT flip `isActive` — the row still reads active until
+   * the backend's five-minute sweep catches up, so treat this as the real
+   * "is it still running" signal (see `markupRuleExpiry` in
+   * `components/pricing/sale-timing.ts`).
+   */
+  expiresAt: string | null;
+  /**
    * Present on PATCH responses when a percentage/applyTo change triggered a
    * recompute — how many variant prices were rewritten from base.
    */
   variantsRecomputed?: number;
+}
+
+/**
+ * Which half a rule belongs to, safe on a value from any endpoint.
+ *
+ * Reads `ruleType` when the server sent it and falls back to the sign of
+ * `markupPercentage` when it did not. The fallback is unreachable on `dev`
+ * (`bbd0081` attaches `ruleType` to the write responses too) and load-bearing
+ * on prod, whose `main` predates the whole field. Use this everywhere rather
+ * than reaching for `rule.ruleType`.
+ */
+export function ruleTypeOf(rule: {
+  ruleType?: MarkupRuleType;
+  markupPercentage: number;
+}): MarkupRuleType {
+  return rule.ruleType ?? (rule.markupPercentage < 0 ? "DISCOUNT" : "MARKUP");
+}
+
+/**
+ * A rule's target, as the form holds it before saving.
+ *
+ * EITHER an exact product OR a category/brand slice, mirroring the scope the
+ * create endpoint accepts. `undefined` on a taxonomy axis is the wildcard
+ * ("all categories" / "all brands"), which is a distinct target from a named
+ * one.
+ */
+export interface MarkupRuleTarget {
+  productId?: string;
+  categoryId?: string;
+  brandId?: string;
+}
+
+/**
+ * Does this rule sit on exactly this target?
+ *
+ * Exact, not overlapping: a category-wide deal and a product markup inside that
+ * category both stand, and the backend's duplicate-scope guard only refuses an
+ * exact collision. So a "nothing here" answer means "nothing the server will
+ * refuse", not "nothing that affects this price".
+ */
+export function isRuleAtTarget(
+  rule: Pick<MarkupRule, "productId" | "categoryId" | "brandId">,
+  target: MarkupRuleTarget,
+): boolean {
+  if (target.productId) return rule.productId === target.productId;
+  if (rule.productId) return false;
+  return (
+    (rule.categoryId ?? null) === (target.categoryId ?? null) &&
+    (rule.brandId ?? null) === (target.brandId ?? null)
+  );
 }
 
 /**
@@ -66,6 +154,13 @@ export interface MarkupRuleInput {
   applyTo: MarkupApplyTo;
   notes?: string;
   isActive?: boolean;
+  allowCouponStacking?: boolean;
+  /**
+   * ISO timestamp, or `null` for no expiry. The backend rejects a value in the
+   * past, and writes `dto.expiresAt ?? null` — so omitting it clears an expiry
+   * that was already set. Always send it; never send an elapsed one back.
+   */
+  expiresAt?: string | null;
 }
 
 /** Partial update — only the included fields change. */
@@ -74,6 +169,9 @@ export interface MarkupRuleUpdateInput {
   applyTo?: MarkupApplyTo;
   notes?: string;
   isActive?: boolean;
+  allowCouponStacking?: boolean;
+  /** Same trap as on create: omit it and a timed sale silently goes indefinite. */
+  expiresAt?: string | null;
 }
 
 // ── Preview (dry-run) ──────────────────────────────────────────────────

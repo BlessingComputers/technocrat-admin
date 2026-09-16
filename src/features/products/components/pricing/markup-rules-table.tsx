@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppIcon } from "@/components/shared/app-icon";
-import { cn } from "@/lib/utils/cn";
 import { MarkupRulesTableSkeleton } from "../products-skeletons";
 import type { MarkupRule } from "../../types/pricing";
 import { ruleScopeLabel } from "./markup-rule-utils";
@@ -57,15 +56,19 @@ export function MarkupRulesTable({
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table className="min-w-[760px]">
+      {/* table-fixed: under the default auto layout a column sizes to its
+          content, so one long product-scoped rule name widens the Scope column
+          and scrolls the whole table sideways. Fixed layout gives every column
+          a definite width, which is also what lets the cell's `truncate` clip. */}
+      <Table className="min-w-[760px] table-fixed">
         <TableHeader className="bg-primary/[0.04]">
           <TableRow className="border-b-border/60">
-            <TableHead className={HEAD}>Scope</TableHead>
-            <TableHead className={HEAD}>Markup / Discount</TableHead>
-            <TableHead className={HEAD}>Applies to</TableHead>
-            <TableHead className={HEAD}>Status</TableHead>
-            <TableHead className={HEAD}>Created By</TableHead>
-            <TableHead className={`${HEAD} text-right pr-6`}>Actions</TableHead>
+            <TableHead className={`${HEAD} w-[28%]`}>Scope</TableHead>
+            <TableHead className={`${HEAD} w-[14%]`}>Markup</TableHead>
+            <TableHead className={`${HEAD} w-[13%]`}>Applies to</TableHead>
+            <TableHead className={`${HEAD} w-[18%]`}>Status</TableHead>
+            <TableHead className={`${HEAD} w-[17%]`}>Created By</TableHead>
+            <TableHead className={`${HEAD} w-[10%] text-right pr-6`}>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,6 +100,9 @@ export function MarkupRulesTable({
               <span className="text-xs font-medium text-muted-foreground">
                 No markup rules yet
               </span>
+              <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground/80">
+                Running sales are not listed here — they live under Deals.
+              </p>
             </StateRow>
           ) : (
             rules.map((rule) => (
@@ -136,37 +142,31 @@ function MarkupRuleRow({
     ? `${rule.createdBy.firstName} ${rule.createdBy.lastName}`.trim()
     : "—";
 
-  // Both cancel and reset reject brand-only rules (no category) with a 400 —
-  // those are reset via the "Reset category prices" tool (reset-category).
-  const canReset = rule.categoryId != null;
-
   return (
     <TableRow className="hover:bg-muted/30 border-b-border/40">
       <TableCell>
-        <div className="flex flex-col gap-1">
-          <span className="font-semibold text-sm text-foreground leading-tight">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span
+            className="block truncate font-semibold text-sm text-foreground leading-tight"
+            title={ruleScopeLabel(rule)}
+          >
             {ruleScopeLabel(rule)}
           </span>
           <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium w-fit">
             {rule.ruleId}
           </span>
           {rule.notes && (
-            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[280px]">
+            <span className="truncate text-xs text-muted-foreground">
               {rule.notes}
             </span>
           )}
         </div>
       </TableCell>
 
-      <TableCell
-        className={cn(
-          "font-mono font-semibold text-sm tabular-nums",
-          rule.markupPercentage < 0 ? "text-destructive-ink" : "text-foreground",
-        )}
-      >
-        {rule.markupPercentage < 0
-          ? `−${Math.abs(rule.markupPercentage)}%`
-          : `+${rule.markupPercentage}%`}
+      {/* Markups only — the list is filtered to MARKUP, so there is no sign to
+          test and no discount styling to carry. */}
+      <TableCell className="font-mono font-semibold text-sm tabular-nums text-foreground">
+        +{rule.markupPercentage}%
       </TableCell>
 
       <TableCell>
@@ -185,7 +185,9 @@ function MarkupRuleRow({
       </TableCell>
 
       <TableCell className="text-muted-foreground text-xs font-medium">
-        {createdBy}
+        <span className="block truncate" title={createdBy}>
+          {createdBy}
+        </span>
       </TableCell>
 
       <TableCell className="text-right pr-6">
@@ -208,33 +210,23 @@ function MarkupRuleRow({
               <AppIcon icon="solar:pen-2-linear" className="size-4 mr-2" />
               Edit Rule
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onResetKeepActive(rule)}
-              disabled={!canReset}
-              title={
-                canReset
-                  ? undefined
-                  : "Brand-only rules reset via “Reset category prices”"
-              }
-            >
+            <DropdownMenuItem onClick={() => onResetKeepActive(rule)}>
               <AppIcon icon="solar:rewind-back-linear" className="size-4 mr-2" />
               Reset prices (keep active)
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onCancel(rule)}
-              disabled={!canReset}
-              title={
-                canReset
-                  ? undefined
-                  : "Brand-only rules reset via “Reset category prices”"
-              }
-            >
+            <DropdownMenuItem onClick={() => onCancel(rule)}>
               <AppIcon icon="solar:undo-left-round-linear" className="size-4 mr-2" />
               Cancel rule &amp; reset to base
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(rule)}
+              disabled={rule.isActive}
+              title={
+                rule.isActive
+                  ? "Cancel the rule first — an active rule cannot be deleted"
+                  : undefined
+              }
               className="text-destructive-ink focus:text-destructive-ink focus:bg-destructive/10 font-medium"
             >
               <AppIcon icon="solar:trash-bin-trash-linear" className="size-4 mr-2" />

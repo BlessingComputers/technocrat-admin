@@ -19,7 +19,6 @@ import type {
   ProductImage,
   ProductImageMeta,
   ProductListEnvelope,
-  ProductStats,
   ProductSubcategory,
   ProductsListParams,
   UpdateProductDto,
@@ -39,7 +38,7 @@ import type {
  * updates PATCH `/:id`. Pin these to the OpenAPI spec when it lands.
  */
 
-const { products, admin } = API_ENDPOINTS;
+const { products } = API_ENDPOINTS;
 
 type QueryParams = Record<string, string | number | boolean | undefined>;
 
@@ -93,14 +92,6 @@ function buildListParams(params?: ProductsListParams): QueryParams {
   else if (params?.tab === "inactive") q.isActive = "false";
 
   return q;
-}
-
-/** Shape of the admin dashboard KPI payload we read product counts from. */
-interface DashboardProductKpis {
-  totalProducts?: number;
-  activeProducts?: number;
-  lowStockVariants?: number;
-  outOfStockVariants?: number;
 }
 
 /**
@@ -498,17 +489,10 @@ export const productsService = {
   deleteBrand: (brandId: string) =>
     api.delete<void>(`${products.brands}/${brandId}`),
 
-  // ── Stats (derived from the admin dashboard KPIs) ──────────────────
-  getProductsStats: async (): Promise<ProductStats> => {
-    const kpi = await api.get<DashboardProductKpis>(admin.dashboard);
-    const lowStock = kpi?.lowStockVariants || 0;
-    const outOfStock = kpi?.outOfStockVariants || 0;
-    return {
-      total: kpi?.totalProducts || 0,
-      active: kpi?.activeProducts || 0,
-      lowStock,
-      outOfStock,
-      needsRestock: lowStock + outOfStock,
-    };
-  },
+  // Product KPI counts deliberately do NOT live here. `/v1/admin/dashboard`
+  // reports raw `product.count()` totals and variant-level stock counts, both of
+  // which include the hidden `BKNG-…` backing products every priced part
+  // creates — so its numbers are products AND parts. `useCatalogProductStats`
+  // counts through the product LIST endpoint instead, which filters
+  // `isHidden: false`.
 };

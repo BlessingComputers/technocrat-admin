@@ -3,6 +3,7 @@
 
 // Views consumed by route pages (uncomment as each slice lands):
 export { ProductsHubView } from "./components/products-hub-view";
+export type { HubPartsStats } from "./components/products-hub-view";
 export { ProductBrowseView } from "./components/product-browse-view";
 export { ProductDetailView } from "./components/detail/product-detail-view";
 export { ProductFormView } from "./components/product-form-view";
@@ -24,7 +25,6 @@ export {
 export {
   productKeys,
   useProducts,
-  useProductStats,
   useProduct,
   useCategories,
   useSubcategories,
@@ -53,3 +53,7 @@ export {
   useUpdateBrand,
   useDeleteBrand,
 } from "./api/products.queries";
+
+// Products-only KPI counts. NOT the dashboard endpoint's numbers — those blend
+// products and parts (see the hook's doc comment).
+export { useCatalogProductStats } from "./hooks/use-catalog-product-stats";

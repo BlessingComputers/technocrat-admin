@@ -1,16 +1,20 @@
 import { z } from "zod";
 import {
-  PART_MARKUP_MAX_DISCOUNT_PERCENT,
   PART_MARKUP_MAX_PERCENT,
   PART_MARKUP_MIN_PERCENT,
 } from "../types/pricing";
 
 /**
- * Part markup-rule form input (Zod owns inputs; responses are hand-typed). The
- * percentage is a signed number: positive marks up, negative discounts. The UI
- * builds it from a positive magnitude + a Markup/Discount toggle, so a valid
- * value lies in either the markup band [PART_MARKUP_MIN_PERCENT, 500] or the
- * discount band [-PART_MARKUP_MAX_DISCOUNT_PERCENT, -1].
+ * Part markup-rule form input (Zod owns inputs; responses are hand-typed).
+ *
+ * A markup only: the percentage is positive, in [PART_MARKUP_MIN_PERCENT,
+ * PART_MARKUP_MAX_PERCENT]. The negative half of the same backend row is a
+ * deal, and it is created from `/pricing/deals` with its own schema — this form
+ * cannot make one, and the Deals form cannot make a markup.
+ *
+ * `expiresAt` and `allowCouponStacking` went with it. Both are ignored
+ * server-side on a positive rule, so a standing pricing policy has no use for
+ * either.
  *
  * Scope is EITHER one exact part (`partId`) OR a category/brand/part-type slice
  * — at least one must be set, and the two sides are mutually exclusive because a
@@ -26,15 +30,12 @@ export const partMarkupRuleFormSchema = z
     markupPercentage: z
       .number({ message: "Enter a percentage" })
       .min(
-        -PART_MARKUP_MAX_DISCOUNT_PERCENT,
-        `Maximum discount is ${PART_MARKUP_MAX_DISCOUNT_PERCENT}%`,
+        PART_MARKUP_MIN_PERCENT,
+        `Minimum markup is ${PART_MARKUP_MIN_PERCENT}%`,
       )
-      .max(PART_MARKUP_MAX_PERCENT, `Maximum markup is ${PART_MARKUP_MAX_PERCENT}%`)
-      .refine(
-        (v) =>
-          (v >= PART_MARKUP_MIN_PERCENT && v <= PART_MARKUP_MAX_PERCENT) ||
-          (v <= -PART_MARKUP_MIN_PERCENT && v >= -PART_MARKUP_MAX_DISCOUNT_PERCENT),
-        `Markup must be at least ${PART_MARKUP_MIN_PERCENT}%, or a discount of ${PART_MARKUP_MIN_PERCENT}–${PART_MARKUP_MAX_DISCOUNT_PERCENT}%`,
+      .max(
+        PART_MARKUP_MAX_PERCENT,
+        `Maximum markup is ${PART_MARKUP_MAX_PERCENT}%`,
       ),
     applyTo: z.enum(["PRICE", "COMPARE_AT_PRICE", "BOTH"]),
     notes: z.string().max(500).optional().or(z.literal("")),

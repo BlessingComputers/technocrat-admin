@@ -12,6 +12,13 @@
 > rather than edited or deleted.
 >
 > New numbering therefore starts at **0015**.
+>
+> **The numbers now disagree between the two repos.** Blessing reached its own
+> 0015 in September 2026, and it is a different decision from this repo's:
+> `admin-blessingcomputers/docs/adr/0015-nav-groups-and-pricing-routes.md`
+> records the six-group sidebar and the `/pricing/markup|deals|tax` split, which
+> **this app implements too** (with its own palette and group order). Cite it by
+> filename, never by "ADR-0015" alone.
 
 ## Inherited from Blessing admin
 

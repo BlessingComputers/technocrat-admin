@@ -42,7 +42,7 @@ export function PartsFilterBar({
 }: PartsFilterBarProps) {
   const category = params.categoryId ?? "all";
   const brand = params.brandId ?? "all";
-  const type = params.partType ?? "all";
+  const type = params.partTypeId ?? "all";
   const status =
     params.isActive === true
       ? "active"
@@ -72,8 +72,8 @@ export function PartsFilterBar({
   if (type !== "all")
     chips.push({
       key: "type",
-      label: `Type: ${partTypes.find((t) => t.slug === type)?.name ?? type}`,
-      clear: { partType: undefined },
+      label: `Type: ${partTypes.find((t) => t.id === type)?.name ?? type}`,
+      clear: { partTypeId: undefined },
     });
   if (status !== "all")
     chips.push({
@@ -104,7 +104,7 @@ export function PartsFilterBar({
           <Select
             value={type}
             onValueChange={(v) =>
-              onChange({ partType: v === "all" ? undefined : v })
+              onChange({ partTypeId: v === "all" ? undefined : v })
             }
           >
             <SelectTrigger className="w-full sm:w-[150px]">
@@ -113,7 +113,7 @@ export function PartsFilterBar({
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               {partTypes.map((t) => (
-                <SelectItem key={t.id} value={t.slug}>
+                <SelectItem key={t.id} value={t.id}>
                   {t.name}
                 </SelectItem>
               ))}

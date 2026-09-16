@@ -87,7 +87,12 @@ export interface PartsListParams {
   search?: string;
   categoryId?: string;
   brandId?: string;
-  partType?: string;
+  /**
+   * Exact part-type FK match. The backend also accepts a legacy `partType`
+   * that does a substring match on the type NAME — never send that from a
+   * dropdown, which holds ids/slugs and can therefore never match a name.
+   */
+  partTypeId?: string;
   isActive?: boolean;
   isInStock?: boolean;
 }

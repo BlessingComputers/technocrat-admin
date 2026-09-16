@@ -1,11 +1,16 @@
 /**
  * Product parsing from raw pasted text (AI smart-paste).
  *
- * The LLM call sits behind the `ChatCompleter` seam: production passes the Claude
- * adapter (Haiku 4.5, plain REST — see `./llm`); the prompt-building and
+ * The LLM call sits behind the `ChatCompleter` seam: production passes the
+ * Groq-then-Claude adapter (see `./llm`); the prompt-building and
  * response-parsing are pure. Lives in `lib/` because the app route imports it
- * (app → lib is allowed); the client never imports this — it calls
+ * (app -> lib is allowed); the client never imports this — it calls
  * `/api/admin/products/ai-parse`.
+ *
+ * What the model is NOT asked to do: slugs and duplicate resolution are derived
+ * in code (`./text`), and prices are cross-checked against the raw text. Those
+ * are deterministic rules, so spending prompt budget and trusting a model with
+ * them only adds a failure mode.
  */
 
 import {
@@ -14,6 +19,12 @@ import {
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
+import {
+  assignUniqueSlugs,
+  chunkListings,
+  extractPriceTokens,
+  priceMatchesRawText,
+} from "./text";
 
 // Re-exported so existing import sites (routes, tests) keep resolving these
 // from the parser module after the shared-adapter extraction.
@@ -26,6 +37,7 @@ export type { ChatCompleter, ChatMessage };
  */
 export interface AiParsedProduct {
   name?: string;
+  /** Derived in code from `name`, not returned by the model. */
   slug?: string;
   categoryId?: string | null;
   subcategoryId?: string | null;
@@ -60,6 +72,14 @@ export interface ParseProductResult {
   products: AiParsedProduct[];
 }
 
+/**
+ * Listings per LLM call. A single call for a very long paste both risks
+ * truncating the JSON mid-array and thins the model's attention, which shows up
+ * as dropped specs on the later listings. Pastes at or under this size are sent
+ * as one call, exactly as before.
+ */
+export const MAX_LISTINGS_PER_CALL = 15;
+
 const SYSTEM_PROMPT = `
 You are a Product Data Architect for Technocrat Nigeria, an electronics retailer.
 Your task is to parse raw supplier listings into structured JSON for a bulk upload editor.
@@ -88,49 +108,51 @@ INSTRUCTIONS:
      Example name:
        "Dell Pro 14 PC14250 - Intel Core Ultra 5 235u VPro, 16 GB RAM, 256 GB SSD, 14\\" FHD+ (1920x1200) anti-glare IPS, English US Backlit Copilot Keyboard 79-key, Win 11 Pro"
 
-3. Generate a URL-friendly slug from the name, lowercase, hyphens only.
+3. "price": numeric supplier price. Strip @, #, ₦, N, commas, spaces, and expand
+   shorthand: "@1.1M" becomes 1100000, "#970,000" becomes 970000. Copy the digits
+   exactly — never round, and never shift the decimal place.
 
-4. "price": numeric supplier price. Strip @, #, ₦, N, commas, spaces, and expand
-   shorthand: "@1.1M" becomes 1100000, "#970,000" becomes 970000.
-
-5. "stockQuantity":
+4. "stockQuantity":
    - "SOLD OUT" / "Sold out" → stockQuantity 0.
    - A count like "(4unit)" → that number.
    - Otherwise → stockQuantity 10.
 
-5b. "isActive" — ALWAYS false. Every uploaded product starts inactive (a draft).
+4b. "isActive" — ALWAYS false. Every uploaded product starts inactive (a draft).
    Staff activate it later, once the selling price/markup has been set. Never
    output true, regardless of stock.
 
-6. "sku" — set it to the product's PART NUMBER (the model/part code in the
+5. "sku" — set it to the product's PART NUMBER (the model/part code in the
    listing, e.g. "PC14250", "BD4A6EA"). Every product MUST have a part number;
    if a listing has none, still output the product but leave "sku" null so a
    human can fix it (the editor blocks upload until it has one).
 
-6b. "sourcingType" — read it from the TOP of the input. If the first line(s)
+5b. "sourcingType" — read it from the TOP of the input. If the first line(s)
    state the source for the whole list — "in house" / "in-house" / "inhouse" →
    "INHOUSE"; "outsourced" / "outsource" → "OUTSOURCED" — apply that value to
    EVERY product. If it is not specified anywhere, default to "OUTSOURCED".
 
-7. "specifications": extract ALL specs as { "name", "value" } pairs — Processor,
+6. "specifications": extract ALL specs as { "name", "value" } pairs — Processor,
    RAM, Storage, Display, Keyboard, OS, Colour, Warranty, etc. Do NOT add a
-   "Part Number" spec — the part number belongs in "sku" (rule 6) and is shown
+   "Part Number" spec — the part number belongs in "sku" (rule 5) and is shown
    as the part number automatically. Specifications must mirror the name.
 
-8. Generate a rich product description (2-3 sentences) highlighting key selling
+7. Generate a rich product description (2-3 sentences) highlighting key selling
    points.
 
-9. Categorization (two steps — order matters):
-   - Use the provided CATEGORIES list. Match each product to the MOST LIKELY Category ID by comparing the product type to category names.
+8. Categorization (two steps — order matters):
+   - Use the CATEGORIES list given below. Match each product to the MOST LIKELY Category ID by comparing the product type to category names.
+   - Use ONLY ids that appear in that list. Never invent an id, and never put a name where an id is asked for.
    - If no category matches, return null for categoryId AND null for subcategoryId.
    - Then pick subcategoryId ONLY from the matched category's own "subcategories" array. NEVER use a subcategory id from a different category. If none clearly fits (or the category has no subcategories), return null for subcategoryId.
 
-10. Branding:
-   - Use the provided BRANDS list. Match each product to the correct Brand ID.
-   - If no brand matches, return null for brandId.
+9. Branding:
+   - Use the BRANDS list given below. Match each product to the correct Brand ID.
+   - Use ONLY ids that appear in that list. If no brand matches, return null for brandId.
 
-11. Ignore section headers like "HP 15 LAPTOPS" — they are not products. Ignore
+10. Ignore section headers like "HP 15 LAPTOPS" — they are not products. Ignore
     decorative emoji/bullets (🌱 etc.) at the start of lines.
+
+11. Do NOT output a slug. The system generates it from the name.
 
 OUTPUT FORMAT:
 Return a JSON object with a single "products" array:
@@ -138,7 +160,6 @@ Return a JSON object with a single "products" array:
   "products": [
     {
       "name": "string (Brand + Model + Part Number, then ALL specs)",
-      "slug": "string (url-friendly)",
       "description": "string (2-3 sentence selling description)",
       "categoryId": "string | null",
       "subcategoryId": "string | null (must belong to categoryId, else null)",
@@ -158,10 +179,13 @@ Return a JSON object with a single "products" array:
  * Structured Outputs schema: the model's reply is constrained to this shape, so
  * `parseCompletionContent` never faces malformed JSON or missing keys. Objects
  * set `additionalProperties: false` and list every property in `required`;
- * optional fields use nullable types. Referential validity (a subcategory that
- * actually belongs to its category, an ID that exists in the provided lists) is
- * still enforced afterwards by `validateSubcategories` / `normalizeProducts` —
- * a schema can't express it.
+ * optional fields use nullable types. Both providers enforce it now (Anthropic
+ * via `output_config`, Groq via strict `json_schema`).
+ *
+ * Referential validity — an id that exists in the provided lists, a subcategory
+ * that actually belongs to its category — is still enforced afterwards by
+ * `normalizeProducts` / `validateSubcategories`, because a schema can't express
+ * it. `slug` is absent by design: it is derived from `name` in code.
  */
 const PRODUCTS_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -174,7 +198,6 @@ const PRODUCTS_SCHEMA: Record<string, unknown> = {
         additionalProperties: false,
         properties: {
           name: { type: "string" },
-          slug: { type: "string" },
           description: { type: "string" },
           categoryId: { type: ["string", "null"] },
           subcategoryId: { type: ["string", "null"] },
@@ -199,7 +222,6 @@ const PRODUCTS_SCHEMA: Record<string, unknown> = {
         },
         required: [
           "name",
-          "slug",
           "description",
           "categoryId",
           "subcategoryId",
@@ -217,22 +239,27 @@ const PRODUCTS_SCHEMA: Record<string, unknown> = {
   required: ["products"],
 };
 
-/** Pure: assemble the system + user messages for a parse request. */
+/**
+ * Pure: assemble the system + user messages for a parse request.
+ *
+ * The CATEGORIES and BRANDS lists go in the SYSTEM message, not the user one.
+ * They are near-static and by far the largest part of the prompt, and the Claude
+ * leg marks the whole system block `cache_control: ephemeral` — so putting them
+ * here lets a bulk-upload session (and every chunk of one paste) re-read them
+ * from cache instead of paying full price on every call.
+ */
 export function buildParseMessages(input: ParseProductInput): ChatMessage[] {
-  const userPrompt = `
+  const reference = `
 CATEGORIES (use these IDs for matching):
 ${JSON.stringify(input.categories)}
 
 BRANDS (use these IDs for matching):
 ${JSON.stringify(input.brands)}
-
-RAW PRODUCT TEXT TO PARSE:
-${input.rawText}
 `;
 
   return [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userPrompt },
+    { role: "system", content: `${SYSTEM_PROMPT}${reference}` },
+    { role: "user", content: `RAW PRODUCT TEXT TO PARSE:\n${input.rawText}` },
   ];
 }
 
@@ -253,36 +280,66 @@ export function parseCompletionContent(content: string): ParseProductResult {
   return { products: products as AiParsedProduct[] };
 }
 
-/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback on 429. */
+/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback. */
 export const parseCompleter: ChatCompleter = createFallbackCompleter({
   schema: PRODUCTS_SCHEMA,
+  schemaName: "products",
 });
 
 /**
  * Parse raw product text into structured products. The `complete` seam defaults
- * to the Groq→Claude fallback adapter; tests can pass an in-memory fake.
+ * to the Groq-then-Claude fallback adapter; tests can pass an in-memory fake.
+ *
+ * Long pastes are split into chunks and sent as separate calls, then merged.
+ * Chunks run sequentially on purpose: in parallel they would burn through the
+ * Groq rate limit and trip the shared circuit breaker, pushing the rest of the
+ * paste onto the paid fallback.
  */
 export async function parseProductText(
   input: ParseProductInput,
   complete: ChatCompleter = parseCompleter,
 ): Promise<ParseProductResult> {
-  const messages = buildParseMessages(input);
-  const content = await complete(messages);
-  const result = parseCompletionContent(content);
+  const chunks = chunkListings(input.rawText, MAX_LISTINGS_PER_CALL);
+  const products: AiParsedProduct[] = [];
+
+  for (const rawText of chunks) {
+    const messages = buildParseMessages({ ...input, rawText });
+    const content = await complete(messages);
+    products.push(...parseCompletionContent(content).products);
+  }
+
+  // Normalize and de-duplicate across the WHOLE paste, not per chunk, so slug
+  // uniqueness holds for everything the user is about to upload.
   return {
-    products: normalizeProducts(
-      validateSubcategories(result.products, input.categories),
+    products: assignUniqueSlugs(
+      validateSubcategories(
+        normalizeProducts(products, input),
+        input.categories,
+      ),
     ),
   };
 }
 
 /**
- * Defense against shape drift: coerce each product's price/stock to numbers and
- * keep only well-formed specifications. A price-less product is kept (price 0)
- * and a part-number-less product keeps a null sku — both surface as invalid in
- * the editor for a human to fix, rather than vanishing.
+ * Defense against shape drift and hallucination: coerce price/stock to numbers,
+ * force draft status, keep only well-formed specifications, and null any
+ * category or brand id that isn't in the lists we supplied.
+ *
+ * A product that fails a check is kept in a visibly-invalid state (price 0, null
+ * sku, empty category) rather than dropped — the editor blocks upload on those
+ * and a human fixes them, which beats a row silently vanishing from a paste.
  */
-function normalizeProducts(products: AiParsedProduct[]): AiParsedProduct[] {
+function normalizeProducts(
+  products: AiParsedProduct[],
+  input: ParseProductInput,
+): AiParsedProduct[] {
+  const categoryIds = new Set(input.categories.map((c) => c.id));
+  const brandIds = new Set(input.brands.map((b) => b.id));
+  // Prices the paste actually states. Empty means this paste uses a format the
+  // extractor doesn't recognise, in which case the cross-check is skipped
+  // entirely rather than zeroing prices that are probably fine.
+  const priceTokens = extractPriceTokens(input.rawText);
+
   for (const p of products) {
     p.sourcingType = p.sourcingType === "INHOUSE" ? "INHOUSE" : "OUTSOURCED";
     // Every uploaded product starts inactive — staff activate once pricing is
@@ -290,10 +347,22 @@ function normalizeProducts(products: AiParsedProduct[]): AiParsedProduct[] {
     p.isActive = false;
     p.sku = typeof p.sku === "string" && p.sku.trim() ? p.sku.trim() : null;
     p.price = typeof p.price === "number" && p.price > 0 ? p.price : 0;
+    // A price the paste never states means the model dropped or shifted a
+    // digit. Zero it so the editor flags the row, instead of uploading a laptop
+    // at a tenth of its cost.
+    if (
+      p.price > 0 &&
+      priceTokens.length > 0 &&
+      !priceMatchesRawText(p.price, priceTokens)
+    ) {
+      p.price = 0;
+    }
     p.stockQuantity =
       typeof p.stockQuantity === "number" && p.stockQuantity >= 0
         ? p.stockQuantity
         : 0;
+    if (!p.categoryId || !categoryIds.has(p.categoryId)) p.categoryId = null;
+    if (!p.brandId || !brandIds.has(p.brandId)) p.brandId = null;
     p.specifications = Array.isArray(p.specifications)
       ? p.specifications.filter((s) => s && s.name && s.value)
       : [];

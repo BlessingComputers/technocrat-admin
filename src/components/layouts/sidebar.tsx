@@ -10,7 +10,7 @@ import {
   isSuperAdmin,
   type StaffSession,
 } from "@/lib/auth/permissions";
-import type { NavGroup } from "@/types/nav";
+import type { NavGroup, NavItem } from "@/types/nav";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRailTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -73,6 +76,149 @@ interface AppSidebarProps {
 }
 
 /**
+ * Is `href` the route currently open? Compares against the path only —
+ * `usePathname()` strips the query/hash, but hrefs may carry them (e.g.
+ * `/catalogues?page=1`). `/` is matched exactly: every path starts with it, so
+ * the prefix test would light up the dashboard row on every screen.
+ */
+function isPathActive(pathname: string, href: string): boolean {
+  const hrefPath = href.split(/[?#]/)[0];
+  if (hrefPath === "/") return pathname === "/";
+  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
+}
+
+/** Shared row geometry: the frame's full-bleed rows, padded by the row itself. */
+const ROW_BASE =
+  "group/nav h-11 rounded-none px-5 transition-colors duration-200 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0";
+const ROW_IDLE =
+  "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground";
+const ROW_ACTIVE =
+  "bg-sidebar-primary font-semibold text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground";
+
+/** A leaf row: one icon, one label, one route. */
+function NavLeafRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        tooltip={item.title}
+        className={cn(ROW_BASE, isActive ? ROW_ACTIVE : ROW_IDLE)}
+      >
+        <Link
+          href={item.href ?? "/"}
+          className="flex w-full items-center gap-3"
+        >
+          <AppIcon
+            icon={isActive ? item.iconActive : item.icon}
+            // Inherits the row's colour rather than setting its own: on the
+            // solid active fill the glyph must go white with the label, and any
+            // `text-*` here would fight that.
+            className="size-5 shrink-0"
+          />
+          {/* Body step (14px). The frame draws ~15px, which is off DESIGN.md's
+              four-tier ramp; the ramp wins until ticket 07 rules on
+              enforced-vs-aspirational. */}
+          <span className="text-sm group-data-[collapsible=icon]:hidden">
+            {item.title}
+          </span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+/**
+ * A parent row and its child routes. The parent navigates nowhere — it opens the
+ * list — so it never takes the solid active fill; the child does (two filled
+ * rows would read as two selections). It opens on its own whenever a child is
+ * the current route, and stays wherever the user last put it after that.
+ *
+ * Collapsed to the icon rail there is no room for a child list, and a parent
+ * with no `href` would otherwise be a dead icon. Clicking it there expands the
+ * rail and opens the list in one go, rather than sending the user somewhere they
+ * did not ask for.
+ */
+function NavParentRow({
+  item,
+  pathname,
+  isOpen,
+  railCollapsed,
+  onToggle,
+  onExpandRail,
+}: {
+  item: NavItem;
+  pathname: string;
+  isOpen: boolean;
+  railCollapsed: boolean;
+  onToggle: () => void;
+  onExpandRail: () => void;
+}) {
+  const children = item.children ?? [];
+  const listId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={railCollapsed ? onExpandRail : onToggle}
+        aria-expanded={railCollapsed ? undefined : isOpen}
+        aria-controls={railCollapsed ? undefined : listId}
+        tooltip={item.title}
+        className={cn(ROW_BASE, ROW_IDLE)}
+      >
+        <AppIcon icon={item.icon} className="size-5 shrink-0" />
+        <span className="text-sm group-data-[collapsible=icon]:hidden">
+          {item.title}
+        </span>
+        <AppIcon
+          icon="solar:alt-arrow-down-linear"
+          className={cn(
+            "ml-auto size-4 shrink-0 transition-transform duration-200",
+            "group-data-[collapsible=icon]:hidden",
+            isOpen && "rotate-180",
+          )}
+        />
+      </SidebarMenuButton>
+
+      {isOpen && (
+        <SidebarMenuSub
+          id={listId}
+          // Full-bleed like the rows above it: the primitive's inset margin and
+          // hairline would pull the child rows off the frame's edge-to-edge grid.
+          className="mx-0 gap-0 border-none px-0 py-0"
+        >
+          {children.map((child) => {
+            const childActive = isPathActive(pathname, child.href ?? "");
+            return (
+              <SidebarMenuSubItem key={child.title}>
+                <SidebarMenuSubButton
+                  asChild
+                  isActive={childActive}
+                  className={cn(
+                    // The primitive pins descendant svgs to the accent colour;
+                    // `text-current` hands the glyph back to its row.
+                    "h-10 translate-x-0 gap-3 rounded-none pl-[3.25rem] pr-5 [&>svg]:text-current",
+                    childActive ? ROW_ACTIVE : ROW_IDLE,
+                  )}
+                >
+                  <Link href={child.href ?? "/"}>
+                    <AppIcon
+                      icon={childActive ? child.iconActive : child.icon}
+                      className="size-[18px] shrink-0"
+                    />
+                    <span className="text-sm">{child.title}</span>
+                  </Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
+}
+
+/**
  * Named `AppSidebar` (not `Sidebar`) to avoid clashing with the `Sidebar`
  * primitive it imports from `components/ui/sidebar`. Icons are Iconify Solar
  * (linear inactive / bold active) rendered via `<AppIcon>` (ADR-0009), except
@@ -90,9 +236,14 @@ interface AppSidebarProps {
 export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { railCollapsed } = useSidebar();
+  const { railCollapsed, toggleRail } = useSidebar();
   const [isLoggingOut, startLogout] = useTransition();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  // Parent rows the user has opened or closed by hand, keyed by title. Absent =
+  // follow the route (open when a child is active).
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const handleLogout = () => {
     startLogout(async () => {
@@ -142,57 +293,55 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
 
       <SidebarContent className="gap-0 py-2">
         {filteredGroups.map((group) => (
-          <SidebarGroup key={group.label} className="p-0 pb-2">
+          <SidebarGroup
+            key={group.label ?? group.items[0]?.title}
+            className="p-0 pb-2"
+          >
             {/* Small tracked caps. DESIGN.md bans this treatment everywhere
                 except here — the one sanctioned exception, per the frame. */}
             {/* `hidden` rather than the primitive's `-mt-8 opacity-0` collapse:
                 that offset assumes the stock `h-8` label, and this one is taller. */}
-            <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
-              {group.label}
-            </SidebarGroupLabel>
+            {group.label && (
+              <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
             <SidebarMenu className="gap-0">
               {group.items.map((item) => {
-                const fullHref = item.href;
-                // Compare against the path only — `usePathname()` strips the
-                // query/hash, but hrefs may carry them (e.g. `/catalogues?page=1`).
-                const hrefPath = fullHref.split(/[?#]/)[0];
-                const isActive =
-                  hrefPath === "/"
-                    ? pathname === "/"
-                    : pathname === hrefPath ||
-                      pathname.startsWith(`${hrefPath}/`);
+                if (item.children?.length) {
+                  const subtreeActive = item.children.some((child) =>
+                    isPathActive(pathname, child.href ?? ""),
+                  );
+                  const isOpen = expandedParents[item.title] ?? subtreeActive;
+                  return (
+                    <NavParentRow
+                      key={item.title}
+                      item={item}
+                      pathname={pathname}
+                      isOpen={isOpen}
+                      railCollapsed={railCollapsed}
+                      onToggle={() =>
+                        setExpandedParents((prev) => ({
+                          ...prev,
+                          [item.title]: !isOpen,
+                        }))
+                      }
+                      onExpandRail={() => {
+                        toggleRail();
+                        setExpandedParents((prev) => ({
+                          ...prev,
+                          [item.title]: true,
+                        }));
+                      }}
+                    />
+                  );
+                }
                 return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={cn(
-                        "group/nav h-11 rounded-none px-5 transition-colors duration-200",
-                        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-                        isActive
-                          ? "bg-sidebar-primary font-semibold text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      )}
-                    >
-                      <Link href={fullHref} className="flex w-full items-center gap-3">
-                        <AppIcon
-                          icon={isActive ? item.iconActive : item.icon}
-                          // Inherits the row's colour rather than setting its
-                          // own: on the solid active fill the glyph must go
-                          // white with the label, and any `text-*` here would
-                          // fight that.
-                          className="size-5 shrink-0"
-                        />
-                        {/* Body step (14px). The frame draws ~15px, which is
-                            off DESIGN.md's four-tier ramp; the ramp wins until
-                            ticket 07 rules on enforced-vs-aspirational. */}
-                        <span className="text-sm group-data-[collapsible=icon]:hidden">
-                          {item.title}
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <NavLeafRow
+                    key={item.title}
+                    item={item}
+                    isActive={isPathActive(pathname, item.href ?? "")}
+                  />
                 );
               })}
             </SidebarMenu>

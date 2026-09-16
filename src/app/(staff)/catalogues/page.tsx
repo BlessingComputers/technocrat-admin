@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { ProductsHubView } from "@/features/products";
+import { CatalogueHub } from "./catalogue-hub";
 
 export const metadata: Metadata = {
   title: "Catalogues",
 };
 
-export default function ProductsPage() {
-  return <ProductsHubView />;
+export default function CataloguesPage() {
+  return <CatalogueHub />;
 }

@@ -83,16 +83,20 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
   return (
     <Dialog open={!!rule} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl rounded-lg p-0 border-none overflow-hidden">
-        <div className="bg-primary p-6 text-primary-foreground">
+        <div className="min-w-0 bg-primary p-6 text-primary-foreground">
           <DialogTitle className="text-xl font-semibold tracking-tight">
             Apply Markup Rule
           </DialogTitle>
-          <MetaLabel tone="pinned" className="block mt-1">
+          <MetaLabel
+            tone="pinned"
+            className="block mt-1 truncate"
+            title={rule ? ruleScopeLabel(rule) : ""}
+          >
             {rule ? ruleScopeLabel(rule) : ""}
           </MetaLabel>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="min-w-0 p-6 space-y-4">
           {/* Loading */}
           {preview.isPending && (
             <div className="flex flex-col items-center justify-center gap-3 py-12">

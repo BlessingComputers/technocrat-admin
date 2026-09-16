@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 type RuleScope = "products" | "parts";
 
 /**
- * The Tax tab of `/pricing`: the store-wide setting on top, then scoped
+ * The `/pricing/tax` screen: the store-wide setting on top, then scoped
  * product / part rules under a segmented switch. Gated on `tax:manage` — the
  * backend's 403 is the real boundary; this only decides what to show.
  */

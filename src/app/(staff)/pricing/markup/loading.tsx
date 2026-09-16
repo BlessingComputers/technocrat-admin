@@ -2,16 +2,16 @@ import { Card } from "@/components/ui/card";
 import { MarkupRulesTableSkeleton } from "@/features/products";
 
 /**
- * Loading state for `/pricing`. Mirrors the loaded default (Products) tab
- * exactly — centered `max-w-6xl` column, tab-bar row, a `PageHeader`-shaped
- * title/actions block, then the table Card — so the page doesn't reflow (shift
- * width, grow a tab bar, or swap header height) when the client shell hydrates.
+ * Loading state for `/pricing/markup`. Mirrors the loaded default (Products)
+ * exactly — centered `max-w-6xl` column, the Products/Parts toggle, a
+ * `PageHeader`-shaped title/actions block, then the table Card — so the page
+ * does not reflow when the client shell hydrates.
  */
-export default function PricingLoading() {
+export default function MarkupLoading() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      {/* Tab bar (Products / Parts / Tax) */}
-      <div className="h-9 w-[264px] max-w-full animate-pulse rounded-lg bg-muted" />
+      {/* Products / Parts toggle */}
+      <div className="h-10 w-[212px] max-w-full animate-pulse rounded-lg bg-muted" />
 
       {/* Header — matches PageHeader's layout (title + description left, actions
           right, mb-8). */}
