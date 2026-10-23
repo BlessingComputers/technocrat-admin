@@ -27,8 +27,9 @@ import type { NavGroup } from "@/types/nav";
  * inside it needs `priceMarkup`/`partMarkup`, so a products-only admin could
  * open the screen and be refused on save.
  *
- * Note: `/analytics` is intentionally not in the nav (ADR-0009) — the dashboard
- * shows the at-a-glance KPIs; the route/view stays dormant for a future deep-dive.
+ * `/analytics` was left out of the nav while it was an empty placeholder
+ * (ADR-0009). It now holds the storefront traffic view (PostHog), gated on the
+ * exact `analytics:read` permission the page itself checks.
  *
  * The dashboard is the home route (`/`), reachable via the sidebar Logo and the
  * "Overview" nav item below.
@@ -43,6 +44,13 @@ export const navGroups: NavGroup[] = [
         href: "/",
         icon: "solar:widget-5-linear",
         iconActive: "solar:widget-5-bold",
+      },
+      {
+        title: "Analytics",
+        href: "/analytics",
+        icon: "solar:graph-up-linear",
+        iconActive: "solar:graph-up-bold",
+        requiredPermission: "analytics:read",
       },
     ],
   },
