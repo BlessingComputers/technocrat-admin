@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     onboard: endpoint("/auth/staff/onboard"),
     resetPassword: endpoint("/auth/staff/reset-password"),
     forgotPassword: endpoint("/auth/staff/forgot-password"),
+    changePassword: endpoint("/auth/staff/change-password"),
     profile: endpoint("/auth/staff/profile"),
     logout: endpoint("/auth/staff/logout"),
   },

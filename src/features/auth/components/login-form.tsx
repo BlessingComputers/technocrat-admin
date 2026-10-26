@@ -17,13 +17,21 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { loginAction, type LoginState } from "../api/login-action";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 type LoginFormProps = React.ComponentProps<"div">;
+
+/** Messages for `?notice=` after a password change or reset redirects here. */
+const NOTICES: Record<string, string> = {
+  "password-changed": "Password changed. Sign in with your new password.",
+  "password-reset": "Password reset. Sign in with your new password.",
+};
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
+  const notice = NOTICES[searchParams.get("notice") ?? ""];
 
   const initialState: LoginState = {
     email: "",
@@ -77,6 +85,15 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {notice && (
+            <div
+              role="status"
+              className="mb-4 flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-3 text-sm font-medium text-success-ink"
+            >
+              <AppIcon icon="solar:check-circle-linear" className="size-4 shrink-0" />
+              {notice}
+            </div>
+          )}
           <form action={formAction}>
             <input type="hidden" name="redirectTo" value={redirectTo} />
             <FieldGroup className="gap-4">
@@ -93,7 +110,15 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 />
               </Field>
               <Field className="w-full">
-                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-primary-ink underline-offset-4 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"

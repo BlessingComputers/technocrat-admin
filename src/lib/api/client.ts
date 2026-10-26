@@ -241,7 +241,14 @@ async function baseFetch<T = unknown>(
         window.dispatchEvent(new CustomEvent("api:permission-denied"));
       }
 
-      if (response.status === 401 && !_isRetry) {
+      // A wrong *current* password on change-password is also a 401, but the
+      // session is fine. Refreshing would burn a token rotation, and a failed
+      // refresh would bounce the user to /login mid-form.
+      if (
+        response.status === 401 &&
+        !_isRetry &&
+        errData?.code !== "WRONG_PASSWORD"
+      ) {
         if (url.includes("/refresh")) {
           throw new ApiError(errData?.message || "Unauthorized", 401, data);
         }

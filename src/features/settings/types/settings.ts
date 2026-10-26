@@ -9,7 +9,7 @@ export interface AuthMessageResponse {
   data?: unknown;
 }
 
-export interface ResetPasswordInput {
-  token: string;
+export interface ChangePasswordInput {
+  currentPassword: string;
   newPassword: string;
 }

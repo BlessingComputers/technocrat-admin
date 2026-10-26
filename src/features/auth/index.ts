@@ -4,6 +4,10 @@
 // Login UI consumed by the (auth)/login route:
 export { LoginForm } from "./components/login-form";
 
+// Public password-recovery UI consumed by the (auth) forgot/reset routes:
+export { ForgotPasswordForm } from "./components/forgot-password-form";
+export { ResetPasswordForm } from "./components/reset-password-form";
+
 // Session provider consumed by the (staff) layout. The matching reader hook
 // `useStaffSession` lives in `@/lib/auth/session-context` (shared, so gating
 // helpers in lib/auth can use it without crossing a feature boundary).
