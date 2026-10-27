@@ -24,7 +24,7 @@ export function InvoiceItemsCard({ items }: InvoiceItemsCardProps) {
               {HEADERS.map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-3 text-xs font-medium text-muted-foreground first:rounded-l-lg first:pl-4 last:rounded-r-lg"
+                  className="px-4 py-3 text-[13px] font-medium text-muted-foreground first:rounded-l-lg first:pl-4 last:rounded-r-lg"
                 >
                   {header}
                 </th>

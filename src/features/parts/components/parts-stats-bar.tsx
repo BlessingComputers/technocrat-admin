@@ -1,4 +1,7 @@
-import { Stat, StatsBar, type StatTone } from "@/components/shared/stats-bar";
+import { Card } from "@/components/ui/card";
+import { AppIcon } from "@/components/shared/app-icon";
+import { cn } from "@/lib/utils/cn";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface PartsStatsBarProps {
   total: number;
@@ -8,35 +11,30 @@ interface PartsStatsBarProps {
   isLoading?: boolean;
 }
 
-const CARDS: {
-  key: keyof Omit<PartsStatsBarProps, "isLoading">;
-  title: string;
-  icon: string;
-  tone: StatTone;
-}[] = [
+const CARDS = [
   {
-    key: "total",
-    title: "Total parts",
+    key: "total" as const,
+    title: "Total Parts",
     icon: "solar:cpu-bolt-linear",
-    tone: "primary",
+    chip: "bg-primary/10 text-primary-ink",
   },
   {
-    key: "inStock",
-    title: "In stock",
+    key: "inStock" as const,
+    title: "In Stock",
     icon: "solar:check-circle-linear",
-    tone: "success",
+    chip: "bg-success/15 text-success-ink",
   },
   {
-    key: "outOfStock",
-    title: "Out of stock",
+    key: "outOfStock" as const,
+    title: "Out of Stock",
     icon: "solar:close-circle-linear",
-    tone: "danger",
+    chip: "bg-destructive/12 text-destructive-ink",
   },
   {
-    key: "partTypes",
-    title: "Part types",
+    key: "partTypes" as const,
+    title: "Part Types",
     icon: "solar:widget-5-linear",
-    tone: "warning",
+    chip: "bg-warning/15 text-warning-ink",
   },
 ];
 
@@ -49,22 +47,34 @@ export function PartsStatsBar({
 }: PartsStatsBarProps) {
   const values = { total, inStock, outOfStock, partTypes };
   return (
-    <StatsBar>
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {CARDS.map((card) => (
-        <Stat
+        <Card
           key={card.key}
-          icon={card.icon}
-          tone={card.tone}
-          label={card.title}
-          value={
-            isLoading ? (
-              <span className="mt-1 block h-8 w-12 animate-pulse rounded bg-muted" />
-            ) : (
-              values[card.key]
-            )
-          }
-        />
+          className="p-6"
+        >
+          <div className="mb-4 flex items-start justify-between">
+            <div
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-lg",
+                card.chip,
+              )}
+            >
+              <AppIcon icon={card.icon} className="h-6 w-6" />
+            </div>
+          </div>
+          <MetaLabel className="block mb-1">
+            {card.title}
+          </MetaLabel>
+          {isLoading ? (
+            <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
+          ) : (
+            <h3 className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
+              {values[card.key]}
+            </h3>
+          )}
+        </Card>
       ))}
-    </StatsBar>
+    </div>
   );
 }

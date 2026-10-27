@@ -1,6 +1,9 @@
 "use client";
 
-import { ProductDetailView } from "@/features/products";
+import {
+  ProductDetailView,
+  type ProductPartsSlotArgs,
+} from "@/features/products";
 import { ProductPartsPanel } from "@/features/parts";
 
 /**
@@ -15,7 +18,7 @@ export function ProductDetailRoute({ productId }: { productId: string }) {
   return (
     <ProductDetailView
       productId={productId}
-      partsSlot={(args: any) => <ProductPartsPanel {...args} />}
+      partsSlot={(args: ProductPartsSlotArgs) => <ProductPartsPanel {...args} />}
     />
   );
 }

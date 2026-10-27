@@ -129,6 +129,22 @@ const BASES = [
   "bolt", // stats: max latency KPI
   "shield-cross", // access-gate restricted state (also used by payments' gate,
   // which was missing this from the subset — fixed here since it's the same icon)
+  // pre-orders queue
+  "clipboard-list", // Pre-orders nav item
+  "clipboard-check", // queue empty state ("nothing waiting")
+  "arrow-right", // advance-status primary action
+  "restart", // reset filters
+  "file-corrupted", // pre-order not found
+  // coupons
+  "ticket", // Coupons nav item + empty state
+  // nav regroup: Pricing and Payments children (six-group sidebar)
+  "graph-up", // Pricing > Markup
+  "sale", // Pricing > Deals
+  "gift", // Pricing > Hunts + hunt empty states
+  "calculator", // Pricing > Tax
+  "wallet-money", // Payments parent (the nav asked for this one all
+  // along and it was never in the subset, so the row rendered iconless)
+  "card-transfer", // Payments > Transactions
 ];
 
 /**

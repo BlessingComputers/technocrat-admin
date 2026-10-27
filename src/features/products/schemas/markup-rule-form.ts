@@ -1,15 +1,18 @@
 import { z } from "zod";
-import {
-  MARKUP_MAX_DISCOUNT_PERCENT,
-  MARKUP_MAX_PERCENT,
-  MARKUP_MIN_PERCENT,
-} from "../types/pricing";
+import { MARKUP_MAX_PERCENT, MARKUP_MIN_PERCENT } from "../types/pricing";
 
 /**
- * Markup rule form input (ADR-0006: Zod owns request/form inputs). The
- * percentage is a signed number: positive marks up, negative discounts. The UI
- * builds it from a positive magnitude + a Markup/Discount toggle, so a valid
- * value lies in either the markup band [2, 500] or the discount band [-90, -1].
+ * Markup rule form input (ADR-0006: Zod owns request/form inputs).
+ *
+ * A markup only: the percentage is positive, in [MARKUP_MIN_PERCENT,
+ * MARKUP_MAX_PERCENT]. The negative half of the same backend row is a deal, and
+ * it is created from `/pricing/deals` with its own schema — this form cannot
+ * make one, and the Deals form cannot make a markup.
+ *
+ * `expiresAt` and `allowCouponStacking` went with it. Both are ignored
+ * server-side on a positive rule, so a standing pricing policy has no use for
+ * either.
+ *
  * Scope is EITHER one exact product (`productId`) OR a category/brand slice —
  * at least one must be set so the rule targets something, and the two sides are
  * mutually exclusive because a product already implies its own category and
@@ -23,14 +26,8 @@ export const markupRuleFormSchema = z
     productId: z.string().optional(),
     markupPercentage: z
       .number({ message: "Enter a percentage" })
-      .min(-MARKUP_MAX_DISCOUNT_PERCENT, `Maximum discount is ${MARKUP_MAX_DISCOUNT_PERCENT}%`)
-      .max(MARKUP_MAX_PERCENT, `Maximum markup is ${MARKUP_MAX_PERCENT}%`)
-      .refine(
-        (v) =>
-          (v >= MARKUP_MIN_PERCENT && v <= MARKUP_MAX_PERCENT) ||
-          (v <= -1 && v >= -MARKUP_MAX_DISCOUNT_PERCENT),
-        `Markup must be at least ${MARKUP_MIN_PERCENT}%, or a discount of 1–${MARKUP_MAX_DISCOUNT_PERCENT}%`,
-      ),
+      .min(MARKUP_MIN_PERCENT, `Minimum markup is ${MARKUP_MIN_PERCENT}%`)
+      .max(MARKUP_MAX_PERCENT, `Maximum markup is ${MARKUP_MAX_PERCENT}%`),
     applyTo: z.string().min(1, "Select what to apply the markup to"),
     notes: z.string().max(500, "Notes are too long").optional(),
     isActive: z.boolean(),

@@ -6,18 +6,13 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { useCreatePromotion } from "../api/promotions.queries";
-import { PromotionForm } from "./promotion-form";
+import { PromotionForm, type PromotionFormSubmit } from "./promotion-form";
 
 export function PromotionCreateView() {
   const router = useRouter();
   const createPromotion = useCreatePromotion();
 
-  const handleSubmit = (values: {
-    title: string;
-    description?: string;
-    startAt?: string | null;
-    endAt?: string | null;
-  }) => {
+  const handleSubmit = (values: PromotionFormSubmit) => {
     const promise = createPromotion.mutateAsync(values);
     toast.promise(promise, {
       loading: "Creating promotion…",
@@ -31,7 +26,7 @@ export function PromotionCreateView() {
     <div className="mx-auto max-w-xl">
       <PageHeader
         title="New Promotion"
-        description="Starts as a draft. You'll add slide images and publish it on the next screen."
+        description="Pick where it appears, then add the slide images and publish it on the next screen. It starts as a draft."
       />
       <Card className="p-6">
         <PromotionForm

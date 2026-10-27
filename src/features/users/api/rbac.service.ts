@@ -94,6 +94,16 @@ export const rbacService = {
     };
   },
 
+  getStaffById: async (staffId: string): Promise<Staff | null> => {
+    const env = await api.get<StaffEnvelope>(API_ENDPOINTS.staffAuth.list, {
+      params: { search: staffId },
+      raw: true,
+    });
+
+    const rows = Array.isArray(env?.data) ? (env.data as Staff[]) : [];
+    return rows.length > 0 ? rows[0] : null;
+  },
+
   assignStaffRole: (staffId: string, roleId: string | null) =>
     api.patch<unknown>(`${API_ENDPOINTS.rbac.staff}/${staffId}/role`, {
       roleId,

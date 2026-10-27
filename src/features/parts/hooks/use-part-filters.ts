@@ -29,7 +29,11 @@ function parseParams(sp: URLSearchParams): PartsListParams {
     search: sp.get("q") || undefined,
     categoryId: sp.get("category") || undefined,
     brandId: sp.get("brand") || undefined,
-    partType: sp.get("type") || undefined,
+    // `type` carries the part-type id, not its slug — the backend filters on
+    // the FK. Slug would read better in the URL but would need partTypes
+    // loaded before the query could fire, which is a load-order bug waiting
+    // to happen for an admin filter nobody bookmarks.
+    partTypeId: sp.get("type") || undefined,
     isActive:
       status === "active" ? true : status === "inactive" ? false : undefined,
     isInStock: stock === "in" ? true : stock === "out" ? false : undefined,
@@ -41,7 +45,7 @@ function toQueryString(params: PartsListParams): string {
   if (params.search) sp.set("q", params.search);
   if (params.categoryId) sp.set("category", params.categoryId);
   if (params.brandId) sp.set("brand", params.brandId);
-  if (params.partType) sp.set("type", params.partType);
+  if (params.partTypeId) sp.set("type", params.partTypeId);
   if (params.isActive === true) sp.set("status", "active");
   else if (params.isActive === false) sp.set("status", "inactive");
   if (params.isInStock === true) sp.set("stock", "in");

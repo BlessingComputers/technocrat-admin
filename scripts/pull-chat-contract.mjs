@@ -11,7 +11,7 @@
  * Source order (first that works wins):
  *   1. --from <path>            — a local backend checkout
  *   2. the DEPLOYED backend     — $CHAT_CONTRACT_URL, else the backend seam
- *                                 NEXT_PUBLIC_BACKEND_URL (ADR-0015), mirroring
+ *                                 NEXT_PUBLIC_BACKEND_URL, mirroring
  *                                 gen-api.mjs; types match what is serving
  *   3. GitHub at --ref (default main) — gh CLI, then GITHUB_TOKEN
  *

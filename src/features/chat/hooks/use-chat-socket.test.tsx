@@ -202,6 +202,126 @@ describe("socket → store funnel (#29 seam)", () => {
     expect(state.messagesByConversation["conv-other"][0].body).toBe("hello?");
     expect(state.unreadByConversation["conv-other"]).toBe(1);
   });
+
+  // Contract v4 hold filler: ephemeral, and superseded seconds later by the
+  // real reply. Letting it through bumped unread and overwrote the preview.
+  it("drops the AI hold message before the store and unread count", () => {
+    useChatStore.setState({ selectedId: "conv-open" });
+    renderSocketHook();
+    act(() => fake.simulateConnect());
+
+    act(() =>
+      fake.serverEmit("chat:message:received", {
+        id: "m-hold",
+        conversationId: "conv-other",
+        senderId: "ai-assistant",
+        senderType: "SYSTEM",
+        senderName: "Blessing Assistant",
+        body: "Give me just a moment while I check that for you!",
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+        idempotencyKey: "ai:hold:conv-other:uuid-1",
+      }),
+    );
+
+    const state = useChatStore.getState();
+    expect(state.messagesByConversation["conv-other"]).toBeUndefined();
+    expect(state.unreadByConversation["conv-other"]).toBeUndefined();
+    expect(state.previewByConversation["conv-other"]).toBeUndefined();
+  });
+
+  // `senderType: "SYSTEM"` covers both a connection notice and an AI reply, and
+  // `isAiMessage` splits them on `senderId` alone. The handler used to drop the
+  // field, so a live AI reply rendered as the quiet centred system line and
+  // only became an AI bubble once a refetch replaced it with the REST copy.
+  it("keeps senderId, so a live AI reply is identifiable as one", () => {
+    useChatStore.setState({ selectedId: "conv-1" });
+    renderSocketHook();
+    act(() => fake.simulateConnect());
+
+    act(() =>
+      fake.serverEmit("chat:message:received", {
+        id: "m2",
+        conversationId: "conv-1",
+        senderId: "ai-assistant",
+        senderType: "SYSTEM",
+        senderName: "Blessing Assistant",
+        body: "We have the EliteBook 840.",
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+
+    expect(
+      useChatStore.getState().messagesByConversation["conv-1"][0].senderId,
+    ).toBe("ai-assistant");
+  });
+
+  // Contract v4. The cards ride on the message event; dropping them here meant
+  // the answer showed as a bare URL until a refetch pulled the REST copy.
+  it("carries contract v4 product cards through to the store", () => {
+    useChatStore.setState({ selectedId: "conv-1" });
+    renderSocketHook();
+    act(() => fake.simulateConnect());
+
+    act(() =>
+      fake.serverEmit("chat:message:received", {
+        id: "m3",
+        conversationId: "conv-1",
+        senderId: "ai-assistant",
+        senderType: "SYSTEM",
+        senderName: "Blessing Assistant",
+        body: "Here it is.",
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+        products: [
+          {
+            id: "pc1",
+            productId: "p1",
+            slug: "hp-elitebook-840",
+            name: "HP EliteBook 840 G8",
+            description: null,
+            primaryImage: null,
+            brand: { name: "HP", slug: "hp" },
+            category: { name: "Laptops", slug: "laptops" },
+            lowestPrice: 450_000,
+            highestPrice: 450_000,
+            availabilityStatus: "IN_STOCK",
+            url: "https://blessingcomputers.com/product/hp-elitebook-840",
+          },
+        ],
+      }),
+    );
+
+    const stored = useChatStore.getState().messagesByConversation["conv-1"][0];
+    expect(stored.products).toHaveLength(1);
+    expect(stored.products?.[0].name).toBe("HP EliteBook 840 G8");
+  });
+
+  // A message with no cards must land as `[]`, not undefined — the REST copy
+  // normalizes the same way, and a shape mismatch between the two copies is
+  // what makes cards blink out when history refetches.
+  it("normalizes a message with no products to an empty array", () => {
+    useChatStore.setState({ selectedId: "conv-1" });
+    renderSocketHook();
+    act(() => fake.simulateConnect());
+
+    act(() =>
+      fake.serverEmit("chat:message:received", {
+        id: "m4",
+        conversationId: "conv-1",
+        senderType: "CUSTOMER",
+        senderName: "Ada",
+        body: "hello?",
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+
+    expect(
+      useChatStore.getState().messagesByConversation["conv-1"][0].products,
+    ).toEqual([]);
+  });
 });
 
 describe("aiState adoption (ticket A4)", () => {

@@ -11,7 +11,7 @@ export default function PartsBrowseLoading() {
     <div className="space-y-6">
       <PageHeader
         title="All Parts"
-        description="Every part across all products — search and audit. Add parts from a product's Parts tab."
+        description="Every part across all products — search, audit, and add"
       />
       <SkeletonStatCards count={4} />
       <SkeletonFilterBar />

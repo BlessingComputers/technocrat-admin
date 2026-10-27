@@ -8,10 +8,12 @@ import { MonitorAccessGate } from "./monitor-access-gate";
 import { MonitorNavTabs } from "./monitor-nav-tabs";
 import { MonitorFilterBar } from "./monitor-filter-bar";
 import { LogTable } from "./log-table";
-import { MonitorPagination } from "./monitor-pagination";
+import { MonitorBackToTop } from "./monitor-back-to-top";
+import { useScrollToTop } from "../hooks/use-scroll-to-top";
 import type { MonitorRequestsParams } from "../types/monitor";
 
-const DEFAULT_PARAMS: MonitorRequestsParams = { page: 1, limit: 25 };
+/** No `page` here — the infinite query owns paging; this is filters only. */
+const DEFAULT_PARAMS: MonitorRequestsParams = { limit: 25 };
 
 /**
  * Monitor requests list (route `/security`) — `GET /monitor/requests`. Lives
@@ -19,19 +21,38 @@ const DEFAULT_PARAMS: MonitorRequestsParams = { page: 1, limit: 25 };
  * own nav item, since request/error/anomaly monitoring *is* the Security
  * module's content, not a sibling feature.
  * SUPER_ADMIN only, both by backend enforcement and `MonitorAccessGate` here.
+ *
+ * The log reads as one continuous stream: pages append on scroll, fetched a
+ * screen and a half ahead of the reader (see `useInfiniteScroll`).
  */
 export function MonitorRequestsListView() {
   const [params, setParams] = useState<MonitorRequestsParams>(DEFAULT_PARAMS);
 
-  const { rows, meta, isLoading, isError, error, isFetching, refetch } =
-    useMonitorRequests(params);
+  const {
+    rows,
+    total,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useMonitorRequests(params);
 
-  const updateFilters = (next: MonitorRequestsParams) =>
-    setParams({ ...next, page: 1 });
+  const { anchorRef, scrollToTop } = useScrollToTop();
+
+  /** A filter change restarts the stream at page 1, so send the reader back to
+   * the top rather than leaving them scrolled past the end of a shorter list. */
+  const updateFilters = (next: MonitorRequestsParams) => {
+    setParams(next);
+    scrollToTop();
+  };
 
   return (
     <MonitorAccessGate>
-      <div className="space-y-8">
+      <div ref={anchorRef} className="space-y-8">
         <PageHeader
           title="Security"
           description="Every logged HTTP request and SYSTEM event — filter by path, method, tag, or duration"
@@ -49,15 +70,13 @@ export function MonitorRequestsListView() {
           isError={isError}
           error={error}
           onRetry={() => refetch()}
+          total={total}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={fetchNextPage}
         />
 
-        {meta && meta.totalPages > 1 && (
-          <MonitorPagination
-            page={meta.page}
-            totalPages={meta.totalPages}
-            onPageChange={(p) => setParams({ ...params, page: p })}
-          />
-        )}
+        <MonitorBackToTop />
       </div>
     </MonitorAccessGate>
   );

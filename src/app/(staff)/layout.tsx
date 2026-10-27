@@ -1,8 +1,6 @@
 import { Suspense, type ReactNode } from "react";
-import { cookies } from "next/headers";
 import { AppIcon } from "@/components/shared/app-icon";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SIDEBAR_RAIL_COOKIE } from "@/lib/hooks/sidebar-store";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/features/auth";
 import { ChatRealtimeProvider } from "@/features/chat";
@@ -42,21 +40,13 @@ function StaffShellFallback() {
 }
 
 async function AuthenticatedStaffShell({ children }: { children: ReactNode }) {
-  const [staffSession, cookieStore] = await Promise.all([
-    getStaffSessionServer(),
-    cookies(),
-  ]);
-
-  // Read the docked rail's persisted width here rather than from localStorage on
-  // the client, so the very first paint is already the right width (ADR-0016).
-  const railCollapsed =
-    cookieStore.get(SIDEBAR_RAIL_COOKIE)?.value === "collapsed";
+  const staffSession = await getStaffSessionServer();
 
   return (
     <TooltipProvider>
       <SessionProvider initialSession={staffSession}>
         <ChatRealtimeProvider>
-          <SidebarProvider defaultRailCollapsed={railCollapsed}>
+          <SidebarProvider>
             <AppSidebar navGroups={navGroups} staffSession={staffSession} />
             <SidebarInset className="flex flex-col h-screen overflow-hidden">
               <Topbar staffSession={staffSession} helpDocs={helpDocs} />

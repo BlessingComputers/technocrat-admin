@@ -30,6 +30,7 @@ import {
   CategoryFormDialog,
   type CategoryFormValues,
 } from "./category-form-dialog";
+import { CategoryBannersSection } from "./category-banners-section";
 
 const conflictMessage = (fallback: string) => (err: unknown) =>
   err instanceof ApiError && err.status === 409
@@ -298,6 +299,22 @@ export function CategoriesPanel() {
           </div>
         )}
       </Card>
+
+      {/* Storefront hero artwork for the selected category. Its own card, not a
+          field on the form dialog: a gallery with uploads and per-item actions
+          does not belong inside a modal, and banners are added to a category
+          that already exists rather than at creation time. */}
+      {activeCategory && (
+        <Card className="p-4">
+          <CategoryBannersSection
+            // Remounts on a category switch, which is what clears the pending
+            // upload queue — see the component's docblock.
+            key={activeCategory.id}
+            categoryId={activeCategory.id}
+            categoryName={activeCategory.name}
+          />
+        </Card>
+      )}
 
       <CategoryFormDialog
         key={`cat-${catKey}`}

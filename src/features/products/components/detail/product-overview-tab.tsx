@@ -3,7 +3,10 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
+import { MetaLabel } from "@/components/shared/meta-label";
 import { usePermissions } from "@/lib/auth/use-permissions";
+import { useCategories } from "../../api/products.queries";
+import { splitCategoryId } from "../../utils/category-tree";
 import type { ProductDetail } from "../../types/products";
 
 interface ProductOverviewTabProps {
@@ -13,21 +16,35 @@ interface ProductOverviewTabProps {
 export function ProductOverviewTab({ product }: ProductOverviewTabProps) {
   const { isSuperAdmin } = usePermissions();
 
+  // `product.category` is the leaf the product is filed under, which may be a
+  // subcategory. Showing it alone reads as though the product left its parent
+  // category, so resolve the pair against the tree.
+  const { data: categories = [] } = useCategories();
+  const { parent, child } = splitCategoryId(product.categoryId, categories);
+
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <AppIcon icon="solar:info-circle-linear" className="size-5 text-primary-ink" />
-          About this Product
-        </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {product.description || "No description provided."}
-        </p>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-base font-semibold text-foreground">Description</h3>
+        {product.description ? (
+          <p className="max-w-[70ch] text-sm leading-relaxed text-foreground/80">
+            {product.description}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No description yet. The storefront listing will show only the name
+            and specs until one is written.
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <InfoCard icon="solar:tag-linear" title="Classification">
-          <InfoRow label="Category" value={product.category.name} />
+          <InfoRow
+            label="Category"
+            value={parent?.name ?? product.category.name}
+          />
+          {child && <InfoRow label="Subcategory" value={child.name} />}
           <InfoRow label="Brand" value={product.brand.name} />
           <InfoRow label="Slug" value={product.slug} mono />
         </InfoCard>
@@ -61,14 +78,14 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="bg-muted/5">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-          <AppIcon icon={icon} className="size-4" />
+    <Card>
+      <CardHeader className="pb-0">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <AppIcon icon={icon} className="size-4 text-muted-foreground" />
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1 pt-0">{children}</CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
@@ -83,14 +100,14 @@ function InfoRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center gap-3 text-sm py-1.5 border-b border-border/40 last:border-0">
-      <span className="text-muted-foreground shrink-0">{label}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-border/40 py-2.5 last:border-b-0">
+      <MetaLabel className="shrink-0">{label}</MetaLabel>
       {mono ? (
-        <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[60%]">
+        <span className="max-w-[60%] truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
           {value}
         </span>
       ) : (
-        <span className="font-semibold text-foreground text-right truncate">
+        <span className="min-w-0 truncate text-right text-sm font-semibold text-foreground">
           {value}
         </span>
       )}

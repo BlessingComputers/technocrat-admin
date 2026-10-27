@@ -92,7 +92,11 @@ export function toFormDefaults(initial?: ProductDetail): ProductFormValues {
     name: initial?.name ?? "",
     slug: initial?.slug ?? "",
     categoryId: initial?.categoryId ?? "",
-    subcategoryId: initial?.subcategoryId ?? "",
+    // Left blank on purpose. The API returns one flat `categoryId` with no
+    // parent link, so whether it points at a top-level category or a
+    // subcategory can only be told against the category tree — ProductForm
+    // splits it into parent + child once that tree has loaded.
+    subcategoryId: "",
     brandId: initial?.brandId ?? "",
     isActive: initial?.isActive ?? true,
     isFeatured: initial?.isFeatured ?? false,
@@ -144,9 +148,15 @@ export function toCreateDto(values: ProductFormValues): CreateProductDto {
   return {
     name: values.name,
     slug: values.slug,
-    categoryId: values.categoryId,
-    // Optional — only sent when chosen (backend accepts it omitted).
-    subcategoryId: values.subcategoryId || undefined,
+    // A product carries exactly ONE category FK; a subcategory is just a
+    // Category row with a parentId. So the chosen subcategory IS the product's
+    // category — the two form fields are a navigation aid, not two columns.
+    //
+    // This used to send the parent as `categoryId` plus a separate
+    // `subcategoryId`, which no backend field of that name exists to receive:
+    // Zod stripped it, the PATCH returned 200, and the product silently stayed
+    // filed under the parent (every subcategory read 0 products).
+    categoryId: values.subcategoryId || values.categoryId,
     brandId: values.brandId,
     isActive: values.isActive,
     isFeatured: values.isFeatured,

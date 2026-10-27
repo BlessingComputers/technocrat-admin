@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { ConversationList } from "./conversation-list";
@@ -11,6 +11,7 @@ import { NotesPanel } from "./notes-panel";
 import { GroupDetailsPanel } from "./group-details-panel";
 import { ReassignMenu } from "./reassign-menu";
 import { AiStopControl } from "./ai-stop-control";
+import { AiActiveNotice } from "./ai-active-notice";
 import { useChatWorkspace } from "../hooks/use-chat-workspace";
 
 /** Fixed pixel width of the context panel on desktop; also the tween target. */
@@ -40,13 +41,14 @@ export function ChatWorkspaceView() {
   // classes below so tablets get the stacked/overlay layout, not a broken hybrid
   // where the thread column is hidden by CSS but the JS still thinks it's desktop.
   const isCompact = useMediaQuery("(max-width: 1023px)");
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelState, setPanelState] = useState({ isCompact, open: !isCompact });
 
   // Open-by-default on desktop, but an opt-in overlay when compact — so it must
   // start closed there. Re-sync whenever the viewport crosses the breakpoint.
-  useEffect(() => {
-    setPanelOpen(!isCompact);
-  }, [isCompact]);
+  if (panelState.isCompact !== isCompact) {
+    setPanelState({ isCompact, open: !isCompact });
+  }
+  const panelOpen = panelState.open;
 
   const hasSelection = chat.isStaffRoom || Boolean(chat.selectedConversation);
   const showPanel = panelOpen && hasSelection;
@@ -65,7 +67,8 @@ export function ChatWorkspaceView() {
     ) : null;
 
   // Any staff member may stop/resume the AI on a customer conversation — not
-  // gated on assignment or SUPER_ADMIN (A5 decision doc).
+  // gated on assignment or SUPER_ADMIN (A5 decision doc). Stopping is now the
+  // *only* thing that silences the AI: claiming the conversation does not.
   const aiControlSlot =
     chat.selectedConversation && chat.selectedConversation.channel === "LIVE_CHAT" ? (
       <AiStopControl
@@ -74,6 +77,19 @@ export function ChatWorkspaceView() {
         isPending={chat.isAiStatePending}
         onStop={chat.handleStopAi}
         onResume={chat.handleResumeAi}
+      />
+    ) : null;
+
+  // Taking a chat no longer stops the AI, so the agent who owns it gets told
+  // in the thread, not left to discover it from the customer's next reply.
+  const aiNoticeSlot =
+    chat.selectedConversation && chat.selectedConversation.channel === "LIVE_CHAT" ? (
+      <AiActiveNotice
+        aiState={chat.selectedConversation.aiState}
+        assignmentState={chat.assignmentState}
+        isResolved={chat.selectedConversation.status === "RESOLVED"}
+        isPending={chat.isAiStatePending}
+        onStop={chat.handleStopAi}
       />
     ) : null;
 
@@ -99,8 +115,11 @@ export function ChatWorkspaceView() {
       assignedStaffAvatar={chat.assignedStaffAvatar}
       reassignSlot={reassignSlot}
       aiControlSlot={aiControlSlot}
+      aiNoticeSlot={aiNoticeSlot}
       onBack={chat.handleBack}
-      onTogglePanel={() => setPanelOpen((open) => !open)}
+      onTogglePanel={() =>
+        setPanelState((state) => ({ ...state, open: !state.open }))
+      }
       onSend={chat.handleSend}
       onTypingStart={chat.handleTypingStart}
       onTypingStop={chat.handleTypingStop}
@@ -122,7 +141,7 @@ export function ChatWorkspaceView() {
       name={chat.selectedConversation?.name ?? "Staff Room"}
       seed={chat.selectedConversation?.id ?? "staffroom"}
       members={chat.members}
-      onClose={() => setPanelOpen(false)}
+      onClose={() => setPanelState((state) => ({ ...state, open: false }))}
     />
   ) : chat.selectedConversation ? (
     <NotesPanel
@@ -132,7 +151,7 @@ export function ChatWorkspaceView() {
       customerEmail={chat.customerEmail}
       customerPhone={chat.customerPhone}
       onSave={chat.handleSaveNotes}
-      onClose={() => setPanelOpen(false)}
+      onClose={() => setPanelState((state) => ({ ...state, open: false }))}
     />
   ) : null;
 

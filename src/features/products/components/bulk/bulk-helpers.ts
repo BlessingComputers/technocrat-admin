@@ -309,9 +309,11 @@ export function buildBulkPayload(rows: BulkRow[]): {
     products: rows.map((row) => ({
       name: row.name.trim(),
       slug: slugify(row.name),
-      categoryId: row.categoryId,
-      // Optional — only sent when chosen (backend accepts it omitted).
-      ...(row.subcategoryId ? { subcategoryId: row.subcategoryId } : {}),
+      // The chosen subcategory IS the product's category — a product has one
+      // category FK and there is no `subcategoryId` field on the backend to
+      // receive a second one (it was silently discarded). Same resolution as
+      // the single-product form, see toCreateDto.
+      categoryId: row.subcategoryId || row.categoryId,
       brandId: row.brandId,
       isActive: row.isActive,
       isFeatured: row.isFeatured,

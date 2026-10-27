@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +18,7 @@ import { formatPrice } from "@/lib/utils/format";
 import {
   useMarkupProductSearch,
   usePreviewMarkupRule,
+  useRuleAtTarget,
 } from "../../api/pricing.queries";
 import {
   Select,
@@ -35,20 +32,17 @@ import {
   type MarkupRuleFormValues,
 } from "../../schemas/markup-rule-form";
 import {
-  MARKUP_MAX_DISCOUNT_PERCENT,
   MARKUP_MAX_PERCENT,
   MARKUP_MIN_PERCENT,
+  ruleTypeOf,
   type MarkupRule,
 } from "../../types/pricing";
-import { cn } from "@/lib/utils/cn";
 import { ruleScopeLabel } from "./markup-rule-utils";
+import { formatExpiry, markupRuleExpiry } from "./sale-timing";
 import type { ProductBrand, ProductCategory } from "../../types/products";
 
 /** Sentinel for the "applies to all" option (shadcn Select rejects ""). */
 const ALL = "__all__";
-
-/** Direction of the percentage: mark the price up, or discount it. */
-type PriceMode = "markup" | "discount";
 
 const APPLY_TO_OPTIONS: { value: string; label: string }[] = [
   { value: "PRICE", label: "Selling price" },
@@ -80,10 +74,9 @@ export function MarkupRuleFormDialog({
   // both (backend refine). Seed the mode from an existing product-scoped rule so
   // edit reflects reality; scope is immutable once created, but the mode still
   // decides which fields render.
-  const initialProduct: ScopeItem | null =
-    initial?.productId && initial.product
-      ? { id: initial.productId, name: initial.product.name }
-      : null;
+  const initialProduct: ScopeItem | null = initial?.productId
+    ? { id: initial.productId, name: initial.product?.name ?? "Specific product" }
+    : null;
   const [scopeMode, setScopeMode] = useState<"taxonomy" | "item">(
     initialProduct ? "item" : "taxonomy",
   );
@@ -96,13 +89,10 @@ export function MarkupRuleFormDialog({
     initial?.categoryId ?? ALL,
   );
   const [brandId, setBrandId] = useState<string>(initial?.brandId ?? ALL);
-  // The user types a positive magnitude; the Markup/Discount toggle owns the
-  // sign, so the input never needs a minus key.
-  const [mode, setMode] = useState<PriceMode>(
-    initial && initial.markupPercentage < 0 ? "discount" : "markup",
-  );
+  // Always a positive magnitude on this screen. A negative percentage is a
+  // deal, and deals are created from /pricing/deals.
   const [percentage, setPercentage] = useState<string>(
-    initial ? String(Math.abs(initial.markupPercentage)) : "",
+    initial ? String(initial.markupPercentage) : "",
   );
   const [applyTo, setApplyTo] = useState<string>(initial?.applyTo ?? "PRICE");
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
@@ -112,15 +102,27 @@ export function MarkupRuleFormDialog({
   // Ad-hoc dry-run so staff can see what a percentage would do before saving.
   const preview = usePreviewMarkupRule();
 
-  // The chosen scope/percentage as the signed value the API expects. An
-  // item-scoped rule omits the taxonomy keys entirely (and vice versa) so the
-  // backend's either/or refine is satisfied.
+  // The chosen scope. An item-scoped rule omits the taxonomy keys entirely (and
+  // vice versa) so the backend's either/or refine is satisfied.
   const isItemScope = scopeMode === "item";
   const category = isItemScope || categoryId === ALL ? undefined : categoryId;
   const brand = isItemScope || brandId === ALL ? undefined : brandId;
   const scopeProductId = isItemScope ? product?.id : undefined;
-  const signedPercentage =
-    (mode === "discount" ? -1 : 1) * (Number(percentage) || 0);
+  const percentageValue = Number(percentage) || 0;
+
+  // Pre-flight clash check. Deals are the same backend rows at the same targets,
+  // and this screen no longer lists them — so without this, saving a markup over
+  // a running sale ends it with nothing on screen to say so. Scope is immutable
+  // once a rule exists, so only a new rule can land on top of something.
+  const { rule: ruleAtTarget, isChecking: isCheckingTarget } = useRuleAtTarget(
+    isEditing
+      ? null
+      : { productId: scopeProductId, categoryId: category, brandId: brand },
+  );
+  const clashType = ruleAtTarget ? ruleTypeOf(ruleAtTarget) : null;
+  // A second markup at the same scope is refused server-side, and ask 27 means
+  // that refusal arrives as an untyped 500. Block it here instead.
+  const blockedByMarkup = clashType === "MARKUP";
 
   // Drop a stale preview whenever the scope or percentage changes (or reopen).
   useEffect(() => {
@@ -134,7 +136,6 @@ export function MarkupRuleFormDialog({
     categoryId,
     brandId,
     percentage,
-    mode,
     applyTo,
   ]);
 
@@ -147,7 +148,7 @@ export function MarkupRuleFormDialog({
       );
       return;
     }
-    if (!signedPercentage) {
+    if (!percentageValue) {
       setError("Enter a percentage to preview.");
       return;
     }
@@ -156,7 +157,7 @@ export function MarkupRuleFormDialog({
       categoryId: category,
       brandId: brand,
       scopeProductId,
-      markupPercentage: signedPercentage,
+      markupPercentage: percentageValue,
       applyTo,
     });
   };
@@ -166,15 +167,11 @@ export function MarkupRuleFormDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const magnitude = Number(percentage);
-    // The toggle decides the sign; the input only ever holds a positive number.
-    const signed = mode === "discount" ? -magnitude : magnitude;
-
     const values = {
       categoryId: category,
       brandId: brand,
       productId: scopeProductId,
-      markupPercentage: signed,
+      markupPercentage: Number(percentage),
       applyTo,
       notes: notes.trim() || undefined,
       isActive,
@@ -201,12 +198,27 @@ export function MarkupRuleFormDialog({
           </MetaLabel>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* min-w-0: DialogContent is a CSS grid, so this form is a grid item
+            with default min-width:auto. Without it, a long non-wrapping value
+            (a selected product's full name) sets the item's min-content and
+            blows the dialog past its max-width — the leaf `truncate` cannot
+            take effect until this ancestor is allowed to shrink. */}
+        <form onSubmit={handleSubmit} className="min-w-0 p-6 space-y-5">
           {isEditing ? (
             // Scope is immutable once a rule exists — show it, don't offer edits.
             <Field label="Scope">
-              <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-muted/40 px-3 text-sm font-semibold text-foreground">
-                <span className="truncate">{ruleScopeLabel(initial)}</span>
+              {/* overflow-x-auto does two jobs: a long exact-product name
+                  scrolls inside the box instead of running past it, and a
+                  scroll container's automatic minimum size is 0, so this box
+                  can shrink to the dialog's width no matter what its
+                  ancestors' min-width resolves to. */}
+              <div className="flex h-9 items-center gap-2 overflow-x-auto rounded-md border border-border bg-muted/40 px-3 text-sm font-semibold text-foreground">
+                <span
+                  className="whitespace-nowrap"
+                  title={ruleScopeLabel(initial)}
+                >
+                  {ruleScopeLabel(initial)}
+                </span>
               </div>
             </Field>
           ) : (
@@ -273,42 +285,29 @@ export function MarkupRuleFormDialog({
             </>
           )}
 
-          <Field label="Direction">
-            <div className="grid grid-cols-2 gap-2">
-              <ModeButton
-                active={mode === "markup"}
-                onClick={() => setMode("markup")}
-                label="Markup"
-                hint="Increase price"
-              />
-              <ModeButton
-                active={mode === "discount"}
-                onClick={() => setMode("discount")}
-                label="Discount"
-                hint="Reduce price"
-                discount
-              />
-            </div>
-          </Field>
+          {/* What is already sitting on this exact scope. A deal is the same
+              backend row at the same target, so saving over one ends it — and
+              this screen never lists it. */}
+          {ruleAtTarget && clashType && (
+            <ClashNotice
+              rule={ruleAtTarget}
+              type={clashType}
+              percentage={percentageValue}
+            />
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field
-              label={
-                mode === "discount"
-                  ? `Discount % (1–${MARKUP_MAX_DISCOUNT_PERCENT})`
-                  : `Markup % (${MARKUP_MIN_PERCENT}–${MARKUP_MAX_PERCENT})`
-              }
-            >
+            <Field label={`Markup % (${MARKUP_MIN_PERCENT}–${MARKUP_MAX_PERCENT})`}>
               <Input
                 type="number"
                 inputMode="decimal"
-                min={mode === "discount" ? 1 : MARKUP_MIN_PERCENT}
-                max={mode === "discount" ? MARKUP_MAX_DISCOUNT_PERCENT : MARKUP_MAX_PERCENT}
+                min={MARKUP_MIN_PERCENT}
+                max={MARKUP_MAX_PERCENT}
                 step="0.1"
                 placeholder="e.g. 15"
                 value={percentage}
-                // The sign comes from the Markup/Discount toggle — block the
-                // minus (and other sign) keys so the field stays positive.
+                // A negative percentage is a deal, not a markup — block the
+                // sign keys rather than let one be typed here.
                 onKeyDown={(e) => {
                   if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
@@ -424,7 +423,9 @@ export function MarkupRuleFormDialog({
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
 
-          {error && <p className="text-xs font-medium text-destructive-ink">{error}</p>}
+          {error && (
+            <p className="text-xs font-medium text-destructive-ink">{error}</p>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button
@@ -437,14 +438,16 @@ export function MarkupRuleFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isCheckingTarget || blockedByMarkup}
               className="flex-[2] rounded-lg bg-primary text-primary-foreground font-semibold h-11"
             >
               {isSubmitting
                 ? "Saving…"
                 : isEditing
                   ? "Update Rule"
-                  : "Create Rule"}
+                  : clashType === "DISCOUNT"
+                    ? `End the deal and set +${percentageValue || 0}%`
+                    : "Create Rule"}
             </Button>
           </div>
         </form>
@@ -453,49 +456,73 @@ export function MarkupRuleFormDialog({
   );
 }
 
-function ModeButton({
-  active,
-  onClick,
-  label,
-  hint,
-  discount,
+/**
+ * The rule already sitting on this exact scope, and what saving will do to it.
+ *
+ * Two different situations, one panel:
+ *
+ * - A **deal** is destroyed by the save. The backend overwrites the row rather
+ *   than refusing, so this warning is the only thing between staff and a sale
+ *   that ends without warning. (The Deals screen gets a typed 409 as a second
+ *   line; ask 27 means this side gets an untyped 500 instead, so there is
+ *   nothing to catch afterwards.)
+ * - A **markup** blocks the save outright. Editing that rule is the only way to
+ *   change it — the server refuses a second one at the same scope.
+ *
+ * Inactive rules count. The backend's duplicate check ignores `isActive`, so a
+ * switched-off rule still occupies the scope.
+ */
+function ClashNotice({
+  rule,
+  type,
+  percentage,
 }: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  hint: string;
-  discount?: boolean;
+  rule: MarkupRule;
+  type: "MARKUP" | "DISCOUNT";
+  percentage: number;
 }) {
+  const isDeal = type === "DISCOUNT";
+  const expiry = markupRuleExpiry(rule.expiresAt);
+  const name = rule.notes?.trim();
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "rounded-lg border px-3 py-2 text-left transition-colors",
-        active
-          ? discount
-            ? "border-destructive bg-destructive/10"
-            : "border-primary bg-primary/10"
-          : "border-border hover:bg-muted/40",
-      )}
+    <div
+      role="alert"
+      className={
+        isDeal
+          ? "rounded-lg border border-warning/50 bg-warning/10 p-3 space-y-1"
+          : "rounded-lg border border-destructive/50 bg-destructive/10 p-3 space-y-1"
+      }
     >
-      <span
-        className={cn(
-          "block text-sm font-semibold",
-          active
-            ? discount
-              ? "text-destructive-ink"
-              : "text-primary-ink"
-            : "text-foreground",
-        )}
+      <p
+        className={
+          isDeal
+            ? "text-sm font-semibold text-warning-ink"
+            : "text-sm font-semibold text-destructive-ink"
+        }
       >
-        {label}
-      </span>
-      <span className="block text-xs font-medium text-muted-foreground">
-        {hint}
-      </span>
-    </button>
+        {isDeal
+          ? `A deal is on this scope: ${name || ruleScopeLabel(rule)}, −${Math.abs(rule.markupPercentage)}%`
+          : `A markup rule already covers this scope: +${rule.markupPercentage}%`}
+      </p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {isDeal
+          ? `Saving this markup ends that deal now and prices will jump. ${
+              expiry.state === "scheduled"
+                ? `It was set to run until ${formatExpiry(expiry.at)}.`
+                : expiry.state === "expired"
+                  ? `Its end time (${formatExpiry(expiry.at)}) has passed, but prices only revert on the next five-minute sweep.`
+                  : "It runs until someone cancels it."
+            }${rule.isActive ? "" : " It is switched off, and still occupies the scope."}`
+          : `Only one rule can sit on a scope, active or not (${rule.ruleId}). Edit that rule to change it, or pick a more specific scope.`}
+      </p>
+      {isDeal && percentage > 0 && (
+        <p className="text-xs font-medium text-muted-foreground">
+          Prices here move from −{Math.abs(rule.markupPercentage)}% to +
+          {percentage}% the moment you save.
+        </p>
+      )}
+    </div>
   );
 }
 

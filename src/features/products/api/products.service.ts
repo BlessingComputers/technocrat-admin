@@ -8,6 +8,7 @@ import type {
   BulkEditProductsInput,
   BulkEditProductsResult,
   BulkUploadResult,
+  CategoryBanner,
   CategoryInput,
   CreateProductDto,
   CreateProductResult,
@@ -19,7 +20,6 @@ import type {
   ProductImage,
   ProductImageMeta,
   ProductListEnvelope,
-  ProductStats,
   ProductSubcategory,
   ProductsListParams,
   UpdateProductDto,
@@ -39,7 +39,7 @@ import type {
  * updates PATCH `/:id`. Pin these to the OpenAPI spec when it lands.
  */
 
-const { products, admin } = API_ENDPOINTS;
+const { products } = API_ENDPOINTS;
 
 type QueryParams = Record<string, string | number | boolean | undefined>;
 
@@ -93,14 +93,6 @@ function buildListParams(params?: ProductsListParams): QueryParams {
   else if (params?.tab === "inactive") q.isActive = "false";
 
   return q;
-}
-
-/** Shape of the admin dashboard KPI payload we read product counts from. */
-interface DashboardProductKpis {
-  totalProducts?: number;
-  activeProducts?: number;
-  lowStockVariants?: number;
-  outOfStockVariants?: number;
 }
 
 /**
@@ -440,6 +432,83 @@ export const productsService = {
   moveCategory: (categoryId: string, newParentId: string) =>
     api.patch<void>(`${products.categories}/${categoryId}/move/${newParentId}`),
 
+  // ── Category banners ───────────────────────────────────────────────
+  // The landing-page hero gallery, separate from the single `imageUrl`
+  // thumbnail. Add / delete / set-primary only — the backend ships no reorder
+  // route and no way to edit `altText` after upload (BACKEND-ASKS item 20), so
+  // this surface is deliberately narrower than the product image gallery it
+  // otherwise mirrors.
+
+  /**
+   * One category with its banners. The tree from `getCategories` omits the
+   * `banners` key on every node, so the panel cannot read a gallery off the
+   * list it already has and must ask for the category by id.
+   */
+  getCategoryById: (categoryId: string) =>
+    api.get<ProductCategory>(products.category(categoryId)),
+
+  uploadCategoryBanners: async (
+    categoryId: string,
+    files: File[],
+    onProgress?: (completed: number, total: number) => void,
+    meta?: ProductImageMeta[],
+  ): Promise<CategoryBanner[]> => {
+    // ONE banner per request, for the same reason product images go one at a
+    // time: the backend's receive→compress→store time stacks up within a
+    // request and blows the serverless duration limit. Banners are larger than
+    // product photos, so the ceiling is lower here, not higher.
+    const batches = chunkBySize(files, (f) => f.size, undefined, 1);
+    let banners: CategoryBanner[] = [];
+    let completed = 0;
+    onProgress?.(0, files.length);
+
+    for (const batch of batches) {
+      const formData = new FormData();
+      batch.forEach((file, i) => {
+        formData.append("banners", file);
+        const fileMeta = meta?.[completed + i];
+        if (!fileMeta) return;
+        if (fileMeta.altText) formData.append(`bannerAlt_${i}`, fileMeta.altText);
+        if (fileMeta.isPrimary) formData.append(`bannerPrimary_${i}`, "true");
+        // `i` is the index WITHIN this request and is therefore always 0, but
+        // the VALUE has to be the file's true position in the whole upload —
+        // otherwise every banner lands claiming sortOrder 0.
+        if (fileMeta.sortOrder !== undefined) {
+          formData.append(`bannerSortOrder_${i}`, String(fileMeta.sortOrder));
+        }
+      });
+
+      // Same-origin Node handler, NOT the `/api/*` edge rewrite — the rewrite's
+      // ~30s proxy window 504s an upload+store round trip on Vercel. See
+      // app/api/admin/products/categories/banners/upload/route.ts.
+      const result = await api.post<
+        { banners?: CategoryBanner[] } | CategoryBanner[]
+      >(
+        `/api/admin/products/categories/banners/upload?categoryId=${encodeURIComponent(categoryId)}`,
+        formData,
+        { timeout: 120_000 },
+      );
+
+      // Each response carries the category's FULL banner list, not just the
+      // file just sent, so the last response wins rather than accumulating.
+      banners = Array.isArray(result) ? result : (result.banners ?? banners);
+      completed += batch.length;
+      onProgress?.(completed, files.length);
+    }
+
+    return banners;
+  },
+
+  deleteCategoryBanner: (categoryId: string, bannerId: string) =>
+    api.delete<{ message: string }>(
+      products.categoryBanner(categoryId, bannerId),
+    ),
+
+  setPrimaryCategoryBanner: (categoryId: string, bannerId: string) =>
+    api.patch<{ message: string }>(
+      products.categoryBannerPrimary(categoryId, bannerId),
+    ),
+
   // ── Subcategories ──────────────────────────────────────────────────
   getSubcategories: (
     categoryId: string,
@@ -498,17 +567,10 @@ export const productsService = {
   deleteBrand: (brandId: string) =>
     api.delete<void>(`${products.brands}/${brandId}`),
 
-  // ── Stats (derived from the admin dashboard KPIs) ──────────────────
-  getProductsStats: async (): Promise<ProductStats> => {
-    const kpi = await api.get<DashboardProductKpis>(admin.dashboard);
-    const lowStock = kpi?.lowStockVariants || 0;
-    const outOfStock = kpi?.outOfStockVariants || 0;
-    return {
-      total: kpi?.totalProducts || 0,
-      active: kpi?.activeProducts || 0,
-      lowStock,
-      outOfStock,
-      needsRestock: lowStock + outOfStock,
-    };
-  },
+  // Product KPI counts deliberately do NOT live here. `/v1/admin/dashboard`
+  // reports raw `product.count()` totals and variant-level stock counts, both of
+  // which include the hidden `BKNG-…` backing products every priced part
+  // creates — so its numbers are products AND parts. `useCatalogProductStats`
+  // counts through the product LIST endpoint instead, which filters
+  // `isHidden: false`.
 };

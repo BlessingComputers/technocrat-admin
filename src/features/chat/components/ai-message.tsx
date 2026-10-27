@@ -1,5 +1,6 @@
 import { AppIcon } from "@/components/shared/app-icon";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { ChatProductCards } from "./chat-product-cards";
 import { formatTime } from "../utils/chat-format";
 import type { ChatMessage } from "../types/chat";
 
@@ -47,10 +48,14 @@ export function AiMessage({ message }: { message: ChatMessage }) {
       </div>
 
       {/* `whitespace-pre-wrap` is required, not cosmetic: the escalation note
-          arrives as "[AI handover · reason]\nsummary" and collapses without it. */}
+          arrives as "[AI handover · reason]\nsummary" — or, for a
+          per-message skip, "[AI skipped this message · reason]" — and
+          collapses without it. */}
       <div className="max-w-[75%] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>
+
+      <ChatProductCards products={message.products} />
 
       <span className="px-1 text-xs text-muted-foreground">
         {formatTime(message.createdAt)}

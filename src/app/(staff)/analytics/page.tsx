@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { AnalyticsView } from "@/features/analytics";
+import { TrafficPage } from "@/features/analytics";
 
 export const metadata: Metadata = {
   title: "Analytics",
 };
 
-export default function AnalyticsPage() {
-  return <AnalyticsView />;
+export default function AnalyticsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+  return <TrafficPage searchParams={searchParams} />;
 }

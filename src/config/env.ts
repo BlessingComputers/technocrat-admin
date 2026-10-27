@@ -1,7 +1,7 @@
 /**
  * Centralized, validated, dependency-free environment access.
  *
- * ## The backend seam (ADR-0015)
+ * ## The backend seam
  *
  * **`NEXT_PUBLIC_BACKEND_URL` is the only variable that names the backend.**
  * Everything else that needs a backend address is *derived* from it here:
@@ -13,14 +13,14 @@
  *
  * Do not reintroduce a second host-bearing variable. Pointing this app at a
  * different backend — Technocrat's own, when it exists — must stay a one-line
- * change. See `docs/adr/0015-single-backend-origin-seam.md`.
+ * change.
  *
  * ## Two surfaces, kept apart on purpose (ADR-0003; MIGRATION Phase 2)
  *
  * - `publicEnv` — `NEXT_PUBLIC_*` only. Referenced as static
  *   `process.env.NEXT_PUBLIC_*` literals so Next inlines them into the client
  *   bundle. Safe to read in client OR server code.
- * - `serverEnv()` — server-only secrets (`GROQ_API_KEY`, `CLAUDE_API_KEY`) plus
+ * - `serverEnv()` — server-only secrets (`GROQ_API_KEY`, `CLAUDE_API_KEY`, `POSTHOG_PERSONAL_API_KEY`) plus
  *   the derived backend base. Throws if accessed in the browser, so a server
  *   var can never leak into a client bundle. Call it lazily (it's a function)
  *   so validation fails fast at first server use rather than at module import.
@@ -89,15 +89,29 @@ const DEFAULT_IMAGE_HOSTS = [
 interface ServerEnv {
   /**
    * Full backend base URL for server-side fetches + the `/api` rewrite.
-   * Derived from `NEXT_PUBLIC_BACKEND_URL` — never its own variable (ADR-0015).
+   * Derived from `NEXT_PUBLIC_BACKEND_URL` — never its own variable.
    */
   apiBaseUrl: string;
   /** Hostnames allowed in `next/image`'s `remotePatterns`. */
   imageHosts: string[];
+  /** Customer storefront origin used by server-side promotion link discovery. */
+  storefrontUrl: string | undefined;
   /** Groq key — primary provider for the AI smart-paste routes. Optional — the adapter validates it. */
   groqApiKey: string | undefined;
   /** Claude (Anthropic) key — rate-limit fallback for the smart-paste routes. Optional — the adapter validates it. */
   claudeApiKey: string | undefined;
+  /**
+   * PostHog, read by the `/analytics` traffic view. `apiKey` is a personal key
+   * with `query:read` on the storefront's project; unset, the view shows a
+   * setup notice. `hosts` are the storefront hostnames counted as real
+   * traffic, so localhost and staging stay out of the numbers.
+   */
+  posthog: {
+    apiKey: string | undefined;
+    projectId: string;
+    appHost: string;
+    hosts: string[];
+  };
 }
 
 /** Server-only config. Throws if read in the browser. */
@@ -105,7 +119,7 @@ export function serverEnv(): ServerEnv {
   if (typeof window !== "undefined") {
     throw new Error(
       "serverEnv() was accessed in the browser. Server-only env vars " +
-        "(GROQ_API_KEY, CLAUDE_API_KEY) must never be read in a " +
+        "(GROQ_API_KEY, CLAUDE_API_KEY, POSTHOG_PERSONAL_API_KEY) must never be read in a " +
         "client component — use publicEnv for anything the client needs.",
     );
   }
@@ -116,7 +130,17 @@ export function serverEnv(): ServerEnv {
   return {
     apiBaseUrl: `${origin}/api`,
     imageHosts: hosts?.length ? hosts : DEFAULT_IMAGE_HOSTS,
+    storefrontUrl: process.env.STOREFRONT_URL,
     groqApiKey: process.env.GROQ_API_KEY,
     claudeApiKey: process.env.CLAUDE_API_KEY,
+    posthog: {
+      apiKey: process.env.POSTHOG_PERSONAL_API_KEY,
+      projectId: process.env.POSTHOG_PROJECT_ID || "317341",
+      appHost: (process.env.POSTHOG_APP_HOST || "https://eu.posthog.com").replace(/\/+$/, ""),
+      hosts: (process.env.ANALYTICS_HOSTS || "technocratng.com,www.technocratng.com")
+        .split(",")
+        .map((h) => h.trim())
+        .filter(Boolean),
+    },
   };
 }

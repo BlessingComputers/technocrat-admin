@@ -44,6 +44,14 @@ export function useStaff(params?: StaffListParams) {
   });
 }
 
+export function useStaffById(staffId: string) {
+  return useQuery({
+    queryKey: rbacKeys.staff({ search: staffId }),
+    queryFn: () => rbacService.getStaffById(staffId),
+    staleTime: 60 * 1000,
+  });
+}
+
 // ── Mutations: permissions ─────────────────────────────────────
 export function useCreatePermission() {
   const queryClient = useQueryClient();

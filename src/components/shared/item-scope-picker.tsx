@@ -77,7 +77,10 @@ export function ItemScopePicker({
   if (selected) {
     return (
       <Field label={label}>
-        <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3">
+        {/* overflow-hidden keeps the chip's automatic minimum size at 0, so a
+            long item name can never push the box past its container — without
+            it the leaf `truncate` below has nothing to clip against. */}
+        <div className="flex h-9 items-center justify-between gap-2 overflow-hidden rounded-md border border-border bg-muted/40 px-3">
           <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
             <AppIcon
               icon="solar:box-linear"

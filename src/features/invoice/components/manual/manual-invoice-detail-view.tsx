@@ -303,7 +303,7 @@ function InlineDetail({
 }
 
 function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState<Boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
 
   function handleCopied() {
     setCopied(true);

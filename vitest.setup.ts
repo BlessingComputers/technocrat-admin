@@ -47,3 +47,22 @@ if (typeof window !== "undefined") {
     }
   }
 }
+
+/**
+ * jsdom ships no `ResizeObserver`, which several Radix primitives construct on
+ * mount (`@radix-ui/react-use-size`, behind Switch's thumb among others). A
+ * no-op is enough: nothing under test asserts on measured sizes, and without it
+ * any component tree containing one of those primitives throws on render.
+ */
+if (typeof window !== "undefined" && !("ResizeObserver" in globalThis)) {
+  class NoopResizeObserver implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: NoopResizeObserver,
+    configurable: true,
+    writable: true,
+  });
+}

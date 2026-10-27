@@ -10,6 +10,11 @@ export { BulkPartsView } from "./components/bulk-parts-view";
 export { PartTypesView } from "./components/part-types-view";
 export { PartsPricingView } from "./components/pricing/parts-pricing-view";
 
+// The parts KPI row + its counts, consumed by the catalogue hub at `/catalogues`
+// (app layer) as well as by the parts browse view.
+export { PartsStatsBar } from "./components/parts-stats-bar";
+export { usePartsStats } from "./hooks/use-parts-stats";
+
 // Loading skeletons shared with route-level loading.tsx files.
 export {
   PartsTableSkeleton,

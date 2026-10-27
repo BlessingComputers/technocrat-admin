@@ -16,6 +16,7 @@ import { STAFF_ROOM_ID, useChatStore } from "../store/chat.store";
 import { notificationKeys } from "@/lib/api/notification-keys";
 import { showChatToast } from "../components/chat-toast";
 import { notifyDesktop } from "./use-desktop-notifications";
+import { isAiHoldMessage } from "../utils/ai-hold-message";
 import type { ChatMessage, ConversationSummary } from "../types/chat";
 
 const HEARTBEAT_MS = 30_000;
@@ -242,16 +243,31 @@ export function useChatSocket(opts: UseChatSocketOptions = {}) {
     socket.on("connect_error", onConnectError);
 
     socket.on("chat:message:received", (payload) => {
+      // The AI's hold filler reassures a customer through a 1 to 4 second
+      // wait. Staff see the real reply moments later, so drop it before the
+      // store: it would otherwise bump unread and overwrite the row preview.
+      if (isAiHoldMessage(payload)) return;
       const message: ChatMessage = {
         id: payload.id,
         conversationId: payload.conversationId,
         senderType: payload.senderType,
+        // Required, not decorative: `senderType: "SYSTEM"` covers both a
+        // connection notice and an AI reply, and `isAiMessage` tells them
+        // apart on this field alone. Dropping it meant a live AI reply
+        // rendered as the quiet centred system line instead of an AI bubble,
+        // and only turned into one after a refetch put the REST copy (which
+        // does carry it) in its place.
+        senderId: payload.senderId,
         senderName: payload.senderName,
         body: payload.body,
         isInternal: payload.isInternal,
         createdAt: payload.createdAt,
         // The contract keys all echo/reconnect dedup on this — keep it.
         idempotencyKey: payload.idempotencyKey,
+        // Contract v4 product cards, already catalogue-verified server-side.
+        // `[]` rather than undefined keeps the live copy the same shape as its
+        // REST copy, so the cards don't blink out when history refetches.
+        products: payload.products ?? [],
       };
       console.info(
         "[chat] message:received",
@@ -361,6 +377,12 @@ export function useChatSocket(opts: UseChatSocketOptions = {}) {
     });
     // The AI escalated a conversation to a human, or was force-stopped
     // (A5) — move the row live, no refetch (that's the whole point).
+    //
+    // `reason` is NOT a "the AI stopped" signal. `CANNOT_ANSWER` and `ERROR`
+    // are per-message: the reason is recorded for staff, `aiState` stays
+    // `HANDLING`, and the AI is asked again on the customer's next message.
+    // Store both verbatim and branch on `aiState` downstream — never on
+    // whether a reason is present.
     socket.on("chat:ai:state", ({ conversationId, aiState, reason }) => {
       console.info("[chat] ai:state", conversationId, aiState, reason);
       store.setAiState(conversationId, aiState, reason);

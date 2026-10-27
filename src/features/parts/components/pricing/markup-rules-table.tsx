@@ -53,14 +53,18 @@ export function MarkupRulesTable({
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table className="min-w-[720px]">
+      {/* table-fixed: under the default auto layout a column sizes to its
+          content, so one long part-scoped rule name widens the Scope column and
+          scrolls the whole table sideways. Fixed layout gives every column a
+          definite width, which is also what lets the cell's `truncate` clip. */}
+      <Table className="min-w-[720px] table-fixed">
         <TableHeader className="bg-primary/[0.04]">
           <TableRow className="border-b-border/60">
-            <TableHead className={HEAD}>Scope</TableHead>
-            <TableHead className={HEAD}>Markup / Discount</TableHead>
-            <TableHead className={HEAD}>Applies to</TableHead>
-            <TableHead className={HEAD}>Status</TableHead>
-            <TableHead className={cn(HEAD, "pr-6 text-right")}>Actions</TableHead>
+            <TableHead className={cn(HEAD, "w-[32%]")}>Scope</TableHead>
+            <TableHead className={cn(HEAD, "w-[16%]")}>Markup</TableHead>
+            <TableHead className={cn(HEAD, "w-[15%]")}>Applies to</TableHead>
+            <TableHead className={cn(HEAD, "w-[23%]")}>Status</TableHead>
+            <TableHead className={cn(HEAD, "w-[14%] pr-6 text-right")}>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -88,32 +92,33 @@ export function MarkupRulesTable({
                 <span className="text-xs font-medium">
                   No markup rules yet
                 </span>
+                <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground/80">
+                  Running sales are not listed here — they live under Deals.
+                </p>
               </TableCell>
             </TableRow>
           ) : (
             rules.map((rule) => (
               <TableRow key={rule.id} className="border-b-border/40 hover:bg-muted/30">
                 <TableCell>
-                  <span className="text-sm font-semibold text-foreground">
-                    {ruleScopeLabel(rule)}
-                  </span>
-                  {rule.notes && (
-                    <p className="truncate text-xs italic text-muted-foreground">
-                      {rule.notes}
-                    </p>
-                  )}
+                  <div className="min-w-0">
+                    <span
+                      className="block truncate text-sm font-semibold text-foreground"
+                      title={ruleScopeLabel(rule)}
+                    >
+                      {ruleScopeLabel(rule)}
+                    </span>
+                    {rule.notes && (
+                      <p className="truncate text-xs italic text-muted-foreground">
+                        {rule.notes}
+                      </p>
+                    )}
+                  </div>
                 </TableCell>
-                <TableCell
-                  className={cn(
-                    "font-mono text-sm font-semibold tabular-nums",
-                    rule.markupPercentage < 0
-                      ? "text-destructive-ink"
-                      : "text-foreground",
-                  )}
-                >
-                  {rule.markupPercentage < 0
-                    ? `−${Math.abs(rule.markupPercentage)}%`
-                    : `+${rule.markupPercentage}%`}
+                {/* Markups only — the list is filtered to MARKUP, so there is
+                    no sign to test and no discount styling to carry. */}
+                <TableCell className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                  +{rule.markupPercentage}%
                 </TableCell>
                 <TableCell>
                   <Badge variant="muted" className="text-xs">
@@ -160,6 +165,12 @@ export function MarkupRulesTable({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => onDelete(rule)}
+                        disabled={rule.isActive}
+                        title={
+                          rule.isActive
+                            ? "Cancel the rule first — an active rule cannot be deleted"
+                            : undefined
+                        }
                         className="font-medium text-destructive-ink focus:bg-destructive/10 focus:text-destructive-ink"
                       >
                         <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
