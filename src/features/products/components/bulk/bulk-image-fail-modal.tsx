@@ -43,7 +43,7 @@ export function BulkImageFailModal({
     <Dialog open={open} onOpenChange={(o) => !o && onContinueWithout()}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-destructive/10 text-destructive-ink">
             <AppIcon icon="solar:danger-triangle-linear" className="size-5" />
           </div>
           <DialogTitle>Image upload failed</DialogTitle>
@@ -61,7 +61,7 @@ export function BulkImageFailModal({
             the images from each product&apos;s page afterwards.
           </DialogDescription>
           {reason ? (
-            <p className="mt-1 rounded-lg bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive">
+            <p className="mt-1 rounded-lg bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive-ink">
               {reason}
             </p>
           ) : null}

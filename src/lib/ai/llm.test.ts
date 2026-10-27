@@ -1,12 +1,15 @@
 /**
- * Fallback routing + circuit-breaker tests for the shared LLM adapter.
+ * Routing, circuit-breaker and error-reporting tests for the shared LLM adapter.
  *
- * Exercises `createFallbackCompleter`: Groq primary, Claude on any Groq failure,
- * and the shared in-memory breaker that parks Groq after a 429 until its
- * `retry-after` elapses, then optimistically retries. `fetch` is stubbed and
- * dispatched by host; the module-level breaker (`groqBlockedUntil`) is reset per
- * test via `vi.resetModules()`, and `Date.now()` is driven with fake timers so
- * the park/expire window is deterministic (the code uses no `setTimeout`).
+ * Exercises `createFallbackCompleter`: Claude primary, Groq on any Claude
+ * failure, and the shared in-memory breaker that parks Groq after a rate limit
+ * until its window elapses. `fetch` is stubbed and dispatched by host; the
+ * module-level breaker (`groqBlockedUntil`) is reset per test via
+ * `vi.resetModules()`, and `Date.now()` is driven with fake timers so the
+ * park/expire windows are deterministic (the code uses no `setTimeout`).
+ *
+ * Groq sits on the fallback leg because its free tier caps at 8k tokens/minute
+ * and one parse request runs ~22k — see the module header in `llm.ts`.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,7 +28,9 @@ function groqOk(content = "groq-ok"): Response {
     ok: true,
     status: 200,
     headers: new Headers(),
-    json: async () => ({ choices: [{ message: { content } }] }),
+    json: async () => ({
+      choices: [{ finish_reason: "stop", message: { content } }],
+    }),
     text: async () => "",
   } as unknown as Response;
 }
@@ -40,6 +45,52 @@ function claudeOk(content = "claude-ok"): Response {
       content: [{ type: "text", text: content }],
     }),
     text: async () => "",
+  } as unknown as Response;
+}
+
+/** HTTP 200, but the reply was cut off at the output ceiling. */
+function groqTruncated(): Response {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    json: async () => ({
+      choices: [{ finish_reason: "length", message: { content: "{partial" } }],
+    }),
+    text: async () => "",
+  } as unknown as Response;
+}
+
+/** Anthropic's equivalent: HTTP 200 with stop_reason max_tokens. */
+function claudeTruncated(): Response {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    json: async () => ({
+      stop_reason: "max_tokens",
+      content: [{ type: "text", text: "{partial" }],
+    }),
+    text: async () => "",
+  } as unknown as Response;
+}
+
+/** Groq's tokens-per-minute cap: HTTP 413 carrying a rate-limit code. */
+function rateLimit413(): Response {
+  return {
+    ok: false,
+    status: 413,
+    headers: new Headers(),
+    json: async () => ({}),
+    text: async () =>
+      JSON.stringify({
+        error: {
+          message:
+            "Request too large ... on tokens per minute (TPM): Limit 8000, Requested 22360",
+          type: "tokens",
+          code: "rate_limit_exceeded",
+        },
+      }),
   } as unknown as Response;
 }
 
@@ -65,11 +116,22 @@ function callsTo(host: string): number {
   return fetchMock.mock.calls.filter((c) => String(c[0]).includes(host)).length;
 }
 
+/** The most recent request body sent to a given provider host. */
+function lastBodyTo(host: string): Record<string, unknown> {
+  const call = [...fetchMock.mock.calls]
+    .reverse()
+    .find((c) => String(c[0]).includes(host));
+  return JSON.parse(String(call?.[1]?.body));
+}
+
 /** Fresh module (breaker reset to 0) + a completer with a dummy schema. */
 async function freshCompleter(): Promise<ChatCompleter> {
   vi.resetModules();
   const mod = await import("@/lib/ai/llm");
-  return mod.createFallbackCompleter({ schema: { type: "object" } });
+  return mod.createFallbackCompleter({
+    schema: { type: "object" },
+    schemaName: "test",
+  });
 }
 
 beforeEach(() => {
@@ -92,115 +154,269 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("createFallbackCompleter", () => {
-  it("uses Groq when it succeeds and never calls Claude", async () => {
+describe("createFallbackCompleter routing", () => {
+  it("uses Claude when it succeeds and never calls Groq", async () => {
     const complete = await freshCompleter();
 
     const result = await complete(messages);
 
-    expect(result).toBe("groq-ok");
-    expect(callsTo(GROQ_HOST)).toBe(1);
-    expect(callsTo(CLAUDE_HOST)).toBe(0);
-  });
-
-  it("falls back to Claude when Groq returns 429", async () => {
-    const complete = await freshCompleter();
-    groqResponder = () => httpError(429, { "retry-after": "2" });
-
-    const result = await complete(messages);
-
     expect(result).toBe("claude-ok");
+    expect(callsTo(GROQ_HOST)).toBe(0);
+  });
+
+  it("falls back to Groq when Claude fails", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+
+    await expect(complete(messages)).resolves.toBe("groq-ok");
     expect(callsTo(GROQ_HOST)).toBe(1);
-    expect(callsTo(CLAUDE_HOST)).toBe(1);
   });
 
-  it("skips Groq entirely while parked after a 429", async () => {
+  it("says which provider served the parse", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const complete = await freshCompleter();
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    groqResponder = () => httpError(429, { "retry-after": "2" });
-
-    await complete(messages); // arms breaker until t=2000ms
-    const result = await complete(messages); // time unchanged → still parked
-
-    expect(result).toBe("claude-ok");
-    expect(callsTo(GROQ_HOST)).toBe(1); // only the first call reached Groq
-    expect(callsTo(CLAUDE_HOST)).toBe(2);
-  });
-
-  it("retries Groq once retry-after elapses, then resumes serving Groq", async () => {
-    const complete = await freshCompleter();
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    groqResponder = () => httpError(429, { "retry-after": "2" });
-
-    await complete(messages); // parked until 2000ms
-
-    vi.setSystemTime(2001);
-    groqResponder = () => groqOk(); // Groq healthy again
-
-    const retried = await complete(messages);
-    expect(retried).toBe("groq-ok");
-    expect(callsTo(GROQ_HOST)).toBe(2); // optimistic retry happened
-
-    // Success cleared the breaker → the next call still routes to Groq.
-    const next = await complete(messages);
-    expect(next).toBe("groq-ok");
-    expect(callsTo(GROQ_HOST)).toBe(3);
-    expect(callsTo(CLAUDE_HOST)).toBe(1); // only the first (parked) call
-  });
-
-  it("parks Groq for the default window when a 429 omits retry-after", async () => {
-    const complete = await freshCompleter();
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    groqResponder = () => httpError(429); // no retry-after → 60s default
 
     await complete(messages);
 
-    vi.setSystemTime(59_000);
-    await complete(messages); // still within the default park window
-    expect(callsTo(GROQ_HOST)).toBe(1);
-
-    vi.setSystemTime(61_000);
-    groqResponder = () => groqOk();
-    await complete(messages); // window elapsed → Groq retried
-    expect(callsTo(GROQ_HOST)).toBe(2);
+    expect(info.mock.calls.flat().join(" ")).toMatch(/served by Claude/);
   });
 
-  it("parks Groq briefly on a 5xx and falls back to Claude", async () => {
+  it("says when the fallback served it, not just that it worked", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+
+    await complete(messages);
+
+    expect(info.mock.calls.flat().join(" ")).toMatch(
+      /served by Groq .* after Claude failed/,
+    );
+  });
+});
+
+describe("Groq circuit breaker", () => {
+  it("parks Groq after a 429 and skips it while parked", async () => {
     const complete = await freshCompleter();
     vi.useFakeTimers();
     vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
+    groqResponder = () => httpError(429, { "retry-after": "2" });
+
+    await expect(complete(messages)).rejects.toThrow();
+
+    vi.setSystemTime(1000); // inside the retry-after window
+    await expect(complete(messages)).rejects.toThrow();
+    expect(callsTo(GROQ_HOST)).toBe(1); // second call skipped Groq entirely
+  });
+
+  it("retries Groq once retry-after elapses", async () => {
+    const complete = await freshCompleter();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
+    groqResponder = () => httpError(429, { "retry-after": "2" });
+
+    await expect(complete(messages)).rejects.toThrow();
+
+    vi.setSystemTime(2500); // window elapsed
+    groqResponder = () => groqOk();
+    await expect(complete(messages)).resolves.toBe("groq-ok");
+    expect(callsTo(GROQ_HOST)).toBe(2);
+  });
+
+  it("parks for the default window when a 429 omits retry-after", async () => {
+    const complete = await freshCompleter();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
+    groqResponder = () => httpError(429);
+
+    await expect(complete(messages)).rejects.toThrow();
+
+    vi.setSystemTime(30_000); // inside the 60s default
+    await expect(complete(messages)).rejects.toThrow();
+    expect(callsTo(GROQ_HOST)).toBe(1);
+  });
+
+  it("parks Groq briefly on a 5xx", async () => {
+    const complete = await freshCompleter();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
     groqResponder = () => httpError(500);
 
-    const result = await complete(messages);
-    expect(result).toBe("claude-ok");
+    await expect(complete(messages)).rejects.toThrow();
 
     vi.setSystemTime(1000); // inside the 30s cooldown
-    await complete(messages);
-    expect(callsTo(GROQ_HOST)).toBe(1); // Groq skipped while cooling down
+    await expect(complete(messages)).rejects.toThrow();
+    expect(callsTo(GROQ_HOST)).toBe(1);
   });
 
-  it("does not park Groq on a non-429/5xx error (per-request fallback only)", async () => {
+  it("parks Groq for a long window when it rejects the model or key", async () => {
     const complete = await freshCompleter();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
+    groqResponder = () => httpError(404); // decommissioned/unknown model slug
+
+    await expect(complete(messages)).rejects.toThrow();
+
+    vi.setSystemTime(60_000); // past the 429/5xx windows, inside the config one
+    await expect(complete(messages)).rejects.toThrow();
+    expect(callsTo(GROQ_HOST)).toBe(1); // no doomed retry
+  });
+
+  it("parks Groq when a 413 turns out to be the token-per-minute cap", async () => {
+    const complete = await freshCompleter();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    claudeResponder = () => httpError(529);
+    // Groq reports its TPM cap as a 413, not a 429. Read as a plain
+    // request-too-large it never armed the breaker, so every parse paid a
+    // doomed multi-second round-trip.
+    groqResponder = () => rateLimit413();
+
+    await expect(complete(messages)).rejects.toThrow();
+
+    vi.setSystemTime(120_000); // well past any retry-after window
+    await expect(complete(messages)).rejects.toThrow();
+    expect(callsTo(GROQ_HOST)).toBe(1); // still parked: waiting cannot help
+  });
+
+  it("does not park Groq on a plain 400 (a per-request problem)", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
     groqResponder = () => httpError(400);
 
-    await complete(messages); // 400 → fall back, but breaker NOT armed
-    await complete(messages); // Groq attempted again
+    await expect(complete(messages)).rejects.toThrow();
+    await expect(complete(messages)).rejects.toThrow();
 
-    expect(callsTo(GROQ_HOST)).toBe(2);
-    expect(callsTo(CLAUDE_HOST)).toBe(2);
+    expect(callsTo(GROQ_HOST)).toBe(2); // attempted again
+  });
+});
+
+describe("request shape", () => {
+  it("sends the schema to Groq as strict json_schema", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+
+    await complete(messages);
+
+    const body = lastBodyTo(GROQ_HOST) as {
+      response_format: {
+        type: string;
+        json_schema: { name: string; strict: boolean; schema: unknown };
+      };
+    };
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.strict).toBe(true);
+    expect(body.response_format.json_schema.name).toBe("test");
+    expect(body.response_format.json_schema.schema).toEqual({ type: "object" });
   });
 
-  it("falls back to Claude when GROQ_API_KEY is unset", async () => {
+  it("caps reasoning effort so thinking cannot eat the whole output budget", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+
+    await complete(messages);
+
+    const body = lastBodyTo(GROQ_HOST);
+    expect(body.reasoning_effort).toBe("low");
+    expect(body.max_completion_tokens as number).toBeGreaterThan(0);
+  });
+
+  it("caches the Claude system block so the reference lists aren't re-billed", async () => {
+    const complete = await freshCompleter();
+
+    await complete(messages);
+
+    const body = lastBodyTo(CLAUDE_HOST) as {
+      system: { cache_control?: { type: string } }[];
+    };
+    expect(body.system[0].cache_control).toEqual({ type: "ephemeral" });
+  });
+});
+
+describe("truncation", () => {
+  it("surfaces a truncated Claude reply rather than an opaque JSON error", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => claudeTruncated();
+
+    // Terminal: Groq has the smaller usable output budget, so it cannot fit a
+    // reply Haiku could not.
+    await expect(complete(messages)).rejects.toThrow(/cut off/i);
+    expect(callsTo(GROQ_HOST)).toBe(0);
+  });
+
+  it("does not report truncation as a payload-size error", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => claudeTruncated();
+
+    // 413 reaches the browser as "Payload Too Large", which describes the
+    // request and misleads about a reply that was simply cut short.
+    await expect(complete(messages)).rejects.toMatchObject({
+      truncated: true,
+      status: 422,
+    });
+  });
+
+  it("treats a truncated Groq fallback as a failure, not as content", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+    groqResponder = () => groqTruncated();
+
+    await expect(complete(messages)).rejects.toThrow();
+  });
+});
+
+describe("error reporting", () => {
+  it("names Anthropic and explains a malformed key on a 401", async () => {
+    process.env.CLAUDE_API_KEY = "sk-not-an-anthropic-key";
+    const complete = await freshCompleter();
+    groqResponder = () => httpError(500);
+    claudeResponder = () =>
+      ({
+        ok: false,
+        status: 401,
+        statusText: "", // empty over HTTP/2, which made the old message useless
+        headers: new Headers(),
+        json: async () => ({}),
+        text: async () =>
+          JSON.stringify({ error: { message: "invalid x-api-key" } }),
+      }) as unknown as Response;
+
+    // One call, three assertions: a second call would find the breaker armed
+    // and never reach Groq, which is a different path.
+    const error = (await complete(messages).catch((e) => e)) as Error;
+    expect(error.message).toMatch(/Anthropic error/);
+    expect(error.message).toMatch(/invalid x-api-key/);
+    expect(error.message).toMatch(/begin with sk-ant-/);
+  });
+
+  it("reports both provider failures when neither can serve", async () => {
+    const complete = await freshCompleter();
+    claudeResponder = () => httpError(529);
+    groqResponder = () => rateLimit413();
+
+    // Otherwise the user sees only the second failure and concludes the
+    // fallback provider is the whole system.
+    const error = (await complete(messages).catch((e) => e)) as Error;
+    expect(error.message).toMatch(/Anthropic error/);
+    expect(error.message).toMatch(/Groq fallback also failed/);
+  });
+
+  it("falls back to Groq when CLAUDE_API_KEY is unset", async () => {
+    delete process.env.CLAUDE_API_KEY;
+    const complete = await freshCompleter();
+
+    await expect(complete(messages)).resolves.toBe("groq-ok");
+  });
+
+  it("surfaces Claude's error when Groq has no key either", async () => {
+    delete process.env.CLAUDE_API_KEY;
     delete process.env.GROQ_API_KEY;
     const complete = await freshCompleter();
 
-    const result = await complete(messages);
-
-    expect(result).toBe("claude-ok");
-    expect(callsTo(GROQ_HOST)).toBe(0); // no HTTP call was even attempted
-    expect(callsTo(CLAUDE_HOST)).toBe(1);
+    await expect(complete(messages)).rejects.toThrow(/CLAUDE_API_KEY/);
   });
 });

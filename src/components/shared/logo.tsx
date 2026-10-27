@@ -3,6 +3,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import logo from "../../../public/assets/logo.png";
 import icon from "../../app/icon.png";
+import { BRAND } from "@/config/brand";
 
 interface LogoProps {
   /** Classes for the link wrapper. */
@@ -31,7 +32,7 @@ export function Logo({
     <Link href={href || "/"} className={cn("flex items-center gap-2", className)}>
       <Image
         src={logoSrc}
-        alt="Blessing Online Stores Logo"
+        alt={BRAND.logoAlt}
         loading="eager"
         className={cn(logoClass, imageClassName)}
       />

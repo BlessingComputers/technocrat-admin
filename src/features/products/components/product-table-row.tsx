@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
+import { getProductSpecLine, getProductTitle } from "@/lib/utils/product-name";
 import type { ProductSummary } from "../types/products";
 import { SOURCE_LABEL } from "../constants/product-display";
 import { ProductStockBadge } from "./product-stock-badge";
@@ -34,6 +35,11 @@ export function ProductTableRow({
 }: ProductTableRowProps) {
   const detailHref = `/catalogues/${p.id}`;
   const editHref = `/catalogues/${p.id}/edit`;
+  // Supplier names are spec dumps, so the row showed one truncated string that
+  // was mostly RAM and storage. Same split the storefront and the detail page
+  // use: the name on the link, the specs on the line under it.
+  const title = getProductTitle(p.name);
+  const specLine = getProductSpecLine(p);
   const isRange =
     p.lowestPrice && p.highestPrice && p.lowestPrice !== p.highestPrice;
   const priceText = isRange
@@ -84,10 +90,18 @@ export function ProductTableRow({
             <Link
               href={detailHref}
               title={p.name}
-              className="block max-w-[280px] truncate text-left font-semibold text-sm leading-tight text-foreground hover:text-primary hover:underline transition-colors"
+              className="block max-w-[280px] truncate text-left font-semibold text-sm leading-tight text-foreground hover:text-primary-ink hover:underline transition-colors"
             >
-              {p.name}
+              {title}
             </Link>
+            {specLine && (
+              <span
+                className="block max-w-[280px] truncate text-xs text-muted-foreground"
+                title={specLine}
+              >
+                {specLine}
+              </span>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
                 {p.productId}
@@ -95,7 +109,7 @@ export function ProductTableRow({
               {p.brand?.name && (
                 <Badge
                   variant="outline"
-                  className="text-xs py-0 px-1.5 uppercase tracking-wide"
+                  className="text-xs py-0 px-1.5"
                 >
                   {p.brand.name}
                 </Badge>
@@ -103,7 +117,7 @@ export function ProductTableRow({
               {!p.primaryImage && (
                 <Badge
                   variant="warning"
-                  className="gap-1 text-xs py-0 px-1.5 uppercase tracking-wide"
+                  className="gap-1 text-xs py-0 px-1.5"
                   title="This product has no images — add them from its page"
                 >
                   <AppIcon icon="solar:gallery-linear" className="size-2.5" />
@@ -137,7 +151,7 @@ export function ProductTableRow({
         {p.sourcingType ? (
           <Badge
             variant="outline"
-            className="text-xs uppercase tracking-wide px-2 py-0.5 rounded-md"
+            className="text-xs px-2 py-0.5 rounded-md"
           >
             {SOURCE_LABEL[p.sourcingType] ?? p.sourcingType}
           </Badge>
@@ -155,7 +169,7 @@ export function ProductTableRow({
       <TableCell>
         <Badge
           variant={p.isActive ? "success" : "muted"}
-          className="text-xs uppercase tracking-wide px-2.5 py-1 rounded-full"
+          className="text-xs px-2.5 py-1 rounded-full"
         >
           {p.isActive ? "Active" : "Inactive"}
         </Badge>
@@ -199,7 +213,7 @@ export function ProductTableRow({
                 <>
                   <AppIcon
                     icon="solar:check-circle-linear"
-                    className="size-4 mr-2 text-success"
+                    className="size-4 mr-2 text-success-ink"
                   />
                   Activate
                 </>
@@ -207,7 +221,7 @@ export function ProductTableRow({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDelete(p)}
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 font-bold"
+              className="text-destructive-ink focus:text-destructive-ink focus:bg-destructive/10 font-medium"
             >
               <AppIcon icon="solar:trash-bin-trash-linear" className="size-4 mr-2" />
               Delete permanently

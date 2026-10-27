@@ -100,7 +100,7 @@ export function ChatThreadHeader({
               <p
                 className={
                   assignmentState === "unassigned"
-                    ? "truncate text-xs font-medium text-warning"
+                    ? "truncate text-xs font-medium text-warning-ink"
                     : "truncate text-xs text-muted-foreground"
                 }
               >
@@ -148,7 +148,7 @@ export function ChatThreadHeader({
               onClick={onResolve}
               aria-label="Mark conversation as resolved"
               title="Mark as resolved"
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-success"
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-success-ink"
             >
               <AppIcon icon="solar:check-circle-linear" className="size-5" />
             </button>

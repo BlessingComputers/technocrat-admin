@@ -12,12 +12,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Initiate Google OAuth
-         * @description Redirects the customer to Google OAuth consent screen.
+         * Initiate Google OAuth (full redirect flow)
+         * @description Redirects the customer to Google's account picker / consent screen. This is the
+         *     "Sign in with Google" **button** flow — three navigations (site → Google → back). For the
+         *     one-click, no-navigation alternative, see `POST /google/one-tap` below.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    redirectTo?: string;
+                    returnOrigin?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -35,6 +40,175 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/customer/google/one-tap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Google One Tap sign-in (no redirect)
+         * @description **What this is.** Google One Tap renders a small prompt (top corner of the page) showing the
+         *     visitor's actual Google account, if their browser already has an active Google session. Signing in
+         *     never navigates away from the page — contrast with `GET /google` above, which is a full
+         *     site → Google → site redirect chain. This endpoint is the *second half* of that flow: it takes the
+         *     credential Google's own script hands to the page and turns it into a customer session, the same way
+         *     `GET /google/callback` does for the redirect flow (same underlying service call, same
+         *     account-linking rules, same staff-email block) — just without the authorization-code round trip,
+         *     because the browser already has a signed proof of identity from Google directly.
+         *
+         *     ---
+         *
+         *     ### Why this can't be a server-only integration
+         *
+         *     Detecting "is this browser already signed into Google" happens inside Google's own iframe/FedCM
+         *     context, in the browser. There is no server-side equivalent. The credential this endpoint accepts
+         *     is the artifact of that browser-side detection — a signed Google ID token (a JWT), not an
+         *     authorization code. So the frontend *must* run Google's Identity Services script and collect the
+         *     credential client-side; this endpoint only ever verifies and exchanges what the browser already
+         *     obtained.
+         *
+         *     ---
+         *
+         *     ### Implementation sequence (frontend)
+         *
+         *     1. **Load Google's script** (`https://accounts.google.com/gsi/client`) once, e.g. in the root
+         *        layout. Skip all of this entirely if `NEXT_PUBLIC_GOOGLE_CLIENT_ID` isn't set, or if the
+         *        visitor already has a session (check your existing session cookie first — don't prompt someone
+         *        who's already signed in).
+         *     2. **Mint a nonce yourself, server-side**, before initializing the prompt. This has to happen on
+         *        *your* server (a Next.js route handler, etc.), not in client JS — a nonce the browser could
+         *        generate/inspect isn't binding to anything. Store it in an httpOnly cookie scoped to the page/
+         *        route that will use it, single-use.
+         *     3. **Initialize Google's prompt** with that nonce and `use_fedcm_for_prompt: true`. Set
+         *        `auto_select: false` unless you specifically want Google to skip the prompt and sign a
+         *        single-account visitor in silently.
+         *     4. **On the credential callback** Google fires when the visitor accepts: send `{ credential, nonce }`
+         *        to *your own* backend route (not directly to this API — see the JSON-body note below), which
+         *        forwards it to `POST /api/auth/customer/google/one-tap`.
+         *     5. **On a 200**, read `accessToken` / `refreshToken` / `expiresIn` from the body and set them as
+         *        your own first-party httpOnly cookies (same shape/names your existing auth flow already uses),
+         *        then refetch whatever query drives your signed-in header state. No page navigation needed.
+         *     6. **On any 4xx**, fail quietly — log it, don't show an error to the visitor. One Tap is an
+         *        enhancement over the existing "Sign in" button, not a replacement; that button must keep working
+         *        even if every One Tap attempt fails.
+         *
+         *     ---
+         *
+         *     ### The nonce is not optional
+         *
+         *     Google signs whatever nonce value the client passed it *into* the ID token itself, as the token's
+         *     own `nonce` claim. This endpoint checks that claim against the `nonce` field in the request body —
+         *     **not** against anything stored server-side on the backend; the binding lives entirely inside the
+         *     signed JWT. That means:
+         *     - The nonce your frontend sends here must be the *exact* value passed to Google's `initialize()`
+         *       call for the prompt that produced this specific `credential`.
+         *     - If you skip this (send an empty/omitted nonce, or one that doesn't match), a captured/replayed
+         *       credential would otherwise be valid for its full ID-token lifetime (~1 hour) — this check is what
+         *       prevents that, not a nice-to-have.
+         *     - Generate the nonce server-side and mirror it into an httpOnly cookie, single-use, so the page
+         *       itself never had the ability to choose or predict the value it sends back.
+         *
+         *     ---
+         *
+         *     ### Why JSON body, not Set-Cookie
+         *
+         *     The browser never calls this backend endpoint directly — your frontend's *own server-side* route
+         *     handler does (it's the one holding the nonce cookie and calling Google). A `Set-Cookie` header from
+         *     this response would land on this API's origin, not your storefront's, and be useless to the browser.
+         *     Tokens come back in the JSON body specifically so your route handler can turn them into cookies on
+         *     the correct (your) origin.
+         *
+         *     ---
+         *
+         *     ### Non-backend prerequisites — this 404s/401s until these are done
+         *
+         *     - **Google Cloud Console**, same OAuth client as `GOOGLE_CUSTOMER_CLIENT_ID`: add your storefront
+         *       origin(s) under **Authorized JavaScript origins**. One Tap validates the request's *origin*, not
+         *       a redirect URI — the redirect URIs already registered for `/google/callback` do **not** cover
+         *       this.
+         *     - **Frontend env var** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — the same client ID as
+         *       `GOOGLE_CUSTOMER_CLIENT_ID` on this API. Public by design (it's the client ID, not the secret).
+         *
+         *     ---
+         *
+         *     ### Error codes
+         *
+         *     | Status | Code | Meaning |
+         *     |---|---|---|
+         *     | 400 | `MISSING_CREDENTIAL` | `credential` missing/not a string |
+         *     | 400 | `MISSING_NONCE` | `nonce` missing/not a string |
+         *     | 400 | `GOOGLE_EMAIL_UNVERIFIED` | Google account's email isn't verified |
+         *     | 401 | `GOOGLE_PROFILE_ERROR` | Token verified but Google returned no email |
+         *     | 401 | `GOOGLE_NONCE_MISMATCH` | Token's signed nonce doesn't match the `nonce` sent — see above |
+         *     | 403 | `EMAIL_IS_STAFF` | This email belongs to a staff account — customer login blocked |
+         *     | 403 | `ACCOUNT_INACTIVE` | Customer account is suspended or otherwise inactive |
+         *     | 429 | — | Rate limited — max 10 requests/min per IP |
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleOneTapRequest"];
+                };
+            };
+            responses: {
+                /** @description Signed in successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["GoogleOneTapResponse"];
+                        };
+                    };
+                };
+                /** @description Missing credential/nonce, or unverified Google email — see error codes table */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid Google profile or nonce mismatch — see error codes table */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff email, or inactive account — see error codes table */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Too many requests — max 10/min per IP */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1608,13 +1782,37 @@ export interface paths {
         };
         /**
          * Unified search — products + parts
-         * @description One search bar, two result sections.
+         * @description One search bar, two result sections — both now backed by the SAME OpenSearch
+         *     index and query engine (products and parts are indexed together, discriminated by an internal
+         *     `docType` field). This replaced a previous version where the `parts` section came from a bare
+         *     Prisma `contains` lookup with no ranking, no price/availability/rating filtering, and no caching
+         *     — parts now get full parity with product search.
          *
-         *     Runs in parallel:
-         *     - **products** — OpenSearch full-text (name, brand, description) **and exact variant SKU**. So typing a product SKU returns that product.
-         *     - **parts** — matched by **partNumber**, name, description, or partType. So typing a part number returns that part. Only searched when a text query (`q`) is present; public callers see active, in-stock parts only (max 20).
+         *     Runs in parallel, each with its own forced `docType` regardless of what you pass in `docType`
+         *     below (see that field's own note — this endpoint's two sections are always products-only /
+         *     parts-only, never mixed):
+         *     - **products** — full-text (name, brand, description, exact variant SKU) + every structured
+         *       filter (category, brand, price range, rating, availability, condition, attributes).
+         *     - **parts** — same engine, filtered to parts: full-text over name, description, **partNumber**,
+         *       and partType, plus `partTypeId`/`ownerSku` structured filters and the same price/availability
+         *       filtering (a part's own price/stock is indexed as a single synthetic variant). Only searched
+         *       when a text query (`q`) is present; public callers see active, in-stock parts only (max 20).
          *
-         *     Response is sectioned (Option A): `data.products` is the full product search result (with facets + pagination); `data.parts` is the matching parts list. A part-search failure never breaks product results — `data.parts` just comes back empty.
+         *     Response is sectioned (Option A): `data.products` is the full product search result (with facets
+         *     + pagination); `data.parts` is the matching parts, in the SAME shape (each item carries
+         *     `docType: 'PART'`, plus `partId`/`partType`/`partNumber`/`ownerSku` — `partId`, not `slug`,
+         *     is what routes to a part's detail page). A part-search failure never breaks product results —
+         *     `data.parts` just comes back empty.
+         *
+         *     `data.products.suggestions` — "you might also like": similar alternatives found via `more_like_this`, seeded from the search text and soft-biased toward the top exact match's category. Always populated alongside exact results when there's a text query with at least one match; `[]` if there's no text query, no exact matches, or the lookup itself fails (never blocks the main results).
+         *
+         *     ### `docType` (on the query schema below)
+         *     Meaningful on the plain product-search path this schema also backs (`searchProducts()` called
+         *     directly, e.g. by the AI chat tool), where a single call can return products, parts, or both mixed
+         *     and ranked together via `docType: 'ALL'`. On THIS combined endpoint specifically it's a no-op —
+         *     both sections always force their own docType internally, so passing `?docType=PART` here does
+         *     NOT turn this into a parts-only endpoint. Use `GET /products/parts` or
+         *     `GET /products/parts/by-category` for an exact-match Prisma-backed parts filter instead.
          */
         get: {
             parameters: {
@@ -1639,6 +1837,9 @@ export interface paths {
                     attr?: {
                         [key: string]: string;
                     };
+                    docType?: "PRODUCT" | "PART" | "ALL";
+                    partTypeId?: string;
+                    ownerSku?: string;
                     page?: number;
                     limit?: number;
                 };
@@ -1648,7 +1849,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Sectioned search results: products (with facets) and parts */
+                /** @description Sectioned search results: products (with facets + similar-alternative suggestions) and parts */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1665,12 +1866,15 @@ export interface paths {
                                         limit: number;
                                         totalPages: number;
                                     };
+                                    /** @description Includes a `partTypes` bucket alongside categories/brands/availability/conditions — empty here since this section is products-only. */
                                     facets?: {
                                         [key: string]: unknown;
                                     };
+                                    /** @description "You might also like" — similar alternatives, not exact matches. See endpoint description. */
+                                    suggestions?: components["schemas"]["Product"][];
                                 };
                                 parts: {
-                                    /** @description Matching parts (PartResponse[]) */
+                                    /** @description Matching parts, in ProductListItem shape with docType:'PART' — see endpoint description. Each item also carries partId/partType/partNumber/ownerSku. */
                                     data: unknown[];
                                     meta: {
                                         total: number;
@@ -1772,6 +1976,9 @@ export interface paths {
                     attr?: {
                         [key: string]: string;
                     };
+                    docType?: "PRODUCT" | "PART" | "ALL";
+                    partTypeId?: string;
+                    ownerSku?: string;
                     page?: number;
                     limit?: number;
                 };
@@ -1945,8 +2152,8 @@ export interface paths {
          *     | Parameter | Type | Default | Description |
          *     |-----------|------|---------|-------------|
          *     | q | string | — | Free-text search (matches product name and description, case-insensitive) |
-         *     | categoryId | uuid | — | Filter by exact category UUID |
-         *     | categorySlug | string | — | Filter by category slug (alternative to categoryId) |
+         *     | categoryId | uuid | — | Filter by category UUID — matches this category AND any of its subcategories |
+         *     | categorySlug | string | — | Filter by category slug (alternative to categoryId) — same subcategory-inclusive matching |
          *     | brandId | uuid | — | Filter by exact brand UUID |
          *     | brandSlug | string | — | Filter by brand slug (alternative to brandId) |
          *     | condition | enum | — | Filter by variant condition: `NEW`, `USED`, `REFURBISHED`, `OPEN_BOX` |
@@ -1987,6 +2194,9 @@ export interface paths {
                     attr?: {
                         [key: string]: string;
                     };
+                    docType?: "PRODUCT" | "PART" | "ALL";
+                    partTypeId?: string;
+                    ownerSku?: string;
                     page?: number;
                     limit?: number;
                 };
@@ -4579,7 +4789,7 @@ export interface paths {
         put?: never;
         /**
          * Create category
-         * @description Creates a new category. Accepts `multipart/form-data` so you can upload an image in the same request.
+         * @description Creates a new category. Accepts `multipart/form-data` so you can upload an image (and banner images) in the same request.
          *
          *     **Image upload (optional)**
          *
@@ -4589,19 +4799,32 @@ export interface paths {
          *     If you do not have a file to upload you can instead pass `imageUrl` as a plain URL string.
          *     Both are optional — omitting both leaves `imageUrl: null`.
          *
+         *     **Banner images (optional)** — separate from `image` above. `image` is the small thumbnail/icon shown
+         *     in nav and category grids; `banners` is an array of large promotional/hero images for this category's
+         *     own landing page (e.g. a rotating carousel). Send up to 8 files in the `banners` field. Per-banner
+         *     metadata is supplied via numbered fields, same convention `POST /products` already uses for its
+         *     images: `bannerAlt_0`, `bannerPrimary_0`, `bannerSortOrder_0` for the first file, `bannerAlt_1` for
+         *     the second, and so on. If no banner is marked primary, the first one defaults to primary. Banners can
+         *     also be added later via `POST /categories/{categoryId}/banners` — you don't have to supply them all
+         *     at creation time.
+         *
          *     ```
          *     POST /api/v1/products/categories
          *     Content-Type: multipart/form-data
          *
          *     Fields:
-         *       name          string   (required)
-         *       description   string
-         *       slug          string   (auto-derived from name if omitted)
-         *       parentId      uuid     (for sub-categories)
-         *       sortOrder     number
-         *       isActive      boolean
-         *       image         file     (optional — the category image; field name must be "image")
-         *       imageUrl      string   (optional — use instead of image when you already have a CDN URL)
+         *       name               string   (required)
+         *       description        string
+         *       slug                string   (auto-derived from name if omitted)
+         *       parentId            uuid     (for sub-categories)
+         *       sortOrder           number
+         *       isActive            boolean
+         *       image                file     (optional — the nav/grid thumbnail; field name must be "image")
+         *       imageUrl             string   (optional — use instead of image when you already have a CDN URL)
+         *       banners               file[]   (optional — up to 8 landing-page banner images; field name must be "banners")
+         *       bannerAlt_0           string   (optional — alt text for the 1st banner)
+         *       bannerPrimary_0       "true"   (optional — send "true" to mark the 1st banner as primary)
+         *       bannerSortOrder_0     number   (optional — display order for the 1st banner)
          *     ```
          *
          *     Requires **categories:write** permission.
@@ -4619,7 +4842,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Category created. imageUrl is null if no image was supplied. */
+                /** @description Category created. imageUrl/banners are empty if none were supplied. */
                 201: {
                     headers: {
                         [name: string]: unknown;
@@ -4630,6 +4853,13 @@ export interface paths {
                             data: components["schemas"]["Category"];
                         };
                     };
+                };
+                /** @description Validation error, or more than 8 banner files sent */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Insufficient permissions — requires categories:write */
                 403: {
@@ -4873,6 +5103,315 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/categories/{categoryId}/banners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add banner images to a category
+         * @description Adds one or more banner images to an existing category's landing-page gallery, on top of
+         *     whatever it already has. Same numbered-field metadata convention as `POST /categories`'s `banners` field
+         *     (`bannerAlt_0`, `bannerPrimary_0`, `bannerSortOrder_0`, ...). Setting `bannerPrimary_{i}` on one of the
+         *     new uploads unmarks any existing primary banner on this category.
+         *
+         *     Requires **categories:write** permission.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": components["schemas"]["AddCategoryBannersRequest"];
+                };
+            };
+            responses: {
+                /** @description Banners added. Returns the category's full banner list. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                banners: components["schemas"]["CategoryBanner"][];
+                            };
+                        };
+                    };
+                };
+                /** @description No files sent, or more than 8 banner files sent */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires categories:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Category not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/categories/{categoryId}/banners/{bannerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a category banner
+         * @description Removes one banner image from the category's gallery and deletes it from storage. Requires **categories:write** permission.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                    bannerId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Banner deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                message: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Insufficient permissions — requires categories:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Category not found, or banner does not belong to this category */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit a category banner's alt text (backend-asks item 20)
+         * @description Currently just `altText` — the field that had no update path at all (a typo required deleting and re-uploading the image). `sortOrder` moves via the reorder route above, `isPrimary` via the `.../primary` route above. Requires **categories:write** permission.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                    bannerId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCategoryBannerRequest"];
+                };
+            };
+            responses: {
+                /** @description Banner updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["CategoryBanner"];
+                        };
+                    };
+                };
+                /** @description Insufficient permissions — requires categories:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Category not found, or banner does not belong to this category */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/products/categories/{categoryId}/banners/{bannerId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set a category banner as primary
+         * @description Marks one banner as primary (and unmarks any other) — the primary banner is what a single-image banner slot should render first. Requires **categories:write** permission.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                    bannerId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Primary banner updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                message: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Insufficient permissions — requires categories:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Category not found, or banner does not belong to this category */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/products/categories/{categoryId}/banners/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reorder a category's banners (backend-asks item 20)
+         * @description Mirrors `PATCH /products/{productId}/images/reorder`. Previously the only way to move a banner's position was to delete and re-upload it — which changes its id, storage object, and alt text. Requires **categories:write** permission.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReorderCategoryBannersRequest"];
+                };
+            };
+            responses: {
+                /** @description Reordered. Returns the category's full banner list. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                banners: components["schemas"]["CategoryBanner"][];
+                            };
+                        };
+                    };
+                };
+                /** @description One or more banner IDs do not belong to this category */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires categories:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/products/categories/{categoryId}/subcategories": {
@@ -5674,6 +6213,712 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/flash-sales/how-it-works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Why flash sales reuse the markup-rule system (read me first)
+         * @description ## A flash sale is a markup rule with a negative percentage — not a separate feature
+         *
+         *     There is no `FlashSale` table, no separate flash-sale service, no parallel pricing path. `POST /flash-sales` creates (or updates) the exact same `PriceMarkupRule`/`PartMarkupRule` row that `POST /pricing/markup-rules` does — the only thing that makes a rule "a flash sale" instead of "a pricing policy" is that `markupPercentage` is negative. Every product and part in this catalogue already goes through this rule engine for **every** price it shows (`price = basePrice × (1 + markupPercentage / 100)`, resolved by specificity: exact product/part → category+brand(+type) → brand-only → category-only). A flash sale is that same computation with a negative number.
+         *
+         *     ### Why we built it this way instead of a separate system
+         *
+         *     **One pricing engine means one place a resolution bug can exist.** If flash sales had their own resolver, "what price does this customer actually see" would depend on merging two independent systems' output (base markup + a possible sale layered on top, or a sale that should but doesn't override a standing markup, etc.). Reusing the exact resolver used everywhere else means a flash sale is *by construction* consistent with every other price on the site — there's nothing to keep in sync because there's only one thing.
+         *
+         *     **`basePrice` already existed as the untouched source of truth.** Every variant and part stores `price` (what's charged) separately from `basePrice` (what it'd be with no rule at all), and `deriveFromBase()` always recomputes `price` from `basePrice`, never from the current `price`. That single design decision — made for ordinary markups, long before flash sales existed — is exactly what makes a sale safe: it can never compound on top of a prior markup, and "ending the sale" is just re-deriving with the rule off. A purpose-built flash-sale system would have had to invent this same base/derived split from scratch, or risk sale prices compounding or failing to fully revert.
+         *
+         *     **"On sale" is self-clearing, not a status flag.** `GET /flash-sales` finds discounted items with `price < basePrice` — read straight off the same columns every other listing already returns. There's no `isOnSale` boolean that could drift from reality (get left `true` after a sale ends, or `false` while a sale is somehow still live). The instant a rule is edited back to non-negative, deactivated, or expires, the item simply stops matching that query — nothing to remember to unset.
+         *
+         *     **Every safety net a markup rule already has, a flash sale gets for free:** the ±2%–500%/-99% percentage bounds, the cost-floor guard (a markdown can never price below `costPrice`), chunked batched writes for large scopes, cache invalidation, search-reindex queueing, and the audit trail (`createdByStaffId`, `notes`, `ruleId`). None of that was rebuilt for flash sales — `setFlashSalePricing`/`setPartFlashSalePricing` are thin upsert-and-apply-immediately wrappers around `createRule`/`updateRule`, so a sale inherits every guarantee those already had.
+         *
+         *     **Coupon-stacking reuses the same resolution, not a second lookup.** `findCouponStackingBlocker` (checked on every checkout path) calls the identical `resolveMarkupRule`/`resolvePartMarkupRule` functions every price computation already goes through, rather than maintaining its own idea of "is this item on sale right now." One resolver, one truth.
+         *
+         *     **What a separate system would have cost:** its own specificity/priority resolution (product vs. category vs. brand — and a second place that logic could diverge from the primary engine's), its own base/derived price handling to make sales reversible and non-compounding, its own "is this actually still on sale" tracking, its own coupon-interaction logic, its own cache invalidation and search reindexing, and — the real cost — a permanent mental burden on every future reader: "there are two pricing systems, which one applies here?" Reusing the rule engine collapses that back to one question with one answer.
+         *
+         *     ### The two additive pieces that make it a first-class feature, not a hack
+         *
+         *     - **`allowCouponStacking`** (boolean, default `false`) — the one thing a "policy" markup never needed to ask: whether a coupon may still be applied on top of a sale price. Opt-in per sale.
+         *     - **`expiresAt`** (optional timestamp) — a background worker resets an expired sale's scope to base price and deactivates the rule automatically, the same effect as `POST .../cancel`, just on a schedule. See the field description on `POST /flash-sales`.
+         *
+         *     Both are just extra columns on the same rule row — not new systems of their own.
+         *
+         *     *This endpoint is documentation only — there is nothing to call.*
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conceptual overview — not a real endpoint */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/flash-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List everything currently on sale
+         * @description See `GET /flash-sales/how-it-works` for why this reuses the markup-rule system instead of a separate flash-sale feature.
+         *
+         *     Public. Products and parts whose price is currently below their base price via an active markup rule with a negative percentage.
+         *
+         *     No separate "sale" flag is stored anywhere — this reads live off the same `price`/`basePrice` columns every other product/part endpoint already returns. An item drops off this list the instant an admin edits its rule back to a non-negative percentage, or deactivates it — there is nothing else to "end" a sale.
+         *
+         *     Returns products and parts as two separate paginated lists (not merged) — pass `page`/`limit` and both lists page together.
+         *
+         *     **NEW — `deals`:** ACTIVE deals (see `POST /deals`), each carrying its own `id`/`dealId`/`name`/`expiresAt`/`allowCouponStacking` plus its OWN `products`/`parts` arrays (unpaginated, same item shape as the flat lists below, capped at 100 each) — this is what lets the storefront show "Weekend Laptop Sale" with a countdown instead of an undifferentiated pile of cheap items. `products`/`parts` below are unchanged and still list every currently-discounted item regardless of whether it belongs to a deal, so nothing reading today's shape breaks.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Currently discounted deals, products and parts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                /** @description NEW. ACTIVE deals with their own product/part groups. */
+                                deals: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    dealId: string;
+                                    name: string;
+                                    expiresAt: string | null;
+                                    allowCouponStacking: boolean;
+                                    /** @description ProductListItem[], unpaginated, capped at 100. NOT a ranking — when a deal covers more than 100 currently-discounted products, which 100 survive the cap is not ordered by recency/price/anything meaningful. Do not present as "top items". */
+                                    products: {
+                                        [key: string]: unknown;
+                                    }[];
+                                    /** @description PartResponse[], unpaginated, capped at 100. Same non-ranking caveat as products above. Also: parts are filtered on isInStock:true, products are not — a deal's part group can hide sold-out parts while its product group still shows sold-out products, so don't assume the two arrays follow the same stock rule if rendered as one grid. */
+                                    parts: {
+                                        [key: string]: unknown;
+                                    }[];
+                                }[];
+                                products: {
+                                    /** @description ProductListItem[] — same shape as GET /products/search results */
+                                    data: {
+                                        [key: string]: unknown;
+                                    }[];
+                                    meta: {
+                                        total: number;
+                                        page: number;
+                                        limit: number;
+                                        totalPages: number;
+                                        hasNextPage: boolean;
+                                        hasPrevPage: boolean;
+                                    };
+                                };
+                                parts: {
+                                    /** @description PartResponse[] — same shape as GET /products/parts results */
+                                    data: {
+                                        [key: string]: unknown;
+                                    }[];
+                                    meta: {
+                                        total: number;
+                                        page: number;
+                                        limit: number;
+                                        totalPages: number;
+                                        hasNextPage: boolean;
+                                        hasPrevPage: boolean;
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Start or update a flash sale on a product/category/brand
+         * @description See `GET /flash-sales/how-it-works` for why this reuses the markup-rule system instead of a separate flash-sale feature, and the benefits that comes with.
+         *
+         *     An upsert, thinner than the general markup-rule endpoints: creates a negative-markup rule and applies it immediately (prices are live by the time this responds), or if a rule already exists at the exact scope, updates and reapplies it — you never need a separate "now apply it" call the way `POST /pricing/markup-rules` does.
+         *
+         *     `markupPercentage` must be negative (at least -2, down to -99) — this is what makes it a sale rather than a standing pricing policy. Sending a positive value is rejected; use `POST /pricing/markup-rules` for that instead.
+         *
+         *     **Scope** follows the exact same specificity rules as regular markup rules — `productId` alone, or `categoryId`+`brandId`, or either alone. A product-level sale takes precedence over a category/brand-level standing rule without touching it, which is the recommended way to run a sale on top of an existing pricing policy (see `allowCouponStacking` below for the other thing to decide per sale).
+         *
+         *     **NEW — scope conflict is rejected, not overwritten:** if a standing markup rule (a non-negative `markupPercentage`) already exists at the *exact* same scope you pass here, this now returns `409 MARKUP_RULE_SCOPE_CONFLICT` naming that rule instead of overwriting it. Before this, starting a sale at the same scope as an existing pricing policy silently replaced that policy's row, and ending the sale (reset-to-base) permanently lost the original percentage with no record it ever existed. Use a more specific scope (add a `productId`/`brandId`) to run the sale underneath the standing rule instead.
+         *
+         *     **Ending a sale** happens one of three ways: call this again with a positive percentage via `PATCH /pricing/markup-rules/{ruleId}`, deactivate the rule, or (see `expiresAt` below) just let it expire. There is no separate "end sale" endpoint beyond those.
+         *
+         *     **`expiresAt`** (optional): schedule the sale to end itself. A background worker checks every few minutes for active flash-sale rules past their `expiresAt` and resets their scope back to base price + deactivates the rule — the exact same effect as `POST .../cancel`, just automatic. New price computations stop honoring an expired rule immediately (not just after the worker's next sweep); the sweep is what fixes prices that were already written before expiry. Omit for a sale that runs until ended manually. Sending this again on the same scope without a new value clears any previously-set expiry.
+         *
+         *     **`allowCouponStacking`** (default `false`): whether a coupon code may still be applied on top of this sale's price at checkout. When `false`, a coupon covering a cart containing this item is rejected entirely at checkout, naming the blocking product — see `POST /checkout`'s `COUPON_STACKING_BLOCKED`/`STACKING_BLOCKED` responses.
+         *
+         *     For parts, use `POST /products/parts/flash-sales` with `partId`/`categoryId`/`brandId`/`partTypeId` instead — same shape, different scope fields.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetFlashSaleRequest"];
+                };
+            };
+            responses: {
+                /** @description Sale created/updated and applied — prices are live. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["MarkupRule"] & {
+                                variantsRecomputed: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Validation error — markupPercentage was not negative, or scope fields were invalid/combined incorrectly */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description NEW. MARKUP_RULE_SCOPE_CONFLICT — a standing (non-negative) markup rule already covers this exact scope; the sale was not applied. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List deals
+         * @description All deals, newest first. Pass `?status=DRAFT|SCHEDULED|ACTIVE|ENDED` to filter server-side, and `?page=&limit=` to paginate (defaults 1/20, max limit 100) — previously unbounded, returning every deal ever created in one response.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED";
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deals returned, paginated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["Deal"][];
+                            meta: {
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                                hasNextPage: boolean;
+                                hasPrevPage: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:read */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a deal (draft or scheduled)
+         * @description Creates a deal — a named, schedulable group of markup rules. No `PriceMarkupRule`/`PartMarkupRule` rows exist yet after this call; `POST .../{id}/start` (or, if `startsAt` is set, the automatic sweep once it passes) is what turns each `targets` entry into a real rule and stamps it with this deal's id.
+         *
+         *     **Status on create:** omit `startsAt` for `DRAFT` (only starts manually via `POST .../start`); set it for `SCHEDULED` (auto-starts once that time passes, or earlier via a manual `POST .../start`).
+         *
+         *     **`targets`** is an array of 1-100 entries, each shaped like a `POST /flash-sales`/`POST /parts/flash-sales` body tagged with `entityType: 'product' | 'part'` — every product/category/brand-scoping rule those endpoints enforce applies per-target here too (mutually-exclusive scope fields, `markupPercentage` must be negative). Starting the deal calls the exact same `setFlashSalePricing`/`setPartFlashSalePricing` functions those endpoints use, one target at a time — including their `MARKUP_RULE_SCOPE_CONFLICT` guard (see `POST /flash-sales`), so a target can fail at start time without the whole deal create failing here.
+         *
+         *     **Ending a deal** (`POST .../end`) resets every rule it started back to base price, the same way `POST /flash-sales/.../cancel` does per-rule — see that endpoint's docs.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateDealRequest"];
+                };
+            };
+            responses: {
+                /** @description Deal created (DRAFT or SCHEDULED — not yet live). */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["Deal"];
+                        };
+                    };
+                };
+                /** @description Validation error — bad target scope, non-negative markupPercentage, empty targets array, or expiresAt not after startsAt */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/deals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a deal by ID
+         * @description Returns the deal plus its live rules under `rules.products`/`rules.parts` (empty for a DRAFT/SCHEDULED deal that hasn't started yet).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deal returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:read */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Deal not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a DRAFT or SCHEDULED deal (backend-asks item 28)
+         * @description Deletes a deal outright. Only works on a `DRAFT` or `SCHEDULED` deal — neither has ever written a `PriceMarkupRule`/`PartMarkupRule` row, so a hard delete is safe with nothing to reconcile. This is also the way to cancel a `SCHEDULED` deal before it fires — deleting it removes it from the sweep's due-to-start query.
+         *
+         *     `409 DEAL_NOT_DELETABLE` once `ACTIVE` (end it first via `POST .../end`, which resets its rules to base price — deleting the row without doing that would strand every target at its marked-down price forever) or `ENDED` (kept for history, not deletable).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deal deleted. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Deal not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description DEAL_NOT_DELETABLE — this deal is ACTIVE or ENDED, not DRAFT/SCHEDULED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit a DRAFT or SCHEDULED deal (backend-asks item 28)
+         * @description Edits a deal in place — `name`, `targets`, `startsAt`, `expiresAt`, `allowCouponStacking`, `notes`, any subset. Only works on a `DRAFT` or `SCHEDULED` deal: `409 DEAL_NOT_EDITABLE` once `ACTIVE`/`ENDED` — an active deal has live rules with real prices, and the only way to change those is `POST .../end` then a fresh deal, same as a standalone flash sale never gets a silent rewrite either.
+         *
+         *     **`startsAt`/`expiresAt` are three-way, same convention as `PATCH /pricing/markup-rules/{ruleId}`:** omit the field to leave it unchanged, send `null` to clear it, send a value to set it. Clearing `startsAt` drops a `SCHEDULED` deal back to `DRAFT`; setting one on a `DRAFT` promotes it to `SCHEDULED` — the same rule `POST /deals` used to pick the initial status. `400 INVALID_DEAL_SCHEDULE` if the resulting `expiresAt` would land at or before the resulting `startsAt`.
+         *
+         *     This is what makes a `SCHEDULED` deal's `startsAt` actually correctable before it fires. Before this endpoint existed, a wrong `startsAt` meant the deal would fire anyway (the expiry sweep starts it automatically) with no way to stop it beforehand — the only recovery was letting it start and then ending it.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateDealRequest"];
+                };
+            };
+            responses: {
+                /** @description Deal updated. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["Deal"];
+                        };
+                    };
+                };
+                /** @description Validation error, or INVALID_DEAL_SCHEDULE — resulting expiresAt is not after resulting startsAt */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Deal not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description DEAL_NOT_EDITABLE — this deal is ACTIVE or ENDED, not DRAFT/SCHEDULED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/products/deals/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a deal
+         * @description Turns every stored target into a live markup rule and marks the deal `ACTIVE`. 404 if the deal doesn't exist; `409 DEAL_ALREADY_ACTIVE`/`409 DEAL_ALREADY_ENDED` if it's already past DRAFT/SCHEDULED.
+         *
+         *     **Partial failure is visible, not silent.** A target can fail independently (most commonly `MARKUP_RULE_SCOPE_CONFLICT` — see `POST /flash-sales`) without aborting the rest. The response's `results` array carries one entry per target (`success`, `ruleId` on success, `error` on failure); `targetsStarted`/`targetsFailed` summarize it. This is the fix for the twelve-separate-calls world item 26 was filed against: the failures always existed per-rule, they just used to be invisible unless you noticed a row that didn't change.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deal started — see `results`/`targetsStarted`/`targetsFailed` for the per-target outcome. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["Deal"] & {
+                                results: {
+                                    index: number;
+                                    /** @enum {string} */
+                                    entityType: "product" | "part";
+                                    success: boolean;
+                                    ruleId?: string;
+                                    error?: string;
+                                }[];
+                                targetsStarted: number;
+                                targetsFailed: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Deal not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description DEAL_ALREADY_ACTIVE or DEAL_ALREADY_ENDED — this deal is not in DRAFT/SCHEDULED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/deals/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a deal
+         * @description Resets every rule this deal started back to base price (same effect as `POST /flash-sales/.../cancel`, per rule) and marks the deal `ENDED` — terminal, create a new deal to run it again. Safe to call even if the expiry sweep already reset the underlying rules (e.g. via `expiresAt`): resetting an already-inactive rule is a no-op write, not an error.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deal ended */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["Deal"] & {
+                                variantsReset: number;
+                                partsReset: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Staff authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permissions — requires priceMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Deal not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description DEAL_NOT_ACTIVE — this deal is not currently ACTIVE */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/pricing/markup-rules": {
         parameters: {
             query?: never;
@@ -5687,8 +6932,10 @@ export interface paths {
          *
          *     **Frontend usage:** Call this to populate the markup rules management table in the admin dashboard. Each rule shows either a category+brand combination or (NEW) one exact product it targets, and what percentage is applied.
          *
+         *     **Distinguishing markups from discounts — NEW:** every rule in the response carries `ruleType`: `'MARKUP'` (positive markupPercentage) or `'DISCOUNT'` (negative — a flash sale/markdown, same negative-percentage rules that GET /flash-sales surfaces). Use `ruleType` to badge/group rows instead of re-deriving it from the percentage's sign in the frontend. To have the server pre-filter instead of fetching everything and filtering client-side, pass `?type=markup` or `?type=discount`.
+         *
          *     **Response includes:**
-         *     - Rule details (percentage, applyTo, isActive, notes)
+         *     - Rule details (percentage, ruleType, applyTo, isActive, notes)
          *     - Associated category name/slug (null if rule applies to all categories, or is product-scoped)
          *     - Associated brand name/slug (null if rule applies to all brands, or is product-scoped)
          *     - Associated product name/slug — **NEW** — populated only when the rule is scoped to one exact product
@@ -5696,7 +6943,9 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    type?: "markup" | "discount";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -5715,6 +6964,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description NEW. type was neither 'markup' nor 'discount' */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Insufficient permissions — requires products:write */
                 403: {
                     headers: {
@@ -5729,7 +6985,7 @@ export interface paths {
          * Create markup rule
          * @description Creates a new percentage-based markup rule, scoped EITHER to a category+brand combination OR (NEW) to one exact product.
          *
-         *     **Percentage range:** minimum 2%, maximum 500%. Negative values are not allowed — to reduce prices for traffic, lower the percentage toward 2%, not below.
+         *     **Percentage range:** at least 2% in either direction, up to +500% (an increase) or down to -99% (a reduction). A negative value is a markdown — see `POST /flash-sales` if what you actually want is a temporary, self-clearing sale rather than a standing pricing policy; that endpoint is a thinner wrapper around this same rule type that also applies it immediately.
          *
          *     **Important:** Creating a rule does NOT retroactively change any existing product prices. It only affects:
          *     1. Future product creations (POST /products) — NOT applicable to product-scoped rules, since the product must already exist to reference its id (see below)
@@ -5793,7 +7049,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description A rule already exists for this scope (category/brand combination, or this exact product) */
+                /** @description MARKUP_RULE_SCOPE_CONFLICT — a rule already exists for this scope (category/brand combination, or this exact product), naming the existing rule. Previously this endpoint threw a plain 500 for this case despite the spec documenting a 409; NEW, the 409 is now real. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -5866,7 +7122,7 @@ export interface paths {
          * Delete markup rule
          * @description Permanently deletes a markup rule. Pass the DB UUID (id field — not MKP-XXXXXXXX).
          *
-         *     **Important:** Deleting a rule does NOT revert any prices that were previously adjusted by this rule. Prices that were already marked up remain at their current values. To undo a markup, lower the rule's percentage back down (minimum 2%) — prices recompute from base automatically — or deactivate the rule (PATCH with `isActive: false`) to keep the audit trail.
+         *     **Blocked (400) while the rule is active.** A hard delete does not touch any prices the rule already wrote — deleting a still-active rule would strand its whole scope at the marked-up/marked-down price forever, with no rule left to explain why (and, for a flash sale specifically, breaks the "self-clearing" design the whole feature relies on). Cancel it first via `POST .../{ruleId}/cancel` (deactivates AND resets prices to base), or deactivate it via `PATCH` with `isActive: false` — either way once `isActive` is `false` this endpoint will proceed.
          */
         delete: {
             parameters: {
@@ -5879,7 +7135,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Rule deleted. Previously adjusted prices are NOT reverted. */
+                /** @description Rule deleted. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -5892,6 +7148,13 @@ export interface paths {
                             };
                         };
                     };
+                };
+                /** @description The rule is still active — cancel or deactivate it first (see description) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Insufficient permissions — requires products:write */
                 403: {
@@ -5993,7 +7256,7 @@ export interface paths {
          *     | "I'm done with this price increase — undo it" | **This endpoint** ← use this 99% of the time |
          *     | "Reset prices temporarily but keep the rule active for later" | POST /pricing/markup-rules/:ruleId/reset |
          *     | "Reset a category that has no rule, or whose rule was already deleted" | POST /pricing/reset-category |
-         *     | "Remove the rule record from the database entirely" | DELETE /pricing/markup-rules/:ruleId |
+         *     | "Remove the rule record from the database entirely" | DELETE /pricing/markup-rules/:ruleId (blocked while the rule is active — cancel or deactivate it first) |
          *
          *     ---
          *
@@ -6121,20 +7384,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Rule is brand-only (categoryId is null) — reset by category is not applicable. Use POST /pricing/reset-category with brandId instead. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @example false */
-                            success: boolean;
-                            /** @example This rule is brand-only — reset by category is not applicable. */
-                            message: string;
-                        };
-                    };
-                };
                 /** @description Insufficient permissions — requires products:write */
                 403: {
                     headers: {
@@ -6223,13 +7472,6 @@ export interface paths {
                             };
                         };
                     };
-                };
-                /** @description Rule is brand-only — reset by category not applicable */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
                 };
                 /** @description Insufficient permissions — requires products:write */
                 403: {
@@ -6794,14 +8036,30 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Order created. Response body is the full order (id, orderNumber, items, totals, status). */
+                /** @description Order created. Response body is the full order (id, orderNumber, items, totals, status), including `policyConsent` (the recorded version + server acceptedAt timestamp). */
                 201: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Validation or business error. Common messages: "Your cart is empty. Add items before placing an order." (missing/blank cartSessionId, or that cart has no items), "A shipping address is required for delivery orders." (DISPATCH without address), "Shipping address not found." (address not owned by customer), "Coupon '…' is invalid or expired.", "This cart does not belong to your account." */
+                /**
+                 * @description Validation or business error. Untyped messages (no error `code`): "Your cart is empty. Add items before placing an order." (missing/blank cartSessionId, or that cart has no items), "A shipping address is required for delivery orders." (DISPATCH without address), "Shipping address not found." (address not owned by customer), "This cart does not belong to your account.", stock-availability messages.
+                 *
+                 *     Coupon rejections DO carry a typed `code` (NEW — previously these were unlabelled 500s despite `dto.couponCode` being accepted; see backend-asks item 21):
+                 *
+                 *     | Code | Cause |
+                 *     |---|---|
+                 *     | `INVALID_COUPON` | couponCode does not match an active, unexpired coupon |
+                 *     | `COUPON_USAGE_LIMIT_REACHED` | Coupon has reached its global usage cap |
+                 *     | `COUPON_ALREADY_USED` | Customer already redeemed this coupon the max number of times |
+                 *     | `COUPON_STACKING_BLOCKED` | The cart contains an item currently on a flash sale/markup rule with `allowCouponStacking: false` (see `POST /products/flash-sales`) — the whole cart is rejected, not just that line; `message` names the blocking product |
+                 *     | `COUPON_MIN_ORDER_NOT_MET` | Cart subtotal is below the coupon's minOrderAmount |
+                 *     | `POLICY_CONSENT_REQUIRED` | `policyConsent` missing, or `policyConsent.policyVersion` blank (checkout-policy-consent ask, 2026-09-04) |
+                 *     | `POLICY_VERSION_UNSUPPORTED` | `policyConsent.policyVersion` does not match the currently published version — see `GET /api/v1/policy/current` |
+                 *     | `HUNT_ITEM_REQUIRES_PICKUP` | Cart contains a live treasure-hunt item and `deliveryMethod` is not `SELF_PICKUP` (backend-asks item 29, 2026-09-07) |
+                 *     | `HUNT_ITEM_REQUIRES_IDEMPOTENCY_KEY` | Cart contains a live treasure-hunt item and `idempotencyKey` was not sent |
+                 */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -6810,6 +8068,13 @@ export interface paths {
                 };
                 /** @description Customer authentication required */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description `HUNT_ITEM_ALREADY_CLAIMED` — the treasure-hunt item in this cart was claimed by another order between the fast-path check and the atomic database claim. This is an expected outcome under concurrency, not a bug — render it as a "someone beat you to it" state, not a generic error. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -6900,7 +8165,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Order returned */
+                /** @description Order returned, including `policyConsent` (the customer always sees their own). */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -7004,7 +8269,7 @@ export interface paths {
         };
         /**
          * Get any order by ID
-         * @description Staff can read any order. Requires SALES_ADMIN or SUPER_ADMIN.
+         * @description Staff can read any order. Requires `orders:read` (SUPER_ADMIN always passes every permission check). The `policyConsent` field is additionally gated by `policy:consent:read` (checkout-policy-consent ask, 2026-09-04) — a staff member with `orders:read` but not `policy:consent:read` still gets the full order, just with the `policyConsent` key omitted, not blocked from the endpoint.
          */
         get: {
             parameters: {
@@ -7017,7 +8282,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Order returned */
+                /** @description Order returned; `policyConsent` present only with `policy:consent:read`. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -11658,6 +12923,2808 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/sales-notifications/how-it-works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How sales notifications work (read me first)
+         * @description ## New-sale email notification
+         *
+         *     Every time a customer's payment is confirmed **PAID**, a background job emails every **active**
+         *     registered recipient with the sale details. Subject line is always `"Blessing Computers Sales"`.
+         *     The email includes the customer's name, email, the purchase date/time, and an itemized list of
+         *     what was bought (product, variant, quantity, line total) plus the order total.
+         *
+         *     ### Trigger
+         *     Fired from `order.service.ts`'s `onPaymentSuccess`, which runs immediately after
+         *     `payment.service.ts` marks a `Payment`/`Order` as `PAID` (covers both the standard gateway
+         *     verification flow and the Miden webhook path — both converge on the same hook). It is fire-and-forget:
+         *     a failure to queue the notification is logged but never fails the payment itself.
+         *
+         *     ### Recipients — read fresh every time, never cached
+         *     The worker queries the CURRENT list of `isActive: true` recipients at send time, not a
+         *     snapshot taken when the order was placed. Add a recipient a minute before a sale completes and
+         *     they still get that email; deactivate one and they stop receiving new ones immediately. If there
+         *     are zero active recipients when a sale completes, the job is skipped (logged, not retried) — no
+         *     email exists to send.
+         *
+         *     ### Managing recipients (admin)
+         *     Simple CRUD over the recipient list. Requires the `salesNotifications:manage` permission
+         *     (SUPER_ADMIN always allowed):
+         *     - `GET /api/v1/sales-notifications/emails` — list all recipients (active and inactive)
+         *     - `GET /api/v1/sales-notifications/emails/{id}` — read one
+         *     - `POST /api/v1/sales-notifications/emails` — add a recipient
+         *     - `PATCH /api/v1/sales-notifications/emails/{id}` — edit email/label/isActive
+         *     - `DELETE /api/v1/sales-notifications/emails/{id}` — remove a recipient permanently
+         *
+         *     Use `isActive: false` (via PATCH) to temporarily stop notifying someone without losing the
+         *     record — e.g. someone going on leave. `email` is globally unique across the recipient list.
+         *
+         *     *This endpoint is documentation only — there is nothing to call.*
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conceptual overview — not a real endpoint */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-notifications/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sales notification recipients
+         * @description Returns every registered recipient, active and inactive, newest first. Requires
+         *     `salesNotifications:manage`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of recipients */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["SalesNotificationEmail"][];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requires salesNotifications:manage permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Add a sales notification recipient
+         * @description Registers a new email to receive the sale notification. `email` must be unique
+         *     across the recipient list (409 if already registered). Defaults to `isActive: true`. Requires
+         *     `salesNotifications:manage`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        label?: string;
+                        /** @default true */
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recipient added */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["SalesNotificationEmail"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requires salesNotifications:manage permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description This email is already registered */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-notifications/emails/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a sales notification recipient */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The recipient */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["SalesNotificationEmail"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requires salesNotifications:manage permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recipient not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Remove a sales notification recipient
+         * @description Permanently deletes the recipient — they immediately stop receiving new sale
+         *     notifications. Requires `salesNotifications:manage`.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recipient removed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requires salesNotifications:manage permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recipient not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update a sales notification recipient
+         * @description Edit the email, label, or active state. Set `isActive: false` to pause
+         *     notifications to this address without deleting the record. Requires `salesNotifications:manage`.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email?: string;
+                        label?: string | null;
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recipient updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["SalesNotificationEmail"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requires salesNotifications:manage permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recipient not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The new email is already registered to another recipient */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/preorders/how-it-works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How preorders work (read me first)
+         * @description ## Preorder lead-capture form
+         *
+         *     Lets a logged-in customer register interest in a product ahead of (or currently outside) the
+         *     regular catalogue — e.g. an upcoming restock or a model not yet listed for sale. `productName`
+         *     and `brand` are free text, not a product catalogue reference, since the item preordered often
+         *     isn't in the catalogue yet.
+         *
+         *     ### Authentication — NOT a public/anonymous form
+         *     Every preorder route requires a logged-in customer (`Authorization: Bearer <customer JWT>`).
+         *     `preorderId` (a `PRE-...` reference code) is returned on submit as a human-readable label for
+         *     the customer's own records, but it is **not** a substitute for authentication — fetching or
+         *     updating a preorder always also checks that it belongs to the calling customer. A different
+         *     customer's preorder, even with the correct `preorderId`, returns 404, not the record.
+         *
+         *     ### Customer routes
+         *     - `POST /api/v1/preorders` — submit a preorder
+         *     - `GET /api/v1/preorders` — list your own preorders, paginated + filterable by status
+         *     - `GET /api/v1/preorders/{preorderId}` — fetch your own preorder
+         *     - `PATCH /api/v1/preorders/{preorderId}` — update your own preorder (any field except `status`) —
+         *       rejected with 409 once staff have moved it past `CONTACTED`
+         *     - `POST /api/v1/preorders/{preorderId}/deposit-proof` — upload proof of your deposit payment
+         *     - `POST /api/v1/preorders/{preorderId}/balance-proof` — upload proof of your balance payment
+         *
+         *     ### Admin — full visibility + the status lifecycle
+         *     Staff can see every preorder with full customer + product detail, and are the only ones who can
+         *     move a preorder through `PENDING → CONTACTED → CONFIRMED → FULFILLED` (or `→ CANCELLED`).
+         *     Every admin preorder route now checks a specific `preorders:...` permission rather than a
+         *     blanket `SUPER_ADMIN`-only gate — `SUPER_ADMIN` still passes every check automatically, but
+         *     other staff can be granted just the slice they need (see each route below for which permission it
+         *     requires):
+         *     - `GET /api/v1/admin/preorders` — list all, searchable + filterable by status
+         *     - `GET /api/v1/admin/preorders/{id}` — single preorder detail (by internal id, not `preorderId`)
+         *     - `PATCH /api/v1/admin/preorders/{id}/status` — move it to the next status
+         *     - `PATCH /api/v1/admin/preorders/{id}/deposit-terms` — set/update the agreed price + deposit %
+         *     - `POST /api/v1/admin/preorders/{id}/deposit/approve` — confirm a submitted deposit proof
+         *     - `POST /api/v1/admin/preorders/{id}/deposit/reject` — reject a submitted deposit proof
+         *     - `POST /api/v1/admin/preorders/{id}/balance/request` — open the balance payment once goods are ready
+         *     - `POST /api/v1/admin/preorders/{id}/balance/approve` — confirm a submitted balance proof
+         *     - `POST /api/v1/admin/preorders/{id}/balance/reject` — reject a submitted balance proof
+         *
+         *     ### Two-stage payment: deposit, then balance
+         *     Once a price has been agreed with the customer (typically after `CONTACTED`), staff set
+         *     `totalAmount` and `depositPercentage` via `PATCH .../deposit-terms`. `depositAmount`,
+         *     `balancePercentage` (the complement, `100 - depositPercentage`) and `balanceAmount` are all
+         *     derived and stored at that moment — they don't silently change later. This immediately surfaces on
+         *     the customer's own `GET` of the preorder (`depositStatus` moves to `PENDING`) so their dashboard
+         *     can show exactly what's owed now and what's owed later. Both stages share the identical
+         *     upload → approve/reject lifecycle:
+         *
+         *     **Deposit** — paid up front:
+         *     1. Customer pays by bank transfer (see the manual-checkout bank accounts) and uploads a receipt
+         *        via `POST .../deposit-proof`, moving `depositStatus → PROOF_SUBMITTED`.
+         *     2. Staff **approve** (`POST .../deposit/approve` → `APPROVED`) or **reject** (`POST
+         *        .../deposit/reject` with a `rejectionReason` → `REJECTED`).
+         *     3. On rejection the customer re-uploads via the same `POST .../deposit-proof` route. The
+         *        rejected image is deleted from storage the moment the replacement is uploaded (not immediately
+         *        on rejection), so staff can still open `depositProofUrl` up until then.
+         *
+         *     **Balance** — paid once the goods have been received. `balancePercentage`/`balanceAmount` are
+         *     already known as soon as the deposit terms are set, but the payment itself only opens once staff
+         *     explicitly request it (typically once stock is in hand):
+         *     1. Staff call `POST .../balance/request` — only valid once `depositStatus` is `APPROVED`. This
+         *        sets `balanceStatus → PENDING` and notifies the customer of the amount due.
+         *     2. Customer uploads a receipt via `POST .../balance-proof`, moving `balanceStatus →
+         *        PROOF_SUBMITTED`.
+         *     3. Staff **approve** (`POST .../balance/approve` → `APPROVED`) or **reject** (`POST
+         *        .../balance/reject` with a `rejectionReason` → `REJECTED`, customer re-uploads). Same
+         *        delete-on-replacement storage cleanup as the deposit.
+         *
+         *     ### The payment-request model (preorder-payments ask, 2026-09-04)
+         *     The two-stage deposit/balance flow above is the **legacy** shape — the `deposit*`/`balance*`
+         *     fields on `PreOrder` stay readable forever for preorders already on it, but new code no longer
+         *     writes them. Every preorder issued terms from here on gets one or two
+         *     `PreOrderPaymentRequest` rows instead (`stage: FIRST_PAYMENT`, then optionally
+         *     `stage: BALANCE`), each with its own append-only `PreOrderPaymentEvidence` history. A
+         *     `GET .../admin/preorders/{id}` or a customer's own `GET /preorders/{preorderId}` embeds the
+         *     derived `PreOrderPaymentSummary` (`plan`, `amountPaid`, `amountDue`, `isFullyPaid`) —
+         *     never recomputed client-side.
+         *
+         *     Key differences from the legacy flow:
+         *     - **Atomic issue.** `PATCH .../{id}/payment-terms` snapshots the receiving bank account, opens
+         *       the `FIRST_PAYMENT` request, and flips `CONTACTED → CONFIRMED` in one transaction.
+         *       `firstPaymentPercentage: 100` means "full payment" — no `BALANCE` stage is ever opened for it.
+         *     - **Revisions never mutate a request in place.** `PATCH .../payment-terms/revise` creates a NEW
+         *       request (`revisionOfRequestId` points back) and flags the old one `isSuperseded` — only
+         *       possible while the active request is still `PENDING` with zero receipts submitted (409
+         *       otherwise: a price can't be edited out from under a submitted payment).
+         *     - **Deadlines (`payBy`) can only be extended, never shortened** — `POST
+         *       .../payment-requests/{reqId}/extend` rejects a shorter date. A request past `payBy` with no
+         *       `APPROVED` evidence is auto-`EXPIRED` by a background sweep; a reminder fires ~24h before.
+         *       `PAY_AT_HANDOFF` requests have no `payBy` and never expire.
+         *     - **Evidence is append-only.** Every receipt upload is its own row — rejecting one never deletes
+         *       it, and `POST .../payment-requests/{reqId}/request-review` lets the customer ask for another
+         *       look (reusing the same receipt image, just a corrected reference/note) without re-uploading.
+         *     - **Pay-at-handoff.** `POST .../{id}/balance/request-new` with
+         *       `collectionMethod: "PAY_AT_HANDOFF"` opens a balance stage with no bank snapshot and no
+         *       deadline — there is nothing for the customer to upload; staff record the collection directly via
+         *       `POST .../payment-requests/{reqId}/collect` once the item is handed over. This never changes
+         *       `PreOrder.status` on its own — fulfilment is always a separate, explicit action.
+         *     - **Fulfilment is blocked while unpaid.** `PATCH .../{id}/status` with `status: FULFILLED`
+         *       409s if any non-superseded payment request isn't `APPROVED`. Preorders with zero payment
+         *       requests (never issued terms — e.g. free/no-payment preorders) are unaffected.
+         *     - **Cancelling a paid preorder requires a financial resolution.** `POST .../{id}/cancel` 400s if
+         *       any payment request ever reached `APPROVED` and no `resolution` is given
+         *       (`FULL_REFUND`/`PARTIAL_REFUND`/`STORE_CREDIT`/`NO_REFUND`) — this creates a
+         *       `PreOrderRefund` row, closed out later via `POST .../refunds/{refundId}/mark-refunded`.
+         *     - **Permission-gated, not `SUPER_ADMIN`-only.** Each new route below names the specific
+         *       `preorders:...` permission it requires (see the "Preorders" permission group).
+         *     - **A commitment fee is not "fully paid" until its balance is approved.** `isFullyPaid` on
+         *       `PreOrderPaymentSummary` is only `true` for a `COMMITMENT_FEE` plan once a `BALANCE` request
+         *       exists AND is `APPROVED` — an approved first payment with no balance request yet returns
+         *       `isFullyPaid: false` with a positive `amountDue`, and the same rule gates the `FULFILLED`
+         *       transition above. Only a `FULL_PAYMENT` plan is fully paid on its single request alone.
+         *     - **Response shapes are intentionally per-operation, not one unified aggregate.** Most mutations
+         *       return the `PreOrderPaymentSummary`; `POST .../{id}/cancel` returns `{ preorder, refund }`
+         *       (the refund may be `null` for a cancellation with no approved payment to resolve);
+         *       `GET .../{id}/payment-history` returns a bare array of `PreOrderPaymentRequest`. A client
+         *       should read the response type documented on each route below rather than assume a common shape.
+         *       Both preorder-detail reads (customer `GET /preorders/{preorderId}` and staff
+         *       `GET .../admin/preorders/{id}`) additionally embed `refund` (the most recent
+         *       `PreOrderRefund` for that preorder, or `null`) alongside `paymentSummary`, so the resolution,
+         *       amount, reason and work status survive a page reload without needing the original cancel response.
+         *     - **Notification delivery is best-effort, not transactionally guaranteed.** Issuing terms (and
+         *       every other mutation here) commits its database change first, then writes the in-app
+         *       notification and queues the email as separate, non-blocking steps afterward — matching this
+         *       codebase's existing pattern everywhere else notifications are sent. A confirmed state change is
+         *       never rolled back if the notification step fails; it's logged and the mutation still succeeds.
+         *       If a notification is missing, the authoritative state is always the resource itself
+         *       (`GET` the preorder/payment-history), not the notification feed.
+         *     - **Store credit is not a refund.** `POST .../refunds/{refundId}/mark-refunded`'s in-app
+         *       notification and `PREORDER_REFUND_COMPLETED` email now branch on the saved
+         *       `resolution` — a `STORE_CREDIT` completion says the store credit was issued, never
+         *       "refund". `FULL_REFUND`/`PARTIAL_REFUND` keep refund wording. Amount and preorder
+         *       reference are present either way (preorder-payments follow-up item 10, 2026-09-08).
+         *     - **Every preorder submission notifies staff by email, not just the customer.** `POST
+         *       /preorders` fires two emails: a confirmation to the customer, and a full submission
+         *       summary — customer contact info, delivery address, product/brand/quantity, and any
+         *       product description/notes — to every active recipient in the sales-notification list
+         *       (`salesNotificationEmail`, managed via `salesNotifications:manage`). Any staff member
+         *       added there receives it; there's no separate "preorder-only" recipient list to configure.
+         *
+         *     *This endpoint is documentation only — there is nothing to call.*
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conceptual overview — not a real endpoint */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preorders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List your own preorders
+         * @description Paginated list of the authenticated customer's own preorders, newest first.
+         *     Scoped to `req.customer.id` — there is no way to list anyone else's preorders through this route.
+         *     The PRE-… reference code is no longer your only handle on a submission (see GET /{preorderId}
+         *     below); this is the intended way to browse your own history without needing to have saved it.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    status?: "PENDING" | "CONTACTED" | "CONFIRMED" | "FULFILLED" | "CANCELLED";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Preorders returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            /** @example Success */
+                            message: string;
+                            data: {
+                                data: components["schemas"]["PreOrder"][];
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Submit a preorder
+         * @description Requires a logged-in customer. Rate-limited to 5 submissions/hour. Returns the
+         *     created preorder including its `preorderId` reference code — keep it, it's needed for
+         *     GET/PATCH.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        firstName: string;
+                        lastName: string;
+                        /** Format: email */
+                        email: string;
+                        phoneNumber: string;
+                        address: string;
+                        city: string;
+                        state: string;
+                        postalCode?: string;
+                        country: string;
+                        productName: string;
+                        brand: string;
+                        /** @default 1 */
+                        quantity?: number;
+                        productDescription?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Preorder submitted */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit reached (5 submissions/hour) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preorders/{preorderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get your own preorder
+         * @description Fetches a preorder by its reference code. Only returns it if it belongs to the
+         *     authenticated customer — otherwise 404, same as if it didn't exist.
+         *
+         *     Beyond the base fields shown in the schema below, the response additionally embeds
+         *     `paymentSummary` (a `PreOrderPaymentSummary`, or `null` for a legacy/no-terms preorder) and
+         *     `refund` (the most recent `PreOrderRefund` for this preorder, or `null` — preorder-payments
+         *     follow-up item 8, 2026-09-07, so a cancellation's resolution/amount/reason/work-status survive a
+         *     page reload without needing the original cancel response).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preorderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The preorder */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update your own preorder
+         * @description Edit any field submitted originally (contact info, address, quantity, product
+         *     details) except `status`, which only staff can move through its lifecycle. Same ownership check
+         *     as GET — a reference code that isn't yours returns 404.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preorderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        firstName?: string;
+                        lastName?: string;
+                        /** Format: email */
+                        email?: string;
+                        phoneNumber?: string;
+                        address?: string;
+                        city?: string;
+                        state?: string;
+                        postalCode?: string;
+                        country?: string;
+                        productName?: string;
+                        brand?: string;
+                        /** @default 1 */
+                        quantity?: number;
+                        productDescription?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Preorder updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/preorders/{preorderId}/deposit-proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload proof of your deposit payment
+         * @description Multipart/form-data upload of a receipt image (`file` field — JPEG/PNG/WebP/GIF,
+         *     5MB max) proving the deposit was paid. Only allowed while `depositStatus` is `PENDING` or
+         *     `REJECTED` (i.e. staff have set deposit terms and no proof is currently under review). If a
+         *     previous proof exists — most commonly a rejected one — it is deleted from storage before the new
+         *     one is uploaded. On success `depositStatus` moves to `PROOF_SUBMITTED` for staff review. Same
+         *     ownership check as the other preorder routes — a reference code that isn't yours returns 404.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preorderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        customerNote?: string;
+                        /**
+                         * Format: binary
+                         * @description Receipt image. JPEG / PNG / WebP / GIF. Max 5MB.
+                         */
+                        file?: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description Deposit proof uploaded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error, no file uploaded, or depositStatus does not allow an upload right now */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preorders/{preorderId}/balance-proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload proof of your balance payment
+         * @description Multipart/form-data upload of a receipt image (`file` field — JPEG/PNG/WebP/GIF,
+         *     5MB max) proving the balance — the amount due once the goods have been received — was paid. Only
+         *     allowed while `balanceStatus` is `PENDING` or `REJECTED` (i.e. staff have requested the balance
+         *     payment via `POST /api/v1/admin/preorders/{id}/balance/request` and no proof is currently under
+         *     review). If a previous proof exists — most commonly a rejected one — it is deleted from storage
+         *     before the new one is uploaded. On success `balanceStatus` moves to `PROOF_SUBMITTED` for staff
+         *     review. Same ownership check as the other preorder routes — a reference code that isn't yours
+         *     returns 404.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preorderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        customerNote?: string;
+                        /**
+                         * Format: binary
+                         * @description Receipt image. JPEG / PNG / WebP / GIF. Max 5MB.
+                         */
+                        file?: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description Balance proof uploaded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error, no file uploaded, or balanceStatus does not allow an upload right now */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all preorders
+         * @description Every preorder across every customer, with full customer + product detail.
+         *     Search matches reference code, first/last name, email, product name, or brand. Requires the `preorders:read` permission (SUPER_ADMIN always passes every permission check).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    status?: "PENDING" | "CONTACTED" | "CONFIRMED" | "FULFILLED" | "CANCELLED";
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Preorders returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                data: components["schemas"]["PreOrder"][];
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get preorder detail
+         * @description Single preorder by its internal id (NOT the `preorderId` reference code shown to
+         *     customers — see the note on GET /admin/transactions/{paymentId} for the same distinction).
+         *
+         *     Beyond the base fields, the response additionally embeds `paymentSummary`
+         *     (`PreOrderPaymentSummary` or `null`) and `refund` (the most recent `PreOrderRefund` for this
+         *     preorder, or `null`) — staff need the refund's `id` from here to call
+         *     `POST .../refunds/{refundId}/mark-refunded` (preorder-payments follow-up item 8, 2026-09-07).
+         *
+         *     Requires the `preorders:read` permission (SUPER_ADMIN always passes every permission check).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Preorder returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Move a preorder through its lifecycle
+         * @description The only way a preorder's status ever changes — customers cannot set `status`
+         *     themselves (see PATCH /api/v1/preorders/{preorderId}, which deliberately excludes it). Without
+         *     this route every preorder is permanently `PENDING`: four of the five statuses in the enum are
+         *     otherwise unreachable in production, and the customer-facing UI's distinct wording for
+         *     `CONTACTED`/`CONFIRMED`/`FULFILLED`/`CANCELLED` is dead code until it exists.
+         *
+         *     Accepts any value in the enum — there is no enforced order (e.g. you can go straight from
+         *     `PENDING` to `CANCELLED`, or back-correct a mis-click from `CONFIRMED` to `CONTACTED`). The
+         *     usual forward path is `PENDING → CONTACTED → CONFIRMED → FULFILLED`, with `CANCELLED` reachable
+         *     from any state. Note this also flips whether the customer can still edit the preorder themselves:
+         *     PATCH /api/v1/preorders/{preorderId} is rejected with 409 once status has moved past `CONTACTED`.
+         *     Also the gate for `status: FULFILLED` — 409s if any non-superseded payment request on this
+         *     preorder isn't `APPROVED` yet (see the payment-request model note above); preorders with no
+         *     payment requests at all are unaffected. Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminUpdatePreOrderStatusBody"];
+                };
+            };
+            responses: {
+                /** @description Preorder status updated. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error — status is not one of the five valid values */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description status: FULFILLED requested while a payment request is not yet APPROVED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/deposit-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set/update the agreed price and deposit percentage
+         * @description Sets `totalAmount` (the price agreed with the customer) and `depositPercentage`
+         *     (1-100). `depositAmount` and `balanceAmount` are computed server-side and stored — never accepted
+         *     from the client. Sets `depositStatus → PENDING` and notifies the customer. Can be called again to
+         *     correct the terms, but only while `depositStatus` is `NOT_REQUESTED`, `PENDING`, or `REJECTED`
+         *     — once a proof is `PROOF_SUBMITTED`, approve or reject it first (409 otherwise); once `APPROVED`
+         *     the deposit is settled and terms are locked (409). Legacy route — preorders issued terms through
+         *     the new model use `PATCH .../{id}/payment-terms` instead (see the payment-request model note
+         *     above). Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminSetDepositTermsBody"];
+                };
+            };
+            responses: {
+                /** @description Deposit terms set. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description A proof is under review, or the deposit is already approved */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/deposit/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a submitted deposit proof
+         * @description Only valid while `depositStatus` is `PROOF_SUBMITTED`. Sets
+         *     `depositStatus → APPROVED` and notifies the customer. Legacy route. Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deposit approved. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description depositStatus is not PROOF_SUBMITTED */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/deposit/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a submitted deposit proof
+         * @description Only valid while `depositStatus` is `PROOF_SUBMITTED`. Sets
+         *     `depositStatus → REJECTED` with the given `rejectionReason` and notifies the customer to
+         *     re-upload via `POST /api/v1/preorders/{preorderId}/deposit-proof`. The rejected image is **not**
+         *     deleted from storage here — it's deleted the moment the customer's replacement upload arrives, so
+         *     staff can still open `depositProofUrl` until then. Legacy route. Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminRejectDepositBody"];
+                };
+            };
+            responses: {
+                /** @description Deposit rejected. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error, or depositStatus is not PROOF_SUBMITTED */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/balance/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the balance payment for the customer to pay
+         * @description Call once the goods are ready and the customer should pay the remaining balance.
+         *     Only valid while `depositStatus` is `APPROVED` — there is nothing to collect a balance on until
+         *     the deposit has been settled (409 otherwise) — and while `balanceStatus` is `NOT_REQUESTED`,
+         *     `PENDING`, or `REJECTED` (409 if a proof is currently `PROOF_SUBMITTED` or already `APPROVED`).
+         *     `balancePercentage`/`balanceAmount` were already fixed when the deposit terms were set — this
+         *     call doesn't change them, it just opens the stage and notifies the customer of what's due. Sets
+         *     `balanceStatus → PENDING`. Legacy route — the new model's equivalent is
+         *     `POST .../{id}/balance/request-new`, which also supports `PAY_AT_HANDOFF` (see the
+         *     payment-request model note above). Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Balance payment opened. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The deposit is not yet APPROVED, or the balance is already in progress/settled */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/balance/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a submitted balance proof
+         * @description Only valid while `balanceStatus` is `PROOF_SUBMITTED`. Sets
+         *     `balanceStatus → APPROVED` and notifies the customer that the order is fully paid.
+         *     Legacy route. Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Balance approved. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description balanceStatus is not PROOF_SUBMITTED */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/balance/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a submitted balance proof
+         * @description Only valid while `balanceStatus` is `PROOF_SUBMITTED`. Sets
+         *     `balanceStatus → REJECTED` with the given `rejectionReason` and notifies the customer to
+         *     re-upload via `POST /api/v1/preorders/{preorderId}/balance-proof`. The rejected image is **not**
+         *     deleted from storage here — it's deleted the moment the customer's replacement upload arrives, so
+         *     staff can still open `balanceProofUrl` until then. Legacy route. Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminRejectBalanceBody"];
+                };
+            };
+            responses: {
+                /** @description Balance rejected. Response body is the full, updated preorder record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrder"];
+                        };
+                    };
+                };
+                /** @description Validation error, or balanceStatus is not PROOF_SUBMITTED */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/payment-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Issue payment terms (atomic — opens the first payment, moves CONTACTED → CONFIRMED)
+         * @description Only valid while the preorder is `CONTACTED` (409 otherwise). In one transaction:
+         *     snapshots the active primary NGN bank account onto the new request (409
+         *     `NO_BANK_ACCOUNT_CONFIGURED` if none is configured), creates the `FIRST_PAYMENT`
+         *     `PreOrderPaymentRequest` (`amount = totalAmount × firstPaymentPercentage / 100`, rounded to 2dp),
+         *     and flips the preorder to `CONFIRMED`. `payBy` defaults to 72h from now if omitted.
+         *     `firstPaymentPercentage: 100` means full payment up front — no balance stage is ever opened for
+         *     it. Returns the `PreOrderPaymentSummary`, not the bare request. Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["IssuePaymentTermsBody"];
+                };
+            };
+            responses: {
+                /** @description Terms issued. Response body is the PreOrderPaymentSummary for this preorder. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder is not CONTACTED, or no active bank account is configured for the given currency */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/payment-terms/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Revise the agreed price / first-payment percentage (senior staff)
+         * @description Only valid while the active `FIRST_PAYMENT` request is `PENDING` with zero
+         *     receipts submitted — 409 `TERMS_LOCKED` once a receipt is on file (a discrepancy after
+         *     submission needs payment or refund handling, not a price edit). Creates a NEW request
+         *     (`revisionOfRequestId` points at the old one, `revisionReason` required, 10-300 chars) and
+         *     flags the old one `isSuperseded` — the old row is never edited, so what the customer originally
+         *     saw stays reconstructable. A fresh `payBy` is required (not defaulted). Notifies the customer
+         *     with both the old and new total, and warns them not to pay the previous amount.
+         *     Requires the `preorders:price:revise` permission (SUPER_ADMIN always passes every permission check).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RevisePaymentTermsBody"];
+                };
+            };
+            responses: {
+                /** @description Terms revised. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found, or no payment terms have been issued yet */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description TERMS_LOCKED — a receipt has already been submitted for the active request */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/balance/request-new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the balance payment (new model — supports pay-at-handoff)
+         * @description Only valid once the first payment is `APPROVED` (409 `FIRST_PAYMENT_NOT_APPROVED`
+         *     otherwise) and it was a commitment fee, not a 100% full payment (409 `NO_BALANCE_FOR_FULL_PAYMENT`).
+         *     409 `BALANCE_ALREADY_REQUESTED` if a balance request already exists for this preorder.
+         *     `collectionMethod: "TRANSFER_BEFORE_HANDOFF"` (default) opens a normal transfer-and-upload
+         *     request with a `payBy` deadline, same as the first payment. `collectionMethod: "PAY_AT_HANDOFF"`
+         *     opens a balance with no bank snapshot and no deadline — nothing for the customer to upload; staff
+         *     record the collection directly via `POST .../payment-requests/{reqId}/collect` once the item is
+         *     handed over. Returns the updated `PreOrderPaymentSummary`. This is the new-model successor to
+         *     the legacy `POST .../{id}/balance/request` above — same idea, adds `collectionMethod`.
+         *     Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RequestBalancePaymentBody"];
+                };
+            };
+            responses: {
+                /** @description Balance opened. Response body is the updated PreOrderPaymentSummary. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description First payment not yet APPROVED, no balance for a full payment, a balance was already requested, or PAY_AT_HANDOFF requested on a full payment */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a preorder, with financial resolution if it was paid (senior staff)
+         * @description Always valid unless the preorder is already `CANCELLED` (409). If any payment
+         *     request on this preorder ever reached `APPROVED`, `resolution` is required
+         *     (`FULL_REFUND` | `PARTIAL_REFUND` | `STORE_CREDIT` | `NO_REFUND`) — 400 `RESOLUTION_REQUIRED`
+         *     otherwise. `refundAmount`/`refundReason` are required for every resolution except `NO_REFUND`.
+         *     A non-`NO_REFUND` resolution creates a `PreOrderRefund` row with `workStatus: REFUND_REQUIRED`,
+         *     closed out later via `POST .../refunds/{refundId}/mark-refunded`; `NO_REFUND` creates the row
+         *     already `REFUNDED` (nothing further to do). A preorder with no approved payment cancels the same
+         *     as before — no resolution needed, no refund row created. Notifies the customer either way.
+         *     Requires the `preorders:cancel:refund` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CancelPreorderBody"];
+                };
+            };
+            responses: {
+                /** @description Preorder cancelled. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                preorder: components["schemas"]["PreOrder"];
+                                refund: components["schemas"]["PreOrderRefund"];
+                            };
+                        };
+                    };
+                };
+                /** @description Validation error, or RESOLUTION_REQUIRED — an approved payment exists with no resolution given */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder is already CANCELLED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/refunds/{refundId}/mark-refunded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a preorder refund as completed
+         * @description Flips a `PreOrderRefund`'s `workStatus` from `REFUND_REQUIRED` to `REFUNDED`
+         *     once the money has actually been sent (transfer, store-credit grant, etc. — this route only
+         *     records that it happened, it doesn't move money itself). 409 if already `REFUNDED`. Notifies the
+         *     customer. Requires the `preorders:cancel:refund` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    refundId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Refund marked completed. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderRefund"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Refund not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Refund is already marked REFUNDED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/{id}/payment-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Full payment-request + evidence history for one preorder
+         * @description Every `PreOrderPaymentRequest` ever created for this preorder — including
+         *     superseded ones from a price revision — oldest first, each with its full (never-deleted) evidence
+         *     history newest first. Use this for an audit trail; use the embedded `paymentSummary` on
+         *     `GET .../{id}` for the current-state view. Requires the `preorders:read` permission (SUPER_ADMIN always passes every permission check).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Payment history returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentRequest"][];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Preorder not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/payment-requests/{reqId}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extend a payment request deadline (never shorten it)
+         * @description Allowed on `PENDING`, `PROOF_SUBMITTED`, `UNDER_REVIEW`, or `EXPIRED`
+         *     requests (409 `DEADLINE_NOT_EXTENDABLE` on `APPROVED`/`REJECTED`). 400
+         *     `CANNOT_SHORTEN_DEADLINE` if `payBy` isn't strictly after the current deadline. Extending an
+         *     `EXPIRED` request reopens it back to `PENDING`. 409 `NO_DEADLINE` on a `PAY_AT_HANDOFF`
+         *     balance, which has no deadline to extend. Clears any already-sent expiry reminder so a new one can
+         *     fire before the new deadline. Customer is notified in-app only — no email for this one.
+         *     Requires the `preorders:terms:issue` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExtendDeadlineBody"];
+                };
+            };
+            responses: {
+                /** @description Deadline extended. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error, or the new deadline is not after the current one */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request status does not allow an extension, or it has no deadline (PAY_AT_HANDOFF) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/payment-requests/{reqId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a submitted receipt to under review
+         * @description Staff-initiated — for when matching the receipt against the receiving bank
+         *     account needs a closer manual look before a decision. Only valid while the request is
+         *     `PROOF_SUBMITTED` (409 otherwise). Sets `status → UNDER_REVIEW`; approve/reject both still work
+         *     from this state. Copy stays "under review" everywhere — never fraud/investigation language.
+         *     Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Moved to review. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentRequest"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request status is not PROOF_SUBMITTED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/payment-requests/{reqId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the latest submitted receipt
+         * @description Valid while the request is `PROOF_SUBMITTED` or `UNDER_REVIEW` (409 otherwise).
+         *     400 `NO_PENDING_EVIDENCE` if there's no evidence row awaiting a decision (e.g. it was already
+         *     decided). Approves the most recent pending evidence row and the request itself in one transaction,
+         *     notifies the customer, and — if this was the last unpaid stage — also fires a separate "fully
+         *     paid" notification + email. Returns the updated `PreOrderPaymentSummary`.
+         *     Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Evidence approved. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description No evidence is awaiting a decision on this request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request status is not PROOF_SUBMITTED or UNDER_REVIEW */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/payment-requests/{reqId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject the latest submitted receipt
+         * @description Valid while the request is `PROOF_SUBMITTED` or `UNDER_REVIEW` (409 otherwise).
+         *     400 `NO_PENDING_EVIDENCE` if there's no evidence row awaiting a decision. `decisionReason` is
+         *     required. Sets the evidence row `REJECTED` and the request `REJECTED` with the reason attached.
+         *     The customer is told they can either upload a fresh receipt (while a deadline extension is still
+         *     available) or ask for another review via `POST /api/v1/preorders/payment-requests/{reqId}/request-review`
+         *     without re-uploading. Requires the `preorders:evidence:review` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RejectEvidenceBody"];
+                };
+            };
+            responses: {
+                /** @description Evidence rejected. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error, or no evidence is awaiting a decision on this request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request status is not PROOF_SUBMITTED or UNDER_REVIEW */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/preorders/payment-requests/{reqId}/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a pay-at-handoff balance collection
+         * @description Only valid on a `PAY_AT_HANDOFF` request (409 `NOT_PAY_AT_HANDOFF` otherwise)
+         *     that hasn't already been recorded (409 `ALREADY_COLLECTED`). Requires `paymentMethod`
+         *     (`CASH` | `POS` | `TRANSFER`) — `transactionReference` is additionally required when
+         *     `paymentMethod` is `TRANSFER`. Marks the request `APPROVED` with `collectedByStaffId`/
+         *     `collectedAt`/`collectedPaymentMethod`/`collectedTransactionReference` stamped, notifies the
+         *     customer, and — if this completes payment — fires the "fully paid" notification too. Deliberately
+         *     does **not** touch `PreOrder.status` — moving to `FULFILLED` is always a separate
+         *     `PATCH .../{id}/status` call. Requires the `preorders:handoff:collect` permission (SUPER_ADMIN always passes every permission check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecordHandoffCollectionBody"];
+                };
+            };
+            responses: {
+                /** @description Collection recorded. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not a PAY_AT_HANDOFF request, or already collected */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preorders/payment-requests/{reqId}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a receipt for a payment request
+         * @description Multipart/form-data upload of a receipt image (`file` field — JPEG/PNG/WebP/GIF,
+         *     5MB max) plus `transactionReference` (required) and `customerNote` (optional, ≤500 chars).
+         *     Ownership is checked by walking the request back to its preorder's `customerId` — a `reqId`
+         *     that isn't yours returns 404, same as every other preorder route. Only allowed while the request
+         *     is `PENDING` or `REJECTED` (400 `INVALID_PAYMENT_REQUEST_STATUS` otherwise — e.g. a review is
+         *     already open). 400 `PAYMENT_REQUEST_EXPIRED` if the current time is past `payBy` — **the upload
+         *     timestamp is the cutoff**, not whatever the stored status happens to say (the expiry sweep can run
+         *     up to 5 minutes late). 409 `NO_UPLOAD_FOR_HANDOFF` on a `PAY_AT_HANDOFF` balance — there's
+         *     nothing to upload for that one. This is the new-model successor to `POST
+         *     /preorders/{preorderId}/deposit-proof` / `.../balance-proof` above; those two stay working for
+         *     preorders still on the legacy model. Every submission is kept — a prior rejected receipt is never
+         *     deleted, only superseded by this new row.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        transactionReference: string;
+                        customerNote?: string;
+                        /**
+                         * Format: binary
+                         * @description Receipt image. JPEG / PNG / WebP / GIF. Max 5MB.
+                         */
+                        file?: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description Receipt uploaded. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            message: string;
+                            data: components["schemas"]["PreOrderPaymentRequest"];
+                        };
+                    };
+                };
+                /** @description Validation error, no file uploaded, request status does not allow an upload, or the deadline has passed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description This is a PAY_AT_HANDOFF balance — no upload is needed */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preorders/payment-requests/{reqId}/request-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask staff to look again at a rejected receipt, without re-uploading
+         * @description Only valid after a rejection (`status: REJECTED`; 409
+         *     `INVALID_PAYMENT_REQUEST_STATUS` otherwise). Requires a (possibly corrected)
+         *     `transactionReference` and a short `note` explaining why another look is warranted. Reuses the
+         *     same receipt image from the most recent evidence row rather than requiring a re-upload — creates a
+         *     new `PreOrderPaymentEvidence` row (evidence history stays append-only) and moves the request to
+         *     `UNDER_REVIEW`. 409 `NO_PRIOR_EVIDENCE` in the (should-be-impossible) case of a rejection with
+         *     no evidence on file. Notifies the staff who hold `preorders:evidence:review`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reqId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RequestAnotherReviewBody"];
+                };
+            };
+            responses: {
+                /** @description Review requested. Response body is the updated PreOrderPaymentSummary. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            message: string;
+                            data: components["schemas"]["PreOrderPaymentSummary"];
+                        };
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment request not found (or belongs to a different customer) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Request status is not REJECTED, or there is no prior evidence to re-review */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/how-allocation-works": {
         parameters: {
             query?: never;
@@ -11747,21 +15814,24 @@ export interface paths {
          *
          *     | State | Meaning |
          *     |-------|---------|
-         *     | `HANDLING` | The AI is answering (or will, once the next customer message arrives). No staff member has claimed the conversation. |
-         *     | `ESCALATED` | The AI handed the conversation to a human — see `aiEscalationReason` — and will **not** reply again until the conversation is `RESOLVED`. |
-         *     | `OFF` | The AI never engaged this conversation (`AI_ENABLED` was off when it started, or it was already staff-assigned/resolved). |
+         *     | `HANDLING` | The AI is eligible to answer the next customer message. This is true regardless of whether a staff member has claimed the conversation — claiming does NOT stop the AI (see below). |
+         *     | `ESCALATED` | The AI handed the conversation to a human for good — see `aiEscalationReason` — and will **not** reply again until the conversation is `RESOLVED`. |
+         *     | `OFF` | The AI never engaged this conversation (`AI_ENABLED` was off when it started), or a staff/admin member explicitly paused it via `PATCH /conversations/:id/ai`. |
          *
-         *     A staff member can claim a `HANDLING` conversation at any time via the normal `chat:assign` flow — claiming it does not change `aiState` directly, but the AI trigger condition (see below) stops matching once `assignedStaffId` is set, so it goes quiet naturally.
+         *     **A staff member claiming a conversation does NOT stop the AI.** This is a deliberate design: `assignedStaffId` is pure ownership/routing metadata (whose "Mine" queue a chat is in, who gets notified) and is completely decoupled from AI eligibility. The AI keeps seeing every customer message — including the agent's own replies, since the transcript it's given includes staff messages — for as long as `aiState` stays `HANDLING`, so it can judge per-message whether the agent is already handling a given topic (and should stay quiet) or the customer asked something new it can help with. The only things that actually stop the AI are an explicit pause (`PATCH /conversations/:id/ai` with `aiState: 'OFF'`) or the reply cap.
+         *
+         *     Staff message content sent to the AI for this judgment call is redacted before it leaves the backend — the agent's real name and exact wording never reach the AI model, only the fact and timing of "an agent replied."
          *
          *     `aiState` changes are pushed live via the `chat:ai:state` socket event (see the server-events reference) — listen for it to move a dashboard row from "AI handling" to "Needs human" without a refetch.
          *
          *     ### What escalation looks like on the wire
          *
-         *     When the AI escalates, two things happen in the same moment:
-         *     1. `aiState` flips to `ESCALATED` and `chat:ai:state` fires.
-         *     2. A staff-only handover message is posted (`isInternal: true`, `senderType: "SYSTEM"`) with body `[AI handover · {reason}]\n{summary}` — this is what tells staff *why*, right in the message thread.
+         *     **Not every escalation is permanent.** `aiEscalationReason` is one of `CUSTOMER_REQUESTED`, `BLOCKED_TOPIC`, `CANNOT_ANSWER`, `FRUSTRATION`, `REPLY_CAP` (hit the per-conversation reply limit), or `ERROR` (the AI service failed or isn't configured). Only the first four cause a real handover:
          *
-         *     `aiEscalationReason` is one of `CUSTOMER_REQUESTED`, `BLOCKED_TOPIC`, `CANNOT_ANSWER`, `FRUSTRATION`, `REPLY_CAP` (hit the per-conversation reply limit), or `ERROR` (the AI service failed or isn't configured — the customer still gets a normal reply first, see below).
+         *     - **Permanent** (`CUSTOMER_REQUESTED` / `BLOCKED_TOPIC` / `FRUSTRATION` / `REPLY_CAP`): `aiState` flips to `ESCALATED` and stays there — a genuine one-way door until `RESOLVED`.
+         *     - **Per-message** (`CANNOT_ANSWER` / `ERROR`): `aiState` stays `HANDLING`. The reason is recorded on `aiEscalationReason` for staff visibility (and cleared automatically the next time the AI replies successfully) but the AI is asked again on the customer's very next message — one hard question or one transient network blip doesn't silence it for the rest of the conversation.
+         *
+         *     Either way, a staff-only handover message is posted (`isInternal: true`, `senderType: "SYSTEM"`) with body `[AI handover · {reason}]\n{summary}` (permanent) or `[AI skipped this message · {reason}]\n{summary}` (per-message) — this is what tells staff *why*, right in the message thread. **Check `aiState` in the `chat:ai:state` payload, not just whether `reason` is present, to know whether the AI actually stopped.**
          *
          *     One `CANNOT_ANSWER` case is worth knowing about specifically: the AI has output guardrails that suppress any reply that looks like a leaked instruction, internal tool name, or code block, and escalate instead of ever sending it. A handover note whose summary reads *"Automated guardrail suppressed a suspicious model response — please review the transcript"* means this fired — usually because a customer tried to prompt-inject the bot. Expected, working-as-intended behavior, not a bug.
          *
@@ -11769,7 +15839,7 @@ export interface paths {
          *
          *     An AI-authored reply arrives as an ordinary `chat:message:received` event with `senderType: "SYSTEM"`, `senderId: "ai-assistant"`, and `senderName`/`senderAvatar` from the backend's `AI_SENDER_NAME`/`AI_SENDER_AVATAR` config (default sender name: `"Blessing Assistant"`). Render it distinctly from a `STAFF` message if you like (a bot icon, a label) — nothing on the wire requires special handling beyond recognizing the `SYSTEM` sender type, which the schema has always allowed.
          *
-         *     **Product answers may contain a real link, as plain text.** When a customer asks about a product, the AI looks it up in the live catalogue and replies with the name, price, availability, and a URL (e.g. `https://www.blessingcomputers.com/product/dell-xps-13`) — it's just part of the `body` string, not a special token or structured field. Auto-linkify bare URLs in your message renderer (or at minimum make sure a long URL doesn't break the bubble layout) so these are actually clickable.
+         *     **Product answers come both as a plain-text link AND as structured cards.** When a customer asks about a product, the AI looks it up in the live catalogue and replies with the name, price, availability, and a URL (e.g. `https://www.blessingcomputers.com/product/dell-xps-13`) in `body` — auto-linkify bare URLs in your renderer (or at minimum make sure a long URL doesn't break the bubble layout). **The same message also carries a `products` array** (see `ChatProductCard`) with everything needed to render an inline card — image, price, description, availability, link — with zero extra fetches. Every entry has already passed the AI's anti-hallucination checks (a fabricated product can never appear here), so it's safe to render directly. Field names mirror the storefront's own product-listing card shape, so an existing card component should need little to no mapping. `products` is absent/`[]` on every CUSTOMER/STAFF message and on any AI message that didn't reference a product; historical messages from the REST history endpoints carry the same field, so reloading a conversation shows the same cards it showed live.
          *
          *     **Shadow mode is the one case that needs real attention.** Controlled by `AI_SHADOW_MODE` (defaults `true`): while on, an AI reply is posted with `isInternal: true` — visible to staff only, **never delivered to the customer**, so staff can review AI output before it goes live for real. A naive staff UI might show every message it receives as "sent" — if you display internal AI messages, mark them clearly (e.g. "Shadow mode — not visible to customer") so staff don't assume the customer saw it. When shadow mode is off, a genuine reply is always public; the only *forced*-public exception is the guaranteed fallback message below, which is public even during shadow mode, since a customer who was promised a reply must actually get one.
          *
@@ -12100,7 +16170,7 @@ export interface paths {
          * @description The staff-facing control the `aiState: 'OFF'` enum value always promised and nothing previously set — until this endpoint, `AI_ENABLED`/`AI_SHADOW_MODE` env vars were the only levers, and claiming a conversation stopped the AI as a side effect but conflated "take this over" with "the AI should stay out of this."
          *
          *     - `{ aiState: 'OFF' }` — force-stops the AI on this conversation, from any non-RESOLVED state. Does not claim/assign the conversation.
-         *     - `{ aiState: 'HANDLING' }` — resumes the AI. Only valid when the conversation is currently `OFF`; returns 409 otherwise (an `ESCALATED` handover stays a one-way door until RESOLVED, same as the AI's own escalation rule).
+         *     - `{ aiState: 'HANDLING' }` — resumes the AI. Only valid when the conversation is currently `OFF`; returns 409 otherwise. Note this can't un-stick a permanent `ESCALATED` handover (`CUSTOMER_REQUESTED`/`BLOCKED_TOPIC`/`FRUSTRATION`/`REPLY_CAP`) — that stays a one-way door until `RESOLVED`, same as the AI's own escalation rule. It's not needed for `CANNOT_ANSWER`/`ERROR` in the first place, since those never move `aiState` off `HANDLING` — see `GET /chat/how-ai-first-responder-works`.
          *
          *     Any staff member may call this, not just the assigned agent.
          */
@@ -12796,13 +16866,22 @@ export interface paths {
          *     ### `chat:ai:state`
          *     **Who receives:** `staff:room` (all connected staff) + the conversation's staff-only room. Never sent to the customer.
          *
-         *     Fired whenever the AI first responder hands a conversation to a human, or is force-stopped (e.g. hit the reply cap). See `GET /chat/how-ai-first-responder-works` for the full lifecycle. Use this to move a dashboard row from "AI handling" to "Needs human" live, without refetching the conversation list.
+         *     Fired whenever the AI first responder hands a conversation to a human permanently, is force-stopped (e.g. hit the reply cap), OR hits a per-message reason (`CANNOT_ANSWER`/`ERROR`) that does NOT stop it. See `GET /chat/how-ai-first-responder-works` for the full permanent-vs-per-message split. **Always check `aiState` in this payload before treating it as "AI stopped"** — a per-message reason reports `aiState: "HANDLING"`, meaning the AI is still active and will be asked again on the next customer message. Only move a dashboard row to "Needs human" when `aiState` is actually `"ESCALATED"`.
          *
          *     ```json
          *     {
          *       "conversationId": "uuid",
-         *       "aiState": "ESCALATED",   // "HANDLING" | "ESCALATED" | "OFF"
-         *       "reason": "CANNOT_ANSWER" | null   // one of AiEscalationReason; null unless aiState is ESCALATED
+         *       "aiState": "ESCALATED",   // "HANDLING" | "ESCALATED" | "OFF" — the ACTUAL resulting state, check this first
+         *       "reason": "CANNOT_ANSWER" | null   // one of AiEscalationReason; null only when nothing has gone wrong
+         *     }
+         *     ```
+         *
+         *     ```json
+         *     // A CANNOT_ANSWER/ERROR case — the AI hit a snag on THIS message but is still active:
+         *     {
+         *       "conversationId": "uuid",
+         *       "aiState": "HANDLING",
+         *       "reason": "CANNOT_ANSWER"
          *     }
          *     ```
          *
@@ -12822,11 +16901,45 @@ export interface paths {
          *       "body": "Hello, I need help.",
          *       "isInternal": false,
          *       "createdAt": "2024-01-15T10:30:00.000Z",
-         *       "idempotencyKey": "msg:uuid"
+         *       "idempotencyKey": "msg:uuid",
+         *       "products": []
          *     }
          *     ```
          *
          *     `senderType: "SYSTEM"` is the AI first responder (`senderId: "ai-assistant"`) — see `GET /chat/how-ai-first-responder-works` for how to render it and why `isInternal: true` on a SYSTEM message (shadow mode) needs a visible "not sent to customer" cue in staff UIs.
+         *
+         *     An AI reply that references real products carries a populated `products` array alongside the text — render these as inline cards using `ChatProductCard`'s fields directly, no extra fetch needed:
+         *
+         *     ```json
+         *     {
+         *       "id": "uuid",
+         *       "conversationId": "uuid",
+         *       "senderId": "ai-assistant",
+         *       "senderType": "SYSTEM",
+         *       "senderName": "Blessing Assistant",
+         *       "senderAvatar": null,
+         *       "body": "The HP Pavilion 15 is ₦450,000 and in stock: https://www.blessingcomputers.com/product/hp-pavilion-15-eg3054",
+         *       "isInternal": false,
+         *       "createdAt": "2024-01-15T10:30:00.000Z",
+         *       "idempotencyKey": "ai:uuid:1",
+         *       "products": [
+         *         {
+         *           "id": "uuid",
+         *           "productId": "PROD-A1B2C3D4",
+         *           "slug": "hp-pavilion-15-eg3054",
+         *           "name": "HP Pavilion 15 (Intel Core i5, 8GB RAM, 512GB SSD)",
+         *           "description": "15.6-inch FHD laptop with Intel Core i5 13th Gen...",
+         *           "primaryImage": "https://res.cloudinary.com/.../hp-pavilion-15.jpg",
+         *           "brand": { "name": "HP", "slug": "hp" },
+         *           "category": { "name": "Laptops", "slug": "laptops" },
+         *           "lowestPrice": 450000,
+         *           "highestPrice": 450000,
+         *           "availabilityStatus": "IN_STOCK",
+         *           "url": "https://www.blessingcomputers.com/product/hp-pavilion-15-eg3054"
+         *         }
+         *       ]
+         *     }
+         *     ```
          *
          *     ---
          *
@@ -14260,7 +18373,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                data: components["schemas"]["AdminCouponListItem"][];
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
                 };
                 /** @description Forbidden */
                 403: {
@@ -14272,14 +18396,72 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Create a coupon
+         * @description Creates a new coupon code, ready to be used at checkout immediately (defaults to status ACTIVE). Send `code` to pick your own, or omit it to have the server generate a random unique one for you — see the `code` field below. Either way the same code can never be issued twice: an admin-supplied code is checked for a conflict up front, and the underlying `coupons.code` column has a database-level unique constraint that makes a duplicate impossible even if two requests race — a generated code that happens to collide is automatically retried with a fresh one. Only one coupon may be applied per order (checkout takes a single `couponCode`, not a list) — stacking two codes on one order is not possible. `maxUsagePerUser` (default 1) is what caps how many times a given customer may redeem THIS coupon; `maxUsageCount` caps total redemptions across everyone. Usage is tracked permanently once an order is placed — cancelling or refunding that order does not give the redemption back. Requires SUPER_ADMIN role.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminCreateCouponBody"];
+                };
+            };
+            responses: {
+                /** @description Coupon created. Response body is the full coupon record. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["AdminCouponListItem"];
+                        };
+                    };
+                };
+                /** @description Validation error — bad discountValue, expiresAt before startsAt, PERCENTAGE discountValue over 100, etc. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Coupon code already exists */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/discounts": {
+    "/api/v1/admin/coupons/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -14287,25 +18469,34 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all discounts
-         * @description All discount rules filterable by active status. Requires SUPER_ADMIN role.
+         * Get a single coupon
+         * @description Fetch one coupon by its UUID — for a cold-load edit screen, so it no longer has to fake a single-record lookup with `GET /coupons?search=<code>&limit=100`. Requires SUPER_ADMIN role.
          */
         get: {
             parameters: {
-                query?: {
-                    page?: string;
-                    limit?: string;
-                    search?: string;
-                    isActive?: "true" | "false";
-                };
+                query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Discounts returned */
+                /** @description Coupon returned */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["AdminCouponListItem"];
+                        };
+                    };
+                };
+                /** @description Authentication required */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -14318,6 +18509,13 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Coupon not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         put?: never;
@@ -14325,7 +18523,74 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update (or disable) a coupon
+         * @description Partial update — send only the fields you want to change. At minimum this is how a coupon minted with a typo, the wrong percentage, or the wrong expiry gets stopped: set `status: DISABLED` to kill it immediately without deleting the row (redemptions already recorded are permanent and are never returned by a later order cancellation or refund, so a live bad coupon costs real money for every minute it stays ACTIVE). The PERCENTAGE ≤ 100 and `expiresAt > startsAt` checks run against the MERGED state (existing row + this PATCH), so sending only `discountValue` is still validated against the row's existing `discountType`, and sending only `expiresAt` is still validated against the row's existing `startsAt` — you don't need to resend the field you're not changing just to pass validation. Requires SUPER_ADMIN role.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminUpdateCouponBody"];
+                };
+            };
+            responses: {
+                /** @description Coupon updated. Response body is the full, updated coupon record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["AdminCouponListItem"];
+                        };
+                    };
+                };
+                /** @description Validation error — empty body, bad discountValue, expiresAt before startsAt, PERCENTAGE discountValue over 100 (checked against merged state), etc. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Coupon not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Coupon code already exists (only when `code` is being changed) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/admin/security-logs": {
@@ -15915,6 +20180,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/parts/how-it-works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How part discovery, filtering and sorting work (read me first)
+         * @description ## Two separate ways to find parts — pick the right one
+         *
+         *     There are TWO independent part-listing code paths. They return the same underlying data but are
+         *     built differently, and mixing up which one a filter/sort param belongs to is the single most
+         *     common integration bug (see "The partTypeId trap" below).
+         *
+         *     | | `GET /parts` and `GET /parts/by-category` | `GET /products/search?docType=PART` |
+         *     |---|---|---|
+         *     | Backing | Direct Prisma query | OpenSearch (same engine/index as products) |
+         *     | Matching | Exact filters only (categoryId, brandId, partTypeId) | Ranked full-text relevance + the same structured filters |
+         *     | Text search | `GET /parts`'s `q` does a plain `contains` | Real ranked search (typo-tolerant-ish, phrase boosting, model-number matching) |
+         *     | Price/availability/rating filters | None | Full support (same as product search) |
+         *     | Use when | "Show me exactly category=X, brand=Y" — an exact browse | "Find parts matching what a customer typed" |
+         *
+         *     `GET /products/search` is also what the AI chat assistant uses — one call returns products AND
+         *     parts together, ranked by relevance.
+         *
+         *     ## Sorting — `sortBy`, same option set everywhere
+         *
+         *     Both `GET /parts` and `GET /parts/by-category` accept:
+         *     `newest` (default on `/parts`) · `oldest` · `price_asc` · `price_desc` · `rating` ·
+         *     `popularity` · `name_asc` · `name_desc` — identical to product search's `sortBy`, for UI parity.
+         *
+         *     `rating` and `popularity` are **not real signals for parts** — there is no reviews or
+         *     sales-aggregation system for parts (unlike products, which track `averageRating`/`reviewCount`/
+         *     `totalSales`). Both values fall back to **featured-first, then newest**. This is a UI-parity
+         *     placeholder, not genuine rating/popularity data — don't advertise "sorted by rating" copy next to
+         *     it in a way that implies real review data exists.
+         *
+         *     `GET /parts/by-category` has one extra wrinkle: with NO `sortBy`, it groups results by
+         *     `partType` (chargers together, batteries together, etc.) — that's its long-standing default and
+         *     is unchanged. Passing ANY explicit `sortBy` REPLACES that grouping with a flat sort across every
+         *     type (e.g. `price_asc` means cheapest-first across all types, not cheapest-within-each-type-group).
+         *
+         *     ## The partTypeId trap — read this before wiring a type filter
+         *
+         *     `partTypeId` (the PartType's UUID, from `GET /parts/part-types`) and `partType` (a free-text
+         *     type NAME) are two DIFFERENT query params with DIFFERENT matching behavior:
+         *     - `partTypeId=<uuid>` — exact FK match. **Always use this from a type dropdown** — dropdown
+         *       options are IDs, not names.
+         *     - `partType=<name>` — case-insensitive NAME search (`contains` on `GET /parts`, exact
+         *       `equals` on `by-category`). A UUID passed here will never match anything, silently returning
+         *       zero results — it looks identical to "no parts exist," not an error.
+         *
+         *     If a type filter combined with category/brand returns nothing that category+brand alone finds,
+         *     check which param name your caller is actually sending.
+         *
+         *     *This endpoint is documentation only — there is nothing to call.*
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conceptual overview — not a real endpoint */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/parts": {
         parameters: {
             query?: never;
@@ -15934,14 +20283,16 @@ export interface paths {
          *     |---|---|
          *     | `categoryId` | Filter by category UUID |
          *     | `brandId` | Filter by brand UUID |
-         *     | `partType` | Filter by part type name (case-insensitive contains) |
+         *     | `partTypeId` | **Preferred** — exact match against the PartType UUID (from `GET /parts/part-types`). Matches on EITHER the FK or the part's own (denormalized) type name, so it correctly finds parts created before partTypeId existed as a column too — do not send the type's UUID under `partType` below, that field does a name search and a UUID will never match a name. |
+         *     | `partType` | Filter by part type NAME (case-insensitive contains) — legacy/back-compat. A UUID passed here will never match; use `partTypeId` instead. |
          *     | `isActive` | `true` / `false` — staff only |
          *     | `isInStock` | `true` / `false` |
+         *     | `minPrice` / `maxPrice` | Bound the result to `price` in this range, inclusive. Parts with `price: null` (price-on-request) never match a bounded range and are excluded, the same way they're pushed to the end by `sortBy=price_asc`/`price_desc`. |
          *     | `q` | Full-text search across name, partNumber, description, partType |
          *     | `createdByStaffId` | Filter to a specific uploader (UUID) |
          *     | `createdFrom` | ISO 8601 datetime — parts created at or after this timestamp |
          *     | `createdTo` | ISO 8601 datetime — parts created at or before this timestamp |
-         *     | `sortBy` | `newest` (default) or `oldest` |
+         *     | `sortBy` | `newest` (default) · `oldest` · `price_asc` · `price_desc` · `rating` · `popularity` · `name_asc` · `name_desc` — same option set as product search. `price_asc`/`price_desc` push price-on-request parts (`price: null`) to the end either way. `rating`/`popularity` have no tracked signal on a part (no reviews or sales-aggregation system exists for parts yet) — both fall back to featured-first, then newest. |
          *     | `page` / `limit` | Pagination (default 1 / 20, max 100) |
          */
         get: {
@@ -15949,14 +20300,17 @@ export interface paths {
                 query?: {
                     categoryId?: string;
                     brandId?: string;
+                    partTypeId?: string;
                     partType?: string;
                     isActive?: string;
                     isInStock?: string;
+                    minPrice?: number | null;
+                    maxPrice?: number | null;
                     q?: string;
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest";
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
                     page?: number;
                     limit?: number;
                 };
@@ -16182,6 +20536,86 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/parts/by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse parts by category + brand (discovery endpoint)
+         * @description Public. The "show me all HP laptop parts" endpoint — every active, in-stock
+         *     part scoped to one category+brand combination. Cached 10 minutes per
+         *     (categoryId × brandId × type filter × sortBy).
+         *
+         *     Both `categoryId` and `brandId` are required query params. Optionally narrow to one type via
+         *     `partTypeId` (preferred — exact FK match, and matches on the part's denormalized type name too so
+         *     it also finds parts created before partTypeId existed as a column) or `partType` (legacy name
+         *     match — do not pass a UUID here, it only matches names).
+         *
+         *     **`sortBy`** — same option set as `GET /parts`: `newest` · `oldest` · `price_asc` · `price_desc`
+         *     · `rating` · `popularity` · `name_asc` · `name_desc`. `rating`/`popularity` fall back to
+         *     featured-first-then-newest (no reviews/sales-aggregation system exists for parts). **Omit it
+         *     entirely** to keep this endpoint's default ordering — grouped by `partType`, then `sortOrder`,
+         *     then name — which most callers of this specific "browse by category" endpoint want; passing any
+         *     explicit `sortBy` REPLACES that grouping with a flat sort across every type.
+         *
+         *     `minPrice`/`maxPrice` bound `price` inclusively, same semantics as `GET /products/parts` —
+         *     price-on-request parts (`price: null`) never match a bounded range and are excluded.
+         *
+         *     This is a separate, Prisma-backed endpoint from `GET /products/search?docType=PART` — it does
+         *     exact category+brand scoping with no ranking, no text query. Use this for "browse everything in
+         *     this category+brand exactly," use the unified search for "find parts matching what a customer
+         *     typed."
+         */
+        get: {
+            parameters: {
+                query: {
+                    categoryId: string;
+                    brandId: string;
+                    partTypeId?: string;
+                    partType?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    minPrice?: number | null;
+                    maxPrice?: number | null;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Parts matching the category + brand (+ optional type/price range) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["PartResponse"][];
+                        };
+                    };
+                };
+                /** @description Missing categoryId/brandId, or minPrice > maxPrice */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -17514,6 +21948,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/parts/flash-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start or update a flash sale on a part/category/brand/partType
+         * @description See `GET /products/flash-sales/how-it-works` for why flash sales reuse the markup-rule system (both product- and part-side) instead of a separate feature — same reasoning applies here.
+         *
+         *     A flash sale is a part markup rule with a negative percentage — this endpoint upserts one and applies it immediately (no separate /apply call needed, unlike `POST /parts/markup-rules`). `markupPercentage` must be negative (at least -2, down to -99); a positive value is rejected — use `POST /parts/markup-rules` for a standing pricing policy instead.
+         *
+         *     Scope follows the same fields and specificity as regular part markup rules: `partId` alone, or any combination of `categoryId`/`brandId`/`partTypeId`.
+         *
+         *     A part on sale shows up in `GET /products/flash-sales`'s `parts` list — detected as `price < basePrice` on the part itself. Note this is checked on the **part row**, not its backing variant: the backing variant's price and basePrice are always written identical by the sync in `applyPartRuleFromBase`, so that comparison would never be true there even while the part is genuinely discounted — the backing variant still carries the correct (discounted) number for checkout, it's just not where the "on sale" signal lives.
+         *
+         *     `allowCouponStacking` (default `false`) governs whether a coupon may still be applied to a cart containing this part while the sale is live — same semantics as the product-side flash sale endpoint.
+         *
+         *     `expiresAt` (optional) schedules the sale to end itself: a background worker checks every few minutes for active flash-sale rules past their `expiresAt` and resets the part's scope to base price + deactivates the rule — the same effect as `POST .../cancel`, just automatic. New price computations stop honoring an expired rule immediately; the worker's sweep is what fixes prices already written before expiry. Omit for a sale that runs until ended manually. Re-sending this on the same scope without a new value clears any previously-set expiry.
+         *
+         *     Ending a sale: PATCH the rule back to a non-negative percentage via `PATCH /parts/markup-rules/{ruleId}`, deactivate it, or let `expiresAt` pass. No separate "end sale" action beyond those.
+         *
+         *     **NEW — scope conflict is rejected, not overwritten:** if a standing markup rule (a non-negative `markupPercentage`) already exists at the *exact* same scope you pass here, this now returns `409 MARKUP_RULE_SCOPE_CONFLICT` naming that rule instead of overwriting it — same fix as the product-side flash sale endpoint. Use a more specific scope (e.g. add a `partId`) to run the sale underneath the standing rule instead.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        categoryId?: string;
+                        /** Format: uuid */
+                        brandId?: string;
+                        /** Format: uuid */
+                        partTypeId?: string;
+                        /** Format: uuid */
+                        partId?: string;
+                        markupPercentage: number;
+                        notes?: string;
+                        /** @default false */
+                        allowCouponStacking?: boolean;
+                        expiresAt?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Sale created/updated and applied — the part's price is live. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Validation error — markupPercentage was not negative, or scope fields were invalid/combined incorrectly */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permission — requires partMarkup:write */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description NEW. MARKUP_RULE_SCOPE_CONFLICT — a standing (non-negative) markup rule already covers this exact scope; the sale was not applied. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/parts/markup-rules": {
         parameters: {
             query?: never;
@@ -17523,11 +22047,13 @@ export interface paths {
         };
         /**
          * List part markup rules
-         * @description Part markup is fully separate from product markup. Rules are keyed by category + brand + partType, or (NEW) by an exact partId. List responses include the resolved `part` relation ({ id, name, slug }) when a rule is part-scoped. Permission: `products:read`.
+         * @description Part markup is fully separate from product markup. Rules are keyed by category + brand + partType, or (NEW) by an exact partId. List responses include the resolved `part` relation ({ id, name, slug }) when a rule is part-scoped. NEW: every rule also carries `ruleType`: `'MARKUP'` (positive markupPercentage) or `'DISCOUNT'` (negative — a flash sale) — pass `?type=markup` or `?type=discount` to have the server pre-filter to just one instead of deriving it from the sign client-side. Permission: `products:read`.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    type?: "markup" | "discount";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -17536,6 +22062,13 @@ export interface paths {
             responses: {
                 /** @description List of part markup rules */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description NEW. type was neither 'markup' nor 'discount' */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -17553,7 +22086,7 @@ export interface paths {
         put?: never;
         /**
          * Create a part markup rule
-         * @description At least one of partId/categoryId/brandId/partTypeId is required. NEW: `partId` pins the rule to one exact part and is mutually exclusive with categoryId/brandId/partTypeId (422 if combined) — e.g. `{ "partId": "<uuid>", "markupPercentage": 20 }`. `markupPercentage` is signed: **positive = increase, negative = reduction** (min 2% either way, max +500% / −99%). Applied to parts on create/bulk and via /apply. Duplicate scope (same categoryId+brandId+partTypeId+partId combination, including a second rule for the same partId) returns 400/409 pointing at the existing rule. Permission: `products:write`.
+         * @description At least one of partId/categoryId/brandId/partTypeId is required. NEW: `partId` pins the rule to one exact part and is mutually exclusive with categoryId/brandId/partTypeId (422 if combined) — e.g. `{ "partId": "<uuid>", "markupPercentage": 20 }`. `markupPercentage` is signed: **positive = increase, negative = reduction** (min 2% either way, max +500% / −99%). Applied to parts on create/bulk and via /apply. Duplicate scope (same categoryId+brandId+partTypeId+partId combination, including a second rule for the same partId) returns `409 MARKUP_RULE_SCOPE_CONFLICT` naming the existing rule — same error code the flash-sale scope-conflict guard uses. Permission: `products:write`.
          */
         post: {
             parameters: {
@@ -17582,6 +22115,9 @@ export interface paths {
                         notes?: string;
                         /** @default true */
                         isActive?: boolean;
+                        /** @default false */
+                        allowCouponStacking?: boolean;
+                        expiresAt?: string;
                     };
                 };
             };
@@ -17595,6 +22131,13 @@ export interface paths {
                 };
                 /** @description Insufficient permission */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description MARKUP_RULE_SCOPE_CONFLICT — a rule already exists for this exact scope (category/brand/partType combination, or this exact partId). Previously this endpoint threw a plain 500 for this case; NEW, it now returns a proper 409 naming the existing rule. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -17728,7 +22271,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a part markup rule
-         * @description Deletes the rule. Existing part prices are unchanged. Permission: `products:write`.
+         * @description Deletes the rule. **Blocked (400) while the rule is active** — a hard delete does not reset the prices it already wrote, which would strand its scope at the marked-up/marked-down price forever. Cancel it first via `POST .../{ruleId}/cancel` (deactivates AND resets to base), or deactivate via `PATCH` with `isActive: false`, then delete. Permission: `products:write`.
          */
         delete: {
             parameters: {
@@ -17743,6 +22286,13 @@ export interface paths {
             responses: {
                 /** @description Rule deleted */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The rule is still active — cancel or deactivate it first */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -17780,6 +22330,8 @@ export interface paths {
                         applyTo?: "PRICE" | "COMPARE_AT_PRICE" | "BOTH";
                         notes?: string | null;
                         isActive?: boolean;
+                        allowCouponStacking?: boolean;
+                        expiresAt?: string | null;
                     };
                 };
             };
@@ -17881,6 +22433,117 @@ export interface paths {
                 };
                 /** @description Rule not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/parts/admin/reindex/{partId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-reindex one part in OpenSearch
+         * @description Queues a single INDEX_PART job — re-derives the part's search document from its current DB row (or removes it from the index if the part is now inactive). Every normal write (create/update/deactivate/hard-delete/bulk edit/bulk delete) already queues this automatically; this is for manually recovering a single part after e.g. an index/mapping change. Permission: `search:admin`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    partId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reindex job queued */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/parts/admin/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Full part catalog re-sync
+         * @description Ensures the shared product+part OpenSearch index/alias exists (idempotent), then walks every active part in chunks (`chunkSize`, default 100, max 1000) queuing a BULK_INDEX_PARTS job per chunk. Use this once after deploying the unified products+parts search to backfill parts that existed before it — new parts are indexed automatically on every write from then on. Mirrors `POST /products/admin/sync`. Permission: `search:admin`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @example 100 */
+                        chunkSize?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Full sync queued */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permission */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -18539,6 +23202,13 @@ export interface paths {
                  *     | `PHONE_REQUIRED` | No phone on profile and none in request |
                  *     | `ADDRESS_REQUIRED` | Neither addressId nor inline address provided |
                  *     | `INVALID_ADDRESS_MODE` | Both addressId and inline object provided, or shipping address sent for SELF_PICKUP |
+                 *     | `INVALID_COUPON` | couponCode does not match an active, unexpired coupon |
+                 *     | `COUPON_USAGE_LIMIT_REACHED` | Coupon has reached its global usage cap |
+                 *     | `COUPON_ALREADY_USED` | Customer already redeemed this coupon the max number of times |
+                 *     | `COUPON_STACKING_BLOCKED` | NEW. The cart contains an item currently on a flash sale/markup rule with `allowCouponStacking: false` (see `POST /products/flash-sales`) — the whole cart is rejected, not just that line; `message` names the blocking product |
+                 *     | `COUPON_MIN_ORDER_NOT_MET` | Cart subtotal is below the coupon's minOrderAmount |
+                 *     | `POLICY_CONSENT_REQUIRED` | `policyConsent` missing, or `policyConsent.policyVersion` blank (checkout-policy-consent ask, 2026-09-04) |
+                 *     | `POLICY_VERSION_UNSUPPORTED` | `policyConsent.policyVersion` does not match the currently published version — see `GET /api/v1/policy/current` |
                  */
                 400: {
                     headers: {
@@ -20348,6 +25018,350 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/customer/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notifications for the authenticated customer
+         * @description NEW (backend-asks item 23). Returns a **paginated, sorted** list of notifications belonging to the currently authenticated customer. Each customer can only see their own notifications.
+         *
+         *     Before this route existed, `customerNotification` rows were written on six preorder transitions (deposit/balance required, confirmed, rejected) plus order/payment/invoice events, and nothing anywhere could read them back — "notifies the customer" was write-only storage. This closes that gap; nothing about how notifications are WRITTEN changes.
+         *
+         *     ### Sort order
+         *     1. Important notifications first (`isImportant: true`)
+         *     2. Newest first within each importance group
+         *
+         *     ### Notification types actually written to customers today
+         *
+         *     | Type | Trigger |
+         *     |---|---|
+         *     | `NEW_ORDER` | Order placed |
+         *     | `ORDER_STATUS_UPDATE` | Order status changed, or an outsourced-item invoice resolved (all confirmed / unavailable / partial refund) |
+         *     | `PAYMENT_RECEIVED` / `PAYMENT_FAILED` | Payment event on an order, or a preorder deposit/balance confirmed/rejected |
+         *     | `PRICE_CONFIRMATION_NEEDED` | A preorder deposit/balance payment is awaiting staff price confirmation |
+         *     | `GENERAL` | Default fallback — no current writer uses it for customers |
+         *
+         *     ### Recommended frontend pattern
+         *
+         *     ```
+         *     1. On login / page load  →  GET /customer/notifications/unread-count  (badge number)
+         *     2. Customer opens bell   →  GET /customer/notifications               (full list)
+         *     3. Customer taps one     →  PATCH /customer/notifications/:id/read   (badge -1)
+         *     4. "Mark all as read"    →  PATCH /customer/notifications/read-all   (badge → 0)
+         *     ```
+         *
+         *     **Auth:** Any authenticated customer (reads own notifications only).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number | null;
+                    limit?: number | null;
+                    unreadOnly?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notifications returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                data: components["schemas"]["CustomerNotification"][];
+                                meta: {
+                                    /** @example 12 */
+                                    total: number;
+                                    /** @example 3 */
+                                    unreadCount: number;
+                                    /** @example 1 */
+                                    page: number;
+                                    /** @example 20 */
+                                    limit: number;
+                                    /** @example 1 */
+                                    totalPages: number;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description No valid customer session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get unread notification count (bell badge)
+         * @description NEW (backend-asks item 23). Lightweight endpoint for the notification bell badge — returns only the unread count, no pagination, no message content.
+         *
+         *     **Call this on every page load** to keep the badge current. Single `COUNT` query, no joins.
+         *
+         *     **Auth:** Any authenticated customer.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Unread count returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /** @example 3 */
+                                unreadCount: number;
+                            };
+                        };
+                    };
+                };
+                /** @description No valid customer session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark all notifications as read
+         * @description NEW (backend-asks item 23). Sets `isRead: true` on every unread notification belonging to the authenticated customer.
+         *
+         *     After calling this, `GET /customer/notifications/unread-count` returns **0**.
+         *
+         *     **Auth:** Any authenticated customer (marks own notifications only).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description All unread notifications marked as read. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /**
+                                 * @description Number of notifications that were marked as read.
+                                 * @example 3
+                                 */
+                                updated: number;
+                            };
+                        };
+                    };
+                };
+                /** @description No valid customer session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/customer/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark a single notification as read
+         * @description NEW (backend-asks item 23). Sets `isRead: true` on a specific notification. The notification must belong to the authenticated customer — attempting to mark another customer's notification returns **403** (not 404 — same "genuinely not yours" reasoning as preorder ownership checks).
+         *
+         *     **Auth:** Any authenticated customer.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    notificationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notification marked as read. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["CustomerNotification"];
+                        };
+                    };
+                };
+                /** @description No valid customer session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification belongs to a different customer (FORBIDDEN). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification not found (NOTIFICATION_NOT_FOUND). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/customer/notifications/{notificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a notification
+         * @description NEW (backend-asks item 23). Permanently deletes a single notification. The notification must belong to the authenticated customer.
+         *
+         *     Returns **204 No Content** on success.
+         *
+         *     **Auth:** Any authenticated customer.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    notificationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notification deleted. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid customer session. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification belongs to a different customer (FORBIDDEN). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification not found (NOTIFICATION_NOT_FOUND). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/whatsapp/how-it-works": {
@@ -22190,25 +27204,26 @@ export interface paths {
          *
          *     ## How the Promotions system works
          *
-         *     A **Promotion** is a named campaign (e.g. "Back-to-School Sale") that holds one or more **Slides**. Each slide is a single image with an optional caption and product link. The frontend renders these as a homepage banner or carousel.
+         *     A **Promotion** is a named campaign (e.g. "Back-to-School Sale") that holds one or more **Slides**. Each slide is a single image with an optional caption and product link. A promotion also declares a `placement` — which storefront banner slot it renders in (homepage sections, product page, catalog listing, parts catalog).
          *
          *     ### Staff workflow (admin dashboard)
          *
          *     ```
-         *     1. POST /api/v1/promotions          → create promotion shell (starts as DRAFT)
-         *     2. POST /api/v1/promotions/:id/slides → upload images + attach product links
-         *     3. POST /api/v1/promotions/:id/publish → make it live on the website
+         *     1. POST /api/v1/promotions               → create promotion shell (starts as DRAFT), including placement
+         *     2. POST /api/v1/promotions/:id/slides    → upload images + attach product links
+         *     3. POST /api/v1/promotions/:id/publish   → make it live on the website
          *     4. (later) POST /api/v1/promotions/:id/archive → take it offline, keep history
          *     ```
          *
          *     ### Frontend rendering workflow
          *
          *     ```
-         *     GET /api/v1/promotions              → fetch all PUBLISHED promotions (no auth)
-         *       └─ response includes slides[]    → each slide has imageUrl, description, productSlug
+         *     GET /api/v1/promotions?placement=home-after-hero,home-after-value&active=true
+         *       └─ response includes slides[]    → each slide has imageUrl, mobileImageUrl, description, productSlug
          *             └─ productSlug             → build link to /products/{productSlug}
          *             └─ externalUrl             → or link to an external page
          *             └─ productId               → alternative to slug if the UI uses UUIDs
+         *             └─ mobileImageUrl          → use at mobile widths; null → fall back to imageUrl
          *     ```
          *
          *     ### Slide link fields — pick one per slide
@@ -22221,6 +27236,12 @@ export interface paths {
          *
          *     All three can be null if the slide is decorative only.
          *
+         *     ### Placement, fallback, and targeting
+         *
+         *     - `placement` — a plain string key naming the storefront slot (e.g. `home-after-hero`, `product-page`, `catalog-listing`, `parts-catalog`). The backend never validates this against a list of known keys — the frontend owns that catalog and treats an unrecognised value as unplaced.
+         *     - `isFallback` — marks a slot's evergreen banner. Hide it whenever a non-fallback promotion is live in the same `placement` (+ matching `targetCategorySlug` if the slot is category-scoped); a slot should never render bare.
+         *     - `targetCategorySlug` — for slots that appear on many pages, optionally scopes a promotion to one category. Null means every page carrying that slot.
+         *
          *     ### Status lifecycle
          *
          *     | Status | Visible to public? | Who can set it |
@@ -22231,12 +27252,14 @@ export interface paths {
          *
          *     ---
          *
-         *     **Use this on the frontend homepage/carousel** — it returns everything needed to render the banner in a single call.
+         *     **Use this on the frontend** — it returns everything needed to render a slot's banner(s) in a single call. Filter by `placement` to avoid over-fetching every promotion on the site for a page with a single slot.
          */
         get: {
             parameters: {
                 query?: {
                     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+                    placement?: string;
+                    active?: "true" | "false";
                     page?: string;
                     limit?: string;
                 };
@@ -22276,6 +27299,10 @@ export interface paths {
          * Create a promotion
          * @description Creates a promotion in **DRAFT** status. After creating, upload images with `POST /api/v1/promotions/:id/slides`, then publish with `POST /api/v1/promotions/:id/publish`.
          *
+         *     `placement` defaults to `"home-after-hero"` if omitted (today's single-carousel behaviour). It is validated only for shape — non-empty, max 64 characters — never against a list of known keys.
+         *
+         *     `isFallback` must be a real JSON boolean (`true`/`false`), not the string `"true"`.
+         *
          *     Requires **`promotions:write`** permission.
          */
         post: {
@@ -22293,10 +27320,19 @@ export interface paths {
                         /** @example Big discounts on laptops all August. */
                         description?: string;
                         /**
-                         * @description Display order — lower = appears first
+                         * @description Display order within the placement — lower = appears first
                          * @example 0
                          */
                         position?: number;
+                        /**
+                         * @description Defaults to "home-after-hero" if omitted.
+                         * @example home-after-value
+                         */
+                        placement?: string;
+                        /** @example false */
+                        isFallback?: boolean;
+                        /** @example null */
+                        targetCategorySlug?: string | null;
                         /**
                          * Format: date-time
                          * @example 2026-08-01T00:00:00.000Z
@@ -22323,6 +27359,13 @@ export interface paths {
                             data: components["schemas"]["Promotion"];
                         };
                     };
+                };
+                /** @description placement is empty or exceeds 64 characters */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Unauthorized */
                 401: {
@@ -22394,7 +27437,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a promotion
-         * @description Permanently deletes the promotion and all its slides, including removing the images from Cloudinary/S3. Requires **`promotions:delete`**.
+         * @description Permanently deletes the promotion and all its slides, including removing every desktop AND mobile image from Cloudinary/S3. Requires **`promotions:delete`**.
          */
         delete: {
             parameters: {
@@ -22440,7 +27483,7 @@ export interface paths {
         head?: never;
         /**
          * Update promotion metadata
-         * @description Update title, description, position, or schedule. To manage slides use the `/slides` sub-routes. Requires **`promotions:write`**.
+         * @description Update title, description, position, placement, fallback flag, category target, or schedule. To manage slides use the `/slides` sub-routes. To move several promotions across placements/positions at once, use `PATCH /reorder` instead. Requires **`promotions:write`**.
          */
         patch: {
             parameters: {
@@ -22457,6 +27500,9 @@ export interface paths {
                         title?: string;
                         description?: string | null;
                         position?: number;
+                        placement?: string;
+                        isFallback?: boolean;
+                        targetCategorySlug?: string | null;
                         /** Format: date-time */
                         startAt?: string | null;
                         /** Format: date-time */
@@ -22478,6 +27524,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description placement is empty or exceeds 64 characters */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description promotions:write permission required */
                 403: {
                     headers: {
@@ -22486,6 +27539,83 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Promotion not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/promotions/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reorder promotions (bulk position/placement update)
+         * @description Applies `placement` and `position` to every listed promotion in a single database transaction — either all of it lands or none of it does.
+         *
+         *     Built for drag-and-drop reordering: dragging one card within a slot holding six promotions would otherwise fire six separate `PATCH /:id` calls. Accepting `placement` in the same payload also means dragging a card **between** two slot groups is one call rather than a move plus a reorder.
+         *
+         *     Requires **`promotions:write`**.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        placement: string;
+                        position: number;
+                    }[];
+                };
+            };
+            responses: {
+                /** @description All listed promotions updated, returned in full */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["Promotion"][];
+                        };
+                    };
+                };
+                /** @description Empty array, or an item is missing id/placement/position */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description promotions:write permission required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description One or more ids in the payload do not exist */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -22618,8 +27748,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Upload slides (images + product links)
-         * @description Upload one or more images for a promotion. Each image becomes one slide and can carry its own caption and product link.
+         * Upload slides (desktop + optional mobile images, product links)
+         * @description Upload one or more images for a promotion. Each **desktop** image becomes one slide and can carry its own caption, product link, and an optional **mobile** recomposition.
          *
          *     **Content-Type:** `multipart/form-data`
          *
@@ -22627,7 +27757,9 @@ export interface paths {
          *
          *     | Field | Type | Required | Description |
          *     |---|---|---|---|
-         *     | `files` | file (repeatable) | Yes | Images — JPEG/PNG/WebP only, max **5 MB** each, max **20 files** per request |
+         *     | `files` | file (repeatable) | Yes | Desktop images — JPEG/PNG/WebP only, max **5 MB** each, max **20 files** per request |
+         *     | `mobileFiles` | file (repeatable) | No | Mobile images. This is a **separate recomposed file, not a crop** of the desktop image — a wide banner with a headline does not survive being squeezed into a phone-shaped frame. Same limits as `files`. Does not need one entry per desktop file — it can be sparse. |
+         *     | `mobileIndexes` | string (JSON array of integers) | Required if `mobileFiles` is sent | Explicit index mapping, **not positional**. `mobileIndexes[i]` names which `files[]` index `mobileFiles[i]` is the mobile version of. Example: `files` has 3 entries, only entries 0 and 2 have a mobile version → send `mobileFiles: [mobileForSlide0, mobileForSlide2]` and `mobileIndexes: "[0,2]"`. Each index must be unique and within range of `files`. |
          *     | `metadata` | string (JSON) | No | JSON array of metadata objects, **one per file in the same order**. If omitted, slides are created with no captions or links. |
          *
          *     ### metadata format
@@ -22655,10 +27787,11 @@ export interface paths {
          *
          *     ### What happens to the images
          *
-         *     1. Images are compressed server-side (converted to WebP, max-width 1920px).
-         *     2. Uploaded to Cloudinary or S3 depending on the server's `STORAGE_PROVIDER` setting.
-         *     3. New slides are appended **after** any existing slides on this promotion — they do not replace existing ones.
-         *     4. Each slide gets an auto-incremented `order` value (can be changed later with PATCH).
+         *     1. Both desktop and (if supplied) mobile images are compressed server-side (converted to WebP, max-width 1920px) and uploaded to Cloudinary or S3 depending on the server's `STORAGE_PROVIDER` setting.
+         *     2. New slides are appended **after** any existing slides on this promotion — they do not replace existing ones.
+         *     3. Each slide gets an auto-incremented `order` value (can be changed later with PATCH or `/reorder`).
+         *     4. A slide with no mobile file returns `mobileImageUrl: null` — the frontend should fall back to `imageUrl` at mobile widths.
+         *     5. `width`/`height` are decoded from the desktop file at upload time and returned on the slide.
          *
          *     Requires **`promotions:write`**.
          */
@@ -22674,8 +27807,15 @@ export interface paths {
             requestBody?: {
                 content: {
                     "multipart/form-data": {
-                        /** @description Image files (JPEG/PNG/WebP). Field name must be "files". */
+                        /** @description Desktop image files (JPEG/PNG/WebP). Field name must be "files". */
                         files: unknown[];
+                        /** @description Optional mobile recomposition files. Field name must be "mobileFiles". */
+                        mobileFiles?: unknown[];
+                        /**
+                         * @description JSON array of integers, index-matched to mobileFiles[], naming which files[] index each mobile file belongs to. Required whenever mobileFiles is sent.
+                         * @example [0,2]
+                         */
+                        mobileIndexes?: string;
                         /**
                          * @description JSON array of slide metadata, indexed to match files[]
                          * @example [{"description":"Big sale!","productSlug":"dell-xps-15-2024"}]
@@ -22698,7 +27838,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description No files uploaded, or metadata is not valid JSON */
+                /** @description No files uploaded, metadata/mobileIndexes is not valid JSON, mobileIndexes length mismatch, or an index is out of range/duplicated */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -22739,7 +27879,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a slide
-         * @description Removes the slide and deletes its image from Cloudinary/S3. Requires **`promotions:write`**.
+         * @description Removes the slide and deletes both its desktop AND (if present) mobile image from Cloudinary/S3. Requires **`promotions:write`**.
          */
         delete: {
             parameters: {
@@ -22785,8 +27925,15 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update a slide
-         * @description Update the description, product link, external URL, or display order for a slide. To change the image, delete the slide and upload a new one. Requires **`promotions:write`**.
+         * Update a slide (metadata, and optionally replace its image(s))
+         * @description Update the description, product link, external URL, or display order for a slide.
+         *
+         *     Accepts **either** Content-Type:
+         *
+         *     - `application/json` — metadata-only edit, exactly as before this field set was added.
+         *     - `multipart/form-data` — same metadata fields as regular form fields, plus an optional `file` (replaces the desktop image) and/or `mobileFile` (replaces the mobile image). Omit either to leave that image untouched. When a replacement is supplied, the old storage object is deleted only after the new upload succeeds.
+         *
+         *     Requires **`promotions:write`**.
          */
         patch: {
             parameters: {
@@ -22814,6 +27961,23 @@ export interface paths {
                          * @example 2
                          */
                         order?: number;
+                    };
+                    "multipart/form-data": {
+                        description?: string;
+                        /** Format: uuid */
+                        productId?: string;
+                        productSlug?: string;
+                        /** Format: uri */
+                        externalUrl?: string;
+                        /**
+                         * @description New position, sent as a string form field
+                         * @example 2
+                         */
+                        order?: string;
+                        /** @description Replacement desktop image */
+                        file?: unknown;
+                        /** @description Replacement mobile image */
+                        mobileFile?: unknown;
                     };
                 };
             };
@@ -22849,10 +28013,725 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/coupons/how-it-works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How coupons work (read me first)
+         * @description ## Coupon lifecycle: mint → preview → redeem
+         *
+         *     Coupons are created by staff, previewed by the storefront before checkout, and redeemed exactly
+         *     once per order as part of `POST /api/v1/orders`. There is no separate "apply coupon" step that
+         *     mutates anything — redemption only happens when an order is actually placed.
+         *
+         *     ### Admin routes (SUPER_ADMIN) — see Admin.route.ts
+         *     - `POST /api/v1/admin/coupons` — mint a coupon (custom or server-generated code)
+         *     - `GET /api/v1/admin/coupons` — list all coupons with usage stats
+         *     - `PATCH /api/v1/admin/coupons/{id}` — edit a coupon, or set `status: DISABLED` to kill it
+         *       immediately without deleting it. This is the only way to stop a live coupon — redemptions
+         *       already recorded are permanent and are never given back by a later order cancellation or
+         *       refund, so a coupon minted with a typo or the wrong percentage costs real money for every
+         *       minute it stays ACTIVE.
+         *
+         *     ### Customer route — this endpoint
+         *     - `POST /api/v1/coupons/validate` — price a code against a real cart *before* checkout, without
+         *       attempting the order. Always returns `200` with a typed `valid: true | false` body (see below) —
+         *       it never 4xx's just because the code is wrong, expired, or already used; 4xx is reserved for
+         *       malformed requests (missing fields), auth failures, and rate limiting.
+         *
+         *     ### Why this exists
+         *     Before this endpoint, `couponCode` only existed as a field on `POST /api/v1/orders` — the
+         *     storefront could not price a code or tell a customer it was invalid without attempting the whole
+         *     order. The Promotional Code field was removed from the cart summary for exactly this reason (see
+         *     the comment in `features/cart/ui/cart-summary.tsx`); this endpoint is what makes restoring it safe.
+         *
+         *     ### Guarantee: validate and checkout agree
+         *     `validateCouponForCart()` mirrors the exact checks `createOrder()` runs at real checkout —
+         *     status/expiry, global usage cap, per-customer usage cap, minimum order amount, discount
+         *     calculation — by hand, kept deliberately in lockstep rather than factored into one shared
+         *     function (the checkout copy sits in the payment-critical path). A code that previews as
+         *     `valid: true` here should never then get rejected at checkout for a reason this endpoint could
+         *     have caught — barring a genuine race, e.g. someone else exhausting `maxUsageCount` in the gap
+         *     between preview and submit.
+         *
+         *     ### What this endpoint deliberately does NOT do
+         *     It never writes to `coupons.usageCount` or `coupon_usages` — a preview never counts as a
+         *     redemption. Only `createOrder()` records a redemption, and only once the order is actually placed.
+         *
+         *     *This endpoint is documentation only — there is nothing to call.*
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conceptual overview — not a real endpoint */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a coupon against a cart
+         * @description Prices `couponCode` against the cart at `cartSessionId` and returns the resolved
+         *     discount, or a typed rejection reason — without touching `coupons.usageCount` or recording a
+         *     redemption. Requires a logged-in customer (the per-customer usage cap this checks is meaningless
+         *     without a `customerId`). Rate-limited to 20 calls/minute per customer — generous, but present,
+         *     since this is a real DB round-trip and a bare code-guessing surface without some limit.
+         *
+         *     Always responds `200` with `{ valid: true, ... }` or `{ valid: false, reason, message }` — see
+         *     the two response shapes below. A "wrong" or expired code is not an error from this endpoint's
+         *     point of view; 400/401/429 are reserved for a malformed request, missing auth, and the rate limit.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        couponCode: string;
+                        cartSessionId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Validation result — check `valid` to tell the two shapes apart */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example success */
+                            status: string;
+                            /** @example Success */
+                            message: string;
+                            data: components["schemas"]["CouponValidationAccepted"] | components["schemas"]["CouponValidationRejected"];
+                        };
+                    };
+                };
+                /** @description Validation error — missing couponCode or cartSessionId */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit reached (20 calls/minute) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/policy/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current checkout policy
+         * @description Public, unauthenticated. Returns the currently published checkout-policy version — the storefront uses this to render the policy text and to know which `policyVersion` string to echo back in `policyConsent` at checkout (see `POST /api/v1/orders` and `POST /api/checkout`). (checkout-policy-consent ask, 2026-09-04)
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Current policy version returned (version, contentText/archiveUrl, contentHash, publishedAt). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No checkout policy has been published yet. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/policy/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all published policy versions
+         * @description Staff. Requires `policy:versions:read`. Full history, newest first.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Policy versions returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Publish a new checkout policy version
+         * @description Staff. Requires `policy:versions:write`. Atomically supersedes the previously current version — the old row is kept (never edited or deleted) so any order recorded against it still resolves the exact text/hash that was current when that order's consent was accepted. At least one of `contentText` / `archiveUrl` is required (the retrievable archived copy of what was published).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PublishPolicyVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description Policy version published and marked current */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Validation error — see message (e.g. missing both contentText and archiveUrl) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hunt-campaigns/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current/upcoming treasure hunt (public)
+         * @description Public, unauthenticated. Returns a disclosure-tiered view of the running or next-scheduled campaign — never the raw schedule (backend-asks item 29, 2026-09-07):
+         *
+         *     - Every non-claimed item is **announced**: product + hunt price, always — the ask is explicit that customers know all the possible prizes and prices upfront; only WHEN each one drops is withheld.
+         *     - **claimed** items switch to product identity + the winner's first name — safe to reveal once gone.
+         *     - `nextReveal` is campaign-level, not attached to any item in `items` — set only while some hunt deal is inside its own reveal window, carrying just a timestamp ("a drop is coming, and when") and deliberately never naming which item, so every countdown could be the anchor prize.
+         *
+         *     Every response includes `serverTime` — browser clocks drift more than the margin a 5-minute drop races on, so clients should measure the offset from this rather than trust `Date.now()`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    campaignId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Campaign returned with disclosure-tiered items */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PublicHuntCampaignResponse"];
+                        };
+                    };
+                };
+                /** @description No treasure hunt is currently running or scheduled */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hunt-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List treasure-hunt campaigns
+         * @description Staff. Requires `huntCampaigns:read`. Optional `?status=` filter.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Campaigns returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"][];
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a treasure-hunt campaign
+         * @description Staff. Requires `huntCampaigns:write`. Creates the campaign, one underlying Deal per hunt deal (via the existing deals machinery — one target, negative markupPercentage), and schedules precise BullMQ start/end jobs for each at its own `slotStart`/`slotEnd` — this is what makes a hunt deal open and close to the second, unlike an ordinary deal which is only swept every 5 minutes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateHuntCampaignRequest"];
+                };
+            };
+            responses: {
+                /** @description Campaign created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"];
+                        };
+                    };
+                };
+                /** @description Validation error — e.g. a hunt deal's slot falls outside the campaign window */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hunt-campaigns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get campaign detail, incl. holds/claims
+         * @description Staff. Requires `huntCampaigns:read`. Per hunt deal: `claimStatus`, who holds/claimed it, the order reference, and that order's current payment status — closing the gap where staff previously had no way to answer "who won and have they paid" without cross-referencing the orders table by hand.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Campaign returned */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"];
+                        };
+                    };
+                };
+                /** @description Campaign not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Delete a DRAFT or SCHEDULED campaign
+         * @description Staff. Requires `huntCampaigns:write`. Removes every hunt deal's pending BullMQ jobs and its underlying Deal (via the existing deleteDeal) before deleting the campaign — no orphaned rows, no stray scheduled jobs.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Campaign deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Campaign is ACTIVE or ENDED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit a DRAFT or SCHEDULED campaign
+         * @description Staff. Requires `huntCampaigns:write`. 409 `HUNT_CAMPAIGN_NOT_EDITABLE` once ACTIVE/ENDED — same lesson item 28 raised about Deal never having this, applied here from day one.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateHuntCampaignRequest"];
+                };
+            };
+            responses: {
+                /** @description Campaign updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"];
+                        };
+                    };
+                };
+                /** @description Campaign is ACTIVE or ENDED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/hunt-campaigns/{id}/hunt-deals/{huntDealId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one hunt deal
+         * @description Staff. Requires `huntCampaigns:write`. Same DRAFT/SCHEDULED + OPEN restriction as the edit route.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    huntDealId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Hunt deal deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not editable */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit one hunt deal — product, price, slot timing
+         * @description Staff. Requires `huntCampaigns:write`. Campaign must be DRAFT/SCHEDULED and the hunt deal must still be `OPEN` (409 `HUNT_DEAL_NOT_EDITABLE` once held/claimed). Reschedules the precise start/end jobs to match the new timing.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    huntDealId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateHuntDealRequest"];
+                };
+            };
+            responses: {
+                /** @description Hunt deal updated — returns the whole campaign (not just the one hunt deal) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"];
+                        };
+                    };
+                };
+                /** @description Not editable */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/hunt-campaigns/{id}/hunt-deals/{huntDealId}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manually release a stuck claim
+         * @description Staff. Requires `huntCampaigns:write`. For the case in the ask where a legitimate winner is never reachable — releases the item back to `OPEN` and, if still inside the drop's own window, restarts the discount for the remaining time.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    huntDealId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReleaseHuntDealRequest"];
+                };
+            };
+            responses: {
+                /** @description Released — returns the whole campaign */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["HuntCampaignAdminResponse"];
+                        };
+                    };
+                };
+                /** @description Nothing to release — hunt deal is OPEN */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        GoogleOneTapResponse: {
+            /** @description JWT access token */
+            accessToken: string;
+            /** @description JWT refresh token — persist this too, there is no cookie fallback for One Tap */
+            refreshToken: string;
+            /**
+             * @description Access token lifetime in seconds
+             * @example 900
+             */
+            expiresIn: number;
+        };
+        GoogleOneTapRequest: {
+            /** @description The Google ID token JWT, exactly as handed to the page by Google Identity Services' credential callback. */
+            credential: string;
+            /** @description The same nonce value passed to Google's prompt initialize() call for this credential — must match the nonce claim signed inside the token. */
+            nonce: string;
+        };
         TokenPairResponse: {
             /** @description JWT access token — also set as httpOnly cookie */
             accessToken: string;
@@ -23466,6 +29345,14 @@ export interface components {
             status: "APPROVED" | "REJECTED";
             reason?: string;
         };
+        CategoryBanner: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+            altText: string | null;
+            isPrimary: boolean;
+            sortOrder: number;
+        };
         Category: {
             /**
              * Format: uuid
@@ -23480,13 +29367,21 @@ export interface components {
             name: string;
             slug: string;
             description: string | null;
+            /** @description Small thumbnail/icon shown in nav and category grids. */
             imageUrl: string | null;
             isActive: boolean;
             sortOrder: number;
             /** Format: uuid */
             parentId: string | null;
+            /** @description Products filed directly under this category (not its subcategories). */
             productCount: number;
+            /** @description productCount plus every descendant subcategory's productCount — the honest total for this category including its subtree. */
+            subtreeProductCount: number;
+            /** @description Active ProductPart rows scoped to this category — lets the parts filter rail hide/grey rows with zero parts, the same way productCount already does for products (backend-asks item 16). Not rolled up into a subtree total. */
+            partCount: number;
             children: unknown[];
+            /** @description Large promotional/hero images for this category's landing page (e.g. a carousel) — separate from imageUrl. Only present on GET /categories/{categoryId} and on create/add-banner responses; the full GET /categories tree omits it on every node to keep that response nav-sized. */
+            banners?: components["schemas"]["CategoryBanner"][];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -23511,7 +29406,7 @@ export interface components {
             isActive?: boolean;
             /**
              * Format: binary
-             * @description Category image file. Compressed to WebP on the server. Field name must be "image".
+             * @description Category thumbnail/icon file. Compressed to WebP on the server. Field name must be "image".
              */
             image?: string;
             /**
@@ -23519,6 +29414,23 @@ export interface components {
              * @description Use this instead of image when you already have a CDN/external URL.
              */
             imageUrl?: string;
+            /** @description Up to 8 banner image files (landing-page gallery). Field name must be "banners". */
+            banners?: unknown[];
+            /**
+             * @description Alt text for the 1st banner
+             * @example Season sale banner
+             */
+            bannerAlt_0?: string;
+            /**
+             * @description Send "true" to mark the 1st banner as primary
+             * @enum {string}
+             */
+            bannerPrimary_0?: "true";
+            /**
+             * @description Display order for the 1st banner
+             * @example 0
+             */
+            bannerSortOrder_0?: string;
         };
         UpdateCategoryRequest: {
             name?: string;
@@ -23538,6 +29450,24 @@ export interface components {
              * @description Set imageUrl to an external URL instead of uploading a file.
              */
             imageUrl?: string;
+        };
+        AddCategoryBannersRequest: {
+            /** @description Up to 8 banner image files. Field name must be "banners". */
+            banners: unknown[];
+            bannerAlt_0?: string;
+            /** @enum {string} */
+            bannerPrimary_0?: "true";
+            bannerSortOrder_0?: string;
+        };
+        ReorderCategoryBannersRequest: {
+            order: {
+                /** Format: uuid */
+                bannerId: string;
+                sortOrder: number;
+            }[];
+        };
+        UpdateCategoryBannerRequest: {
+            altText?: string;
         };
         CreateSubcategoryRequest: {
             name: string;
@@ -23584,6 +29514,8 @@ export interface components {
             logoUrl: string | null;
             isActive: boolean;
             productCount: number;
+            /** @description Active ProductPart rows scoped to this brand (backend-asks item 16). */
+            partCount: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -23652,16 +29584,28 @@ export interface components {
              */
             productId: string | null;
             /**
-             * @description Percentage markup to apply (e.g. 15 = +15%)
+             * @description Percentage markup to apply (e.g. 15 = +15%, or -20 = a 20% markdown / flash sale)
              * @example 15
              */
             markupPercentage: number;
+            /**
+             * @description NEW. Server-computed from the sign of markupPercentage — never 0, so always unambiguous. 'MARKUP' (positive) raises price above base; 'DISCOUNT' (negative) is a flash sale/markdown. Use this instead of re-deriving it from the sign client-side; GET .../markup-rules?type=markup|discount pre-filters to just one.
+             * @enum {string}
+             */
+            ruleType: "MARKUP" | "DISCOUNT";
             /**
              * @description Which price field(s) to adjust: PRICE | COMPARE_AT_PRICE | BOTH
              * @example PRICE
              */
             applyTo: string;
             isActive: boolean;
+            /** @description Only meaningful when markupPercentage is negative (a flash sale) — whether a coupon may still be applied on top of this sale price. See POST /flash-sales. */
+            allowCouponStacking: boolean;
+            /**
+             * @description Only meaningful on a flash sale (negative markupPercentage). When set, a background worker resets this scope to base price and deactivates the rule once this time passes. null = runs until cancelled manually.
+             * @example 2026-09-10T18:00:00.000Z
+             */
+            expiresAt: string | null;
             notes: string | null;
             /** Format: uuid */
             createdByStaffId: string;
@@ -23698,6 +29642,138 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        SetFlashSaleRequest: {
+            /** Format: uuid */
+            categoryId?: string;
+            /** Format: uuid */
+            brandId?: string;
+            /** Format: uuid */
+            productId?: string;
+            markupPercentage: number;
+            notes?: string;
+            /** @default false */
+            allowCouponStacking: boolean;
+            expiresAt?: string;
+        };
+        Deal: {
+            /**
+             * Format: uuid
+             * @description DB UUID — use this for API calls
+             */
+            id: string;
+            /**
+             * @description Human-readable ID — display only
+             * @example DEAL-XXXXXXXX
+             */
+            dealId: string;
+            /**
+             * @description Staff-written, shown to customers
+             * @example Weekend Laptop Sale
+             */
+            name: string;
+            /** @description The scope set this deal covers. For a DRAFT/SCHEDULED deal (no rules yet) this is the only record of what it will cover; once ACTIVE, the actual rules (see GET /deals/{id}) are the live source of truth. */
+            targets: {
+                /** @enum {string} */
+                entityType: "product" | "part";
+                /** Format: uuid */
+                categoryId?: string;
+                /** Format: uuid */
+                brandId?: string;
+                /** Format: uuid */
+                productId?: string;
+                /** Format: uuid */
+                partTypeId?: string;
+                /** Format: uuid */
+                partId?: string;
+                /**
+                 * @description Must be negative — a deal target is always a markdown
+                 * @example -20
+                 */
+                markupPercentage: number;
+                notes?: string | null;
+            }[];
+            /** @description null = only starts via POST .../start. Non-null = auto-started by the same sweep that handles flash-sale expiry once this time passes — that sweep runs every 5 minutes, so a SCHEDULED deal can start up to 5 minutes late. Do not build a countdown or a "goes live at" UI promise that implies second precision; same lag applies to expiresAt ending an ACTIVE deal. */
+            startsAt: string | null;
+            /** @description Applied to every target rule once started. null = runs until POST .../end is called manually. */
+            expiresAt: string | null;
+            allowCouponStacking: boolean;
+            /** @enum {string} */
+            status: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED";
+            notes: string | null;
+            /** Format: uuid */
+            createdByStaffId: string;
+            /** @description Live PriceMarkupRule rows currently linked to this deal (0 for DRAFT/SCHEDULED) */
+            productRuleCount?: number;
+            /** @description Live PartMarkupRule rows currently linked to this deal (0 for DRAFT/SCHEDULED) */
+            partRuleCount?: number;
+            createdAt: string;
+            updatedAt: string;
+        };
+        CreateDealRequest: {
+            name: string;
+            startsAt?: string | null;
+            expiresAt?: string;
+            /** @default false */
+            allowCouponStacking: boolean;
+            notes?: string;
+            targets: ({
+                /** @enum {string} */
+                entityType: "product";
+                /** Format: uuid */
+                categoryId?: string;
+                /** Format: uuid */
+                brandId?: string;
+                /** Format: uuid */
+                productId?: string;
+                markupPercentage: number;
+                notes?: string;
+            } | {
+                /** @enum {string} */
+                entityType: "part";
+                /** Format: uuid */
+                categoryId?: string;
+                /** Format: uuid */
+                brandId?: string;
+                /** Format: uuid */
+                partTypeId?: string;
+                /** Format: uuid */
+                partId?: string;
+                markupPercentage: number;
+                notes?: string;
+            })[];
+        };
+        UpdateDealRequest: {
+            name?: string;
+            startsAt?: string | null;
+            expiresAt?: string | null;
+            allowCouponStacking?: boolean;
+            notes?: string | null;
+            targets?: ({
+                /** @enum {string} */
+                entityType: "product";
+                /** Format: uuid */
+                categoryId?: string;
+                /** Format: uuid */
+                brandId?: string;
+                /** Format: uuid */
+                productId?: string;
+                markupPercentage: number;
+                notes?: string;
+            } | {
+                /** @enum {string} */
+                entityType: "part";
+                /** Format: uuid */
+                categoryId?: string;
+                /** Format: uuid */
+                brandId?: string;
+                /** Format: uuid */
+                partTypeId?: string;
+                /** Format: uuid */
+                partId?: string;
+                markupPercentage: number;
+                notes?: string;
+            })[];
+        };
         CreateMarkupRuleRequest: {
             /** Format: uuid */
             categoryId?: string;
@@ -23714,6 +29790,9 @@ export interface components {
             notes?: string;
             /** @default true */
             isActive: boolean;
+            /** @default false */
+            allowCouponStacking: boolean;
+            expiresAt?: string;
         };
         UpdateMarkupRuleRequest: {
             markupPercentage?: number;
@@ -23721,6 +29800,8 @@ export interface components {
             applyTo?: "PRICE" | "COMPARE_AT_PRICE" | "BOTH";
             notes?: string | null;
             isActive?: boolean;
+            allowCouponStacking?: boolean;
+            expiresAt?: string | null;
         };
         PreviewVariant: {
             /** Format: uuid */
@@ -23810,6 +29891,23 @@ export interface components {
              * @example Please call on arrival.
              */
             notes?: string;
+            /**
+             * @description REQUIRED in practice — see the 400 response below. `policyVersion` must match the currently published version from `GET /api/v1/policy/current`. `clientAcceptedAt` is optional context only (when the customer clicked accept in their own browser) — the server's own receipt time is what gets recorded as authoritative, never this value.
+             * @example {
+             *       "policyVersion": "2026-09-01",
+             *       "clientAcceptedAt": "2026-09-04T10:15:00.000Z"
+             *     }
+             */
+            policyConsent?: {
+                policyVersion: string;
+                /** Format: date-time */
+                clientAcceptedAt?: string;
+            };
+            /**
+             * @description REQUIRED when the cart contains a live treasure-hunt item (backend-asks item 29, 2026-09-07) — optional otherwise. A retried request with the same key returns the already-created order instead of creating a duplicate / attempting a second hunt claim. Generate a fresh value per checkout attempt (e.g. a UUID), not per page load.
+             * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+             */
+            idempotencyKey?: string;
         };
         CancelOrderRequest: {
             reason: string;
@@ -24495,6 +30593,296 @@ export interface components {
                 lastName: string;
             };
         };
+        SalesNotificationEmail: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @example sales@blessingcomputers.com
+             */
+            email: string;
+            /** @example Sales team inbox */
+            label: string | null;
+            isActive: boolean;
+            /** Format: uuid */
+            createdByStaffId: string;
+            /** @example 2026-08-20T10:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-08-20T10:00:00.000Z */
+            updatedAt: string;
+            createdBy: {
+                /** Format: uuid */
+                id: string;
+                firstName: string;
+                lastName: string;
+            };
+        };
+        PreOrder: {
+            /** Format: uuid */
+            id: string;
+            /** @example PRE-3A9F1C2E8B0D4A6F1C2E */
+            preorderId: string;
+            /** Format: uuid */
+            customerId: string;
+            /** @example Ada */
+            firstName: string;
+            /** @example Lovelace */
+            lastName: string;
+            /**
+             * Format: email
+             * @example ada@example.com
+             */
+            email: string;
+            /** @example +2348012345678 */
+            phoneNumber: string;
+            /** @example 12 Marina Road */
+            address: string;
+            /** @example Lagos */
+            city: string;
+            /** @example Lagos */
+            state: string;
+            /** @example 100001 */
+            postalCode: string | null;
+            /** @example Nigeria */
+            country: string;
+            /** @example UltraBook Pro 16 */
+            productName: string;
+            /** @example Dell */
+            brand: string;
+            /** @example 1 */
+            quantity: number;
+            /** @example 16-inch, 32GB RAM, upcoming restock */
+            productDescription: string | null;
+            /** @enum {string} */
+            status: "PENDING" | "CONTACTED" | "CONFIRMED" | "FULFILLED" | "CANCELLED";
+            /** @example 2026-08-24T10:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-08-24T10:00:00.000Z */
+            updatedAt: string;
+            /** @example 30 */
+            depositPercentage: number | null;
+            /** @example 500000 */
+            totalAmount: number | null;
+            /** @example 150000 */
+            depositAmount: number | null;
+            /** @enum {string} */
+            depositStatus: "NOT_REQUESTED" | "PENDING" | "PROOF_SUBMITTED" | "APPROVED" | "REJECTED";
+            /** @example 2026-09-02T10:00:00.000Z */
+            depositRequestedAt: string | null;
+            /** @example https://res.cloudinary.com/.../deposit.jpg */
+            depositProofUrl: string | null;
+            /** @example 2026-09-02T12:00:00.000Z */
+            depositProofUploadedAt: string | null;
+            /** @example Receipt amount does not match the deposit. */
+            depositRejectionReason: string | null;
+            /** @example 2026-09-02T13:00:00.000Z */
+            depositValidatedAt: string | null;
+            /** @example 70 */
+            balancePercentage: number | null;
+            /** @example 350000 */
+            balanceAmount: number | null;
+            /** @enum {string} */
+            balanceStatus: "NOT_REQUESTED" | "PENDING" | "PROOF_SUBMITTED" | "APPROVED" | "REJECTED";
+            /** @example 2026-09-10T09:00:00.000Z */
+            balanceRequestedAt: string | null;
+            /** @example https://res.cloudinary.com/.../balance.jpg */
+            balanceProofUrl: string | null;
+            /** @example 2026-09-10T11:00:00.000Z */
+            balanceProofUploadedAt: string | null;
+            /** @example Receipt amount does not match the balance. */
+            balanceRejectionReason: string | null;
+            /** @example 2026-09-10T12:00:00.000Z */
+            balanceValidatedAt: string | null;
+        };
+        AdminUpdatePreOrderStatusBody: {
+            /** @enum {string} */
+            status: "PENDING" | "CONTACTED" | "CONFIRMED" | "FULFILLED" | "CANCELLED";
+        };
+        AdminSetDepositTermsBody: {
+            totalAmount: number;
+            depositPercentage: number;
+        };
+        AdminRejectDepositBody: {
+            rejectionReason: string;
+        };
+        AdminRejectBalanceBody: {
+            rejectionReason: string;
+        };
+        CompanyBankAccountSnapshot: {
+            /** @example GTBank */
+            bankName: string;
+            /** @example Blessing Computers Ltd */
+            accountName: string;
+            /** @example 0123456789 */
+            accountNumber: string;
+            /** @example 058 */
+            bankCode: string | null;
+            /** @example NGN */
+            currency: string;
+        } | null;
+        PreOrderPaymentEvidence: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            paymentRequestId: string;
+            /** @example https://res.cloudinary.com/.../receipt.jpg */
+            fileUrl: string;
+            fileStoragePublicId: string;
+            /** @example spaces */
+            fileStorageProvider: string;
+            /** @example TRX-88221199 */
+            transactionReference: string;
+            /** @example Paid from my joint account, name may differ slightly. */
+            customerNote: string | null;
+            /** @example 2026-09-04T10:00:00.000Z */
+            submittedAt: string;
+            /** @enum {string} */
+            decision: "PENDING" | "APPROVED" | "REJECTED";
+            /** @example Amount on the receipt does not match the amount due. */
+            decisionReason: string | null;
+            /** Format: uuid */
+            decidedByStaffId: string | null;
+            decidedAt: string | null;
+        };
+        PreOrderPaymentRequest: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            preorderId: string;
+            /** @enum {string} */
+            stage: "FIRST_PAYMENT" | "BALANCE";
+            /** @enum {string} */
+            collectionMethod: "TRANSFER_BEFORE_HANDOFF" | "PAY_AT_HANDOFF";
+            /** @enum {string} */
+            status: "PENDING" | "PROOF_SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "EXPIRED";
+            /** @example 30 */
+            percentage: number;
+            /** @example 150000 */
+            amount: number;
+            /** @example 500000 */
+            totalAmount: number;
+            /** @example NGN */
+            currency: string;
+            /** @example 2026-09-07T10:00:00.000Z */
+            payBy: string | null;
+            expiryReminderSentAt: string | null;
+            bankAccountSnapshot: components["schemas"]["CompanyBankAccountSnapshot"];
+            isSuperseded: boolean;
+            supersededAt: string | null;
+            /** Format: uuid */
+            revisionOfRequestId: string | null;
+            /** @example Customer requested a smaller commitment fee. */
+            revisionReason: string | null;
+            /** Format: uuid */
+            approvedByStaffId: string | null;
+            approvedAt: string | null;
+            /** Format: uuid */
+            rejectedByStaffId: string | null;
+            rejectedAt: string | null;
+            rejectionReason: string | null;
+            /** Format: uuid */
+            collectedByStaffId: string | null;
+            collectedAt: string | null;
+            /**
+             * @description How the customer paid at handoff. Only set once a PAY_AT_HANDOFF collection has been recorded.
+             * @enum {string|null}
+             */
+            collectedPaymentMethod: "CASH" | "POS" | "TRANSFER" | null;
+            /**
+             * @description Required and set only when collectedPaymentMethod is TRANSFER.
+             * @example TRF-2026090812345
+             */
+            collectedTransactionReference: string | null;
+            /** Format: uuid */
+            createdByStaffId: string;
+            createdAt: string;
+            updatedAt: string;
+            /** @description Present on the payment-history endpoint (full history); a single most-recent row on the summary embed. */
+            evidence?: components["schemas"]["PreOrderPaymentEvidence"][];
+        };
+        PreOrderPaymentSummary: {
+            /** @enum {string} */
+            plan: "FULL_PAYMENT" | "COMMITMENT_FEE";
+            /** @example NGN */
+            currency: string;
+            /** @example 500000 */
+            totalAmount: number;
+            /** @example 150000 */
+            amountPaid: number;
+            /** @example 350000 */
+            amountDue: number;
+            isFullyPaid: boolean;
+            firstPayment: components["schemas"]["PreOrderPaymentRequest"];
+            balancePayment: components["schemas"]["PreOrderPaymentRequest"] & unknown;
+        };
+        IssuePaymentTermsBody: {
+            totalAmount: number;
+            firstPaymentPercentage: number;
+            /**
+             * @default NGN
+             * @enum {string}
+             */
+            currency: "NGN";
+            payBy?: string | null;
+        };
+        RevisePaymentTermsBody: {
+            totalAmount: number;
+            firstPaymentPercentage: number;
+            payBy: string | null;
+            reason: string;
+        };
+        RequestBalancePaymentBody: {
+            /**
+             * @default TRANSFER_BEFORE_HANDOFF
+             * @enum {string}
+             */
+            collectionMethod: "TRANSFER_BEFORE_HANDOFF" | "PAY_AT_HANDOFF";
+            payBy?: string | null;
+        };
+        PreOrderRefund: {
+            /** Format: uuid */
+            id: string;
+            /** @example PREF-3A9F1C2E */
+            refundId: string;
+            /** Format: uuid */
+            preorderId: string;
+            /** @enum {string} */
+            resolution: "FULL_REFUND" | "PARTIAL_REFUND" | "STORE_CREDIT" | "NO_REFUND";
+            /** @example 150000 */
+            amount: number;
+            /** @example Customer no longer wants the item; commitment fee refunded in full. */
+            reason: string;
+            /** @enum {string} */
+            workStatus: "REFUND_REQUIRED" | "REFUNDED";
+            /** Format: uuid */
+            resolvedByStaffId: string;
+            resolvedAt: string;
+            refundedAt: string | null;
+        } | null;
+        CancelPreorderBody: {
+            reason: string;
+            /** @enum {string} */
+            resolution?: "FULL_REFUND" | "PARTIAL_REFUND" | "STORE_CREDIT" | "NO_REFUND";
+            refundAmount?: number | null;
+            refundReason?: string;
+        };
+        ExtendDeadlineBody: {
+            payBy: string | null;
+            reason: string;
+        };
+        RejectEvidenceBody: {
+            decisionReason: string;
+        };
+        RecordHandoffCollectionBody: {
+            /** @enum {string} */
+            paymentMethod: "CASH" | "POS" | "TRANSFER";
+            transactionReference?: string;
+            note?: string;
+        };
+        RequestAnotherReviewBody: {
+            transactionReference: string;
+            note: string;
+        };
         ChatCustomerSummary: {
             /** @example Jane */
             firstName: string;
@@ -24553,7 +30941,7 @@ export interface components {
              */
             aiState: "HANDLING" | "ESCALATED" | "OFF";
             /**
-             * @description Why the AI escalated. null unless aiState is ESCALATED.
+             * @description Why the AI last escalated. NOT reliably null-unless-ESCALATED: CANNOT_ANSWER and ERROR are per-message reasons that leave aiState at HANDLING (the AI stays eligible for the next customer message) — this field just records the most recent reason for staff visibility, and is cleared automatically the next time the AI replies successfully. Only CUSTOMER_REQUESTED/BLOCKED_TOPIC/FRUSTRATION/REPLY_CAP actually accompany aiState:ESCALATED. See GET /chat/how-ai-first-responder-works.
              * @example null
              * @enum {string|null}
              */
@@ -24622,6 +31010,50 @@ export interface components {
             staff: components["schemas"]["ChatStaffSummary"];
             conversation_participants: components["schemas"]["ConversationParticipant"][];
         };
+        ChatProductCard: {
+            /** Format: uuid */
+            id: string;
+            /** @example PROD-A1B2C3D4 */
+            productId: string;
+            /** @example hp-pavilion-15-eg3054 */
+            slug: string;
+            /** @example HP Pavilion 15 (Intel Core i5, 8GB RAM, 512GB SSD) */
+            name: string;
+            description: string | null;
+            /** Format: uri */
+            primaryImage: string | null;
+            /**
+             * @example {
+             *       "name": "HP",
+             *       "slug": "hp"
+             *     }
+             */
+            brand: {
+                name: string;
+                slug: string;
+            } | null;
+            /**
+             * @example {
+             *       "name": "Laptops",
+             *       "slug": "laptops"
+             *     }
+             */
+            category: {
+                name: string;
+                slug: string;
+            } | null;
+            /** @example 450000 */
+            lowestPrice: number | null;
+            /** @example 450000 */
+            highestPrice: number | null;
+            /** @example IN_STOCK */
+            availabilityStatus: string;
+            /**
+             * Format: uri
+             * @description Absolute product page URL — ready to use as a link href.
+             */
+            url: string;
+        };
         ChatMessage: {
             /**
              * Format: uuid
@@ -24649,6 +31081,8 @@ export interface components {
             createdAt: string;
             /** @description Stable key shared with the socket copy of this message — use it (not createdAt) to reconcile a live-received message against its later REST/history copy. */
             idempotencyKey: string;
+            /** @description Product cards to render inline with this message. Only ever non-empty on a SYSTEM (AI) message that grounded its reply in a real, search-verified catalogue product — every entry has already passed the AI's anti-hallucination checks, safe to render with no extra fetch. Absent or [] on every CUSTOMER/STAFF message and any AI message that didn't reference a product. See GET /chat/how-ai-first-responder-works. */
+            products?: components["schemas"]["ChatProductCard"][];
         };
         PaginatedHistory: {
             messages: components["schemas"]["ChatMessage"][];
@@ -24870,6 +31304,110 @@ export interface components {
                 /** Format: date-time */
                 createdAt: string;
             }[];
+        };
+        AdminCouponListItem: {
+            /** Format: uuid */
+            id: string;
+            /** @example CPN-A1B2C3D4 */
+            couponId: string;
+            /** @example SAVE20 */
+            code: string;
+            description: string | null;
+            /** @enum {string} */
+            discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+            discountValue: number;
+            maxDiscountAmount: number | null;
+            minOrderAmount: number | null;
+            maxUsageCount: number | null;
+            usageCount: number;
+            maxUsagePerUser: number;
+            /** @enum {string} */
+            status: "ACTIVE" | "EXPIRED" | "DISABLED";
+            /**
+             * Format: date-time
+             * @description When the coupon becomes redeemable — enforced at checkout, see the field doc on POST /admin/coupons.
+             */
+            startsAt: string;
+            /** Format: date-time */
+            expiresAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminCreateCouponBody: {
+            /**
+             * @description The code customers type at checkout (`couponCode` on POST /api/v1/orders). CAPITAL letters and digits only, 3–50 characters — "save20", "Save20", "SAVE-20" and "SAVE 20" are all rejected (400), only "SAVE20" passes. Matched EXACTLY (case-sensitive) at checkout. Must be unique. OMIT this field to have the server generate a random 8-character code instead (uppercase letters/digits, excluding the easily-confused 0/O and 1/I) — it is guaranteed unique at the database level, even under concurrent requests, and comes back in the response `code` field.
+             * @example SAVE20
+             */
+            code?: string;
+            /**
+             * @description Internal/admin-facing note. Not shown to customers.
+             * @example 20% off for the August promo
+             */
+            description?: string;
+            /**
+             * @description PERCENTAGE = discountValue is a % of the cart subtotal (capped by maxDiscountAmount if set). FIXED_AMOUNT = discountValue is a flat NGN amount off the subtotal (never exceeds the subtotal, and maxDiscountAmount is ignored for this type).
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+            /**
+             * @description For PERCENTAGE this is a percent (0–100, e.g. 20 = 20% off). For FIXED_AMOUNT this is a NGN amount, e.g. 2000.
+             * @example 20
+             */
+            discountValue: number;
+            /**
+             * @description Only applies when discountType = PERCENTAGE. Caps the discount in NGN so "20% off" can never exceed this amount, however large the cart. Ignored for FIXED_AMOUNT.
+             * @example 5000
+             */
+            maxDiscountAmount?: number;
+            /**
+             * @description Cart subtotal (NGN) must be at least this much before the coupon can be applied.
+             * @example 10000
+             */
+            minOrderAmount?: number;
+            /**
+             * @description Total number of times this coupon can be redeemed across ALL customers combined. Omit for unlimited.
+             * @example 500
+             */
+            maxUsageCount?: number;
+            /**
+             * @description How many times ONE customer may redeem this specific coupon. Defaults to 1 (one-time use per customer). This is what enforces "a customer can only use this coupon once" — it does not limit how many DIFFERENT coupons a customer can use across separate orders, and checkout only ever accepts one coupon per order.
+             * @example 1
+             */
+            maxUsagePerUser?: number;
+            /**
+             * @description Defaults to ACTIVE. Set DISABLED to kill a coupon immediately without deleting it.
+             * @example ACTIVE
+             * @enum {string}
+             */
+            status?: "ACTIVE" | "EXPIRED" | "DISABLED";
+            /**
+             * Format: date-time
+             * @description When the coupon becomes redeemable. Defaults to now. Enforced at checkout — a coupon whose startsAt is still in the future is rejected the same way an expired one is.
+             * @example 2026-09-01T00:00:00.000Z
+             */
+            startsAt?: string;
+            /**
+             * Format: date-time
+             * @description When the coupon stops being redeemable. Omit for a coupon that never expires on its own.
+             * @example 2026-09-30T23:59:59.000Z
+             */
+            expiresAt?: string;
+        };
+        AdminUpdateCouponBody: {
+            code?: string;
+            description?: string;
+            /** @enum {string} */
+            discountType?: "PERCENTAGE" | "FIXED_AMOUNT";
+            discountValue?: number;
+            maxDiscountAmount?: number;
+            minOrderAmount?: number | null;
+            maxUsageCount?: number | null;
+            maxUsagePerUser?: number;
+            /** @enum {string} */
+            status?: "ACTIVE" | "EXPIRED" | "DISABLED";
+            startsAt?: string | null;
+            expiresAt?: string | null;
         };
         Permission: {
             /** Format: uuid */
@@ -25817,6 +32355,16 @@ export interface components {
              * @enum {string}
              */
             deliveryMethod: "DISPATCH" | "SELF_PICKUP";
+            /**
+             * @description Coupon discount applied to this order, in NGN. 0 if no couponCode was sent.
+             * @example 0
+             */
+            discountAmount: number;
+            /**
+             * @description The redeemed coupon code, or null if none was applied.
+             * @example null
+             */
+            couponCode: string | null;
             /** @example Please transfer exactly NGN 1,850,000 to one of the bank accounts listed below. Use your Order ID (MOD-A1B2C3D4) as the transfer narration. */
             paymentInstructions: string;
             bankAccounts: components["schemas"]["PublicBankAccount"][];
@@ -25890,10 +32438,27 @@ export interface components {
             /** @example Please call before coming. Gate code is 1234. */
             notes?: string;
             /**
+             * @description Optional coupon code, priced and redeemed the same way POST /orders does. Validate it first with POST /coupons/validate if you want to show the discount before the customer commits.
+             * @example SAVE20
+             */
+            couponCode?: string;
+            /**
              * @description Required if no phone is on the customer profile. Will be saved to profile automatically.
              * @example 08012345678
              */
             phone?: string;
+            /**
+             * @description REQUIRED in practice — see the 400 response below. Same contract as POST /api/v1/orders's policyConsent — `policyVersion` must match `GET /api/v1/policy/current`; `clientAcceptedAt` is context only, never authoritative.
+             * @example {
+             *       "policyVersion": "2026-09-01",
+             *       "clientAcceptedAt": "2026-09-04T10:15:00.000Z"
+             *     }
+             */
+            policyConsent?: {
+                policyVersion: string;
+                /** Format: date-time */
+                clientAcceptedAt?: string;
+            };
         };
         /** @description Shipping address snapshot. null for SELF_PICKUP orders. */
         AddressSnapshot: {
@@ -26015,6 +32580,18 @@ export interface components {
             deliveredAt: string | null;
             /** Format: date-time */
             completedAt: string | null;
+            /** @description Recorded checkout-policy consent (checkout-policy-consent ask, 2026-09-04). Always present for the customer's own order. For the staff/admin variant of this schema, present only when the requesting staff member holds `policy:consent:read` — otherwise this key is omitted entirely. */
+            policyConsent?: {
+                /** @example 2026-09-01 */
+                policyVersion: string;
+                /**
+                 * Format: date-time
+                 * @description Server receipt time — authoritative.
+                 */
+                acceptedAt: string;
+                /** Format: date-time */
+                clientAcceptedAt: string | null;
+            } | null;
             statusHistory: components["schemas"]["StatusHistoryEntry"][];
             /** Format: date-time */
             createdAt: string;
@@ -26364,6 +32941,45 @@ export interface components {
             /** @enum {string|null} */
             gender?: "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY" | null;
         };
+        CustomerNotification: {
+            /**
+             * Format: uuid
+             * @example c1d2e3f4-...
+             */
+            id: string;
+            /**
+             * @example PAYMENT_RECEIVED
+             * @enum {string}
+             */
+            type: "NEW_ORDER" | "ORDER_STATUS_UPDATE" | "PAYMENT_RECEIVED" | "PAYMENT_FAILED" | "PRICE_CONFIRMATION_NEEDED" | "GENERAL";
+            /** @example Payment Successful */
+            title: string;
+            /** @example Your payment of NGN 45,000 was successful. Your order is now being processed. */
+            message: string;
+            /**
+             * @description App-relative path (NOT a full URL) — do not treat this as an absolute URI. This is the only navigation hint on a customer notification (unlike the staff twin, there is no structured entityType/entityId here).
+             * @example /orders/ORD-A1B2C3D4
+             */
+            link: string | null;
+            /**
+             * @description Arbitrary JSON context — shape depends on notification type.
+             * @example {
+             *       "paymentId": "PMT-A1B2C3D4",
+             *       "orderId": "a1b2c3d4-...",
+             *       "eventType": "PAYMENT_SUCCESS"
+             *     }
+             */
+            metadata?: unknown;
+            /** @example false */
+            isRead: boolean;
+            /** @example true */
+            isImportant: boolean;
+            /**
+             * Format: date-time
+             * @example 2026-09-04T09:15:00.000Z
+             */
+            createdAt: string;
+        };
         WhatsAppConversationListItem: {
             /**
              * Format: uuid
@@ -26664,6 +33280,22 @@ export interface components {
              * @example https://res.cloudinary.com/doffm0s3i/image/upload/ecommerce/promotions/promo_img_abc.jpg
              */
             imageUrl: string;
+            /**
+             * Format: uri
+             * @description Mobile recomposition of imageUrl (not a crop — a separate file). Null when no mobile version was supplied; the frontend falls back to imageUrl.
+             * @example null
+             */
+            mobileImageUrl: string | null;
+            /**
+             * @description Desktop image width in pixels, decoded at upload time.
+             * @example 1920
+             */
+            width: number | null;
+            /**
+             * @description Desktop image height in pixels, decoded at upload time.
+             * @example 1080
+             */
+            height: number | null;
             /** @example Get the Dell XPS 15 at our best-ever price this August */
             description: string | null;
             /**
@@ -26698,10 +33330,25 @@ export interface components {
              */
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
             /**
-             * @description Sort order on the homepage — lower = higher up
+             * @description Sort order within its placement slot — lower = higher up / earlier in the carousel
              * @example 0
              */
             position: number;
+            /**
+             * @description Which storefront slot this promotion renders in. Plain string — the backend does not validate against a list of known keys. The frontend owns the catalog of legal placement keys; an unrecognised-but-well-formed value is stored as-is and the frontend treats it as unplaced. Existing rows default to "home-after-hero" (the slot that existed before placements were introduced).
+             * @example home-after-hero
+             */
+            placement: string;
+            /**
+             * @description Marks this promotion as a slot's evergreen banner. The storefront hides a fallback entirely whenever a non-fallback promotion is live in the same placement, so a real campaign is never diluted and a slot is never bare. No server-side uniqueness — the admin blocks a second fallback per (placement, targetCategorySlug) at the form level.
+             * @example false
+             */
+            isFallback: boolean;
+            /**
+             * @description Optional category scope for slots that appear on many pages (product page, catalog listing, parts catalog). Null = every page carrying that slot. Plain string, no FK — a stale slug simply matches nothing on the storefront.
+             * @example null
+             */
+            targetCategorySlug: string | null;
             /**
              * Format: date-time
              * @example 2026-08-01T00:00:00.000Z
@@ -26725,6 +33372,180 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        CouponValidationAccepted: {
+            /** @enum {boolean} */
+            valid: true;
+            /** @example SAVE20 */
+            code: string;
+            /**
+             * @example PERCENTAGE
+             * @enum {string}
+             */
+            discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+            /**
+             * @description The raw coupon value — a percent for PERCENTAGE, a NGN amount for FIXED_AMOUNT.
+             * @example 20
+             */
+            discountValue: number;
+            /**
+             * @description The actual NGN amount taken off THIS cart — already resolves the percentage (and any maxDiscountAmount cap) or fixed amount against the cart subtotal.
+             * @example 4000
+             */
+            discountAmount: number;
+            /**
+             * @description The cart's subtotal this was priced against.
+             * @example 20000
+             */
+            subtotalAmount: number;
+            /**
+             * @description `subtotalAmount - discountAmount`. Labelled "estimated" because shipping/tax are not part of this preview — the final order total can still differ.
+             * @example 16000
+             */
+            estimatedTotal: number;
+        };
+        CouponValidationRejected: {
+            /** @enum {boolean} */
+            valid: false;
+            /**
+             * @description CART_NOT_FOUND — cartSessionId doesn't exist, or belongs to a different customer (same "don't confirm existence to the wrong caller" treatment either way). EMPTY_CART — cart exists but has no items. INVALID_CODE — no ACTIVE, unexpired coupon matches this code (also covers DISABLED and typo'd codes). USAGE_LIMIT_REACHED — coupon's maxUsageCount has been hit across all customers. ALREADY_USED — this customer already redeemed it maxUsagePerUser times. NEW. STACKING_BLOCKED — the cart contains an item currently on a flash sale/markup rule with `allowCouponStacking: false` (see POST /products/flash-sales) — the whole cart is rejected, not just that line, and `message` names the blocking product. MIN_ORDER_NOT_MET — cart subtotal is below the coupon's minOrderAmount.
+             * @example INVALID_CODE
+             * @enum {string}
+             */
+            reason: "CART_NOT_FOUND" | "EMPTY_CART" | "INVALID_CODE" | "USAGE_LIMIT_REACHED" | "ALREADY_USED" | "STACKING_BLOCKED" | "MIN_ORDER_NOT_MET";
+            /** @example Coupon "SAVE20" is invalid or expired. */
+            message: string;
+        };
+        PublishPolicyVersionRequest: {
+            version: string;
+            contentHash: string;
+            contentText?: string;
+            /** Format: uri */
+            archiveUrl?: string;
+        };
+        PublicHuntDealAnnounced: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "announced";
+            /** Format: uuid */
+            productId: string;
+            productName: string;
+            huntPrice: number;
+            currency: string;
+        };
+        PublicHuntDealClaimed: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "claimed";
+            /** Format: uuid */
+            productId: string;
+            productName: string;
+            winnerFirstName: string;
+        };
+        PublicHuntDealLive: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "live";
+            /** Format: uuid */
+            huntDealId: string;
+            /** Format: uuid */
+            productId: string;
+            productName: string;
+            huntPrice: number;
+            currency: string;
+            /** @description The client draws its closing countdown to this timestamp. */
+            slotEnd: string;
+        };
+        PublicHuntCampaignResponse: {
+            campaignId: string;
+            name: string;
+            windowStart: string;
+            windowEnd: string;
+            /** @enum {string} */
+            status: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED";
+            items: (components["schemas"]["PublicHuntDealAnnounced"] | components["schemas"]["PublicHuntDealClaimed"] | components["schemas"]["PublicHuntDealLive"])[];
+            nextReveal: {
+                slotStart: string;
+            } | null;
+            /** @description Measure your offset from this rather than trusting Date.now() — browser clocks drift more than the margin a 5-minute drop races on. */
+            serverTime: string;
+        };
+        HuntDealAdminResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            dealId: string;
+            /** Format: uuid */
+            productId: string | null;
+            productName: string | null;
+            markupPercentage: number;
+            slotStart: string;
+            slotEnd: string;
+            revealAt: string;
+            /** @enum {string} */
+            claimStatus: "OPEN" | "HELD" | "CLAIMED";
+            /** Format: uuid */
+            heldByOrderId: string | null;
+            /** Format: uuid */
+            heldByCustomerId: string | null;
+            heldByCustomerName: string | null;
+            heldAt: string | null;
+            claimedAt: string | null;
+            releasedAt: string | null;
+            /** @description The staff-given reason for a manual release — required (1-500 chars) by POST .../release, null if this hunt deal has never been released. */
+            releaseReason: string | null;
+            orderPaymentStatus: string | null;
+            orderNumber: string | null;
+        };
+        HuntCampaignAdminResponse: {
+            /** Format: uuid */
+            id: string;
+            campaignId: string;
+            name: string;
+            windowStart: string;
+            windowEnd: string;
+            /** @enum {string} */
+            status: "DRAFT" | "SCHEDULED" | "ACTIVE" | "ENDED";
+            huntDeals: components["schemas"]["HuntDealAdminResponse"][];
+            createdAt: string;
+            updatedAt: string;
+        };
+        CreateHuntCampaignRequest: {
+            name: string;
+            windowStart: string | null;
+            windowEnd: string | null;
+            huntDeals: {
+                /** Format: uuid */
+                productId: string;
+                markupPercentage: number;
+                slotStart: string | null;
+                slotEnd: string | null;
+                revealAt: string | null;
+                notes?: string;
+            }[];
+        };
+        UpdateHuntCampaignRequest: {
+            name?: string;
+            windowStart?: string | null;
+            windowEnd?: string | null;
+        };
+        UpdateHuntDealRequest: {
+            /** Format: uuid */
+            productId?: string;
+            markupPercentage?: number;
+            slotStart?: string | null;
+            slotEnd?: string | null;
+            revealAt?: string | null;
+            notes?: string | null;
+        };
+        ReleaseHuntDealRequest: {
+            reason: string;
         };
     };
     responses: never;

@@ -6,7 +6,7 @@ const CALLOUT_STYLE = {
   tip: {
     wrap: "border-primary/25 bg-primary/5",
     icon: "solar:lightbulb-bolt-linear",
-    tint: "text-primary",
+    tint: "text-primary-ink",
   },
   note: {
     wrap: "border-border bg-muted/30",
@@ -16,7 +16,7 @@ const CALLOUT_STYLE = {
   warn: {
     wrap: "border-warning/30 bg-warning/10",
     icon: "solar:danger-triangle-linear",
-    tint: "text-warning",
+    tint: "text-warning-ink",
   },
 } as const;
 
@@ -38,8 +38,8 @@ export function Callout({
     <div className={cn("flex max-w-3xl gap-3 rounded-xl border p-4", s.wrap)}>
       <AppIcon icon={s.icon} className={cn("mt-0.5 size-5 shrink-0", s.tint)} />
       <div>
-        <p className="text-sm font-bold text-foreground">{title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground [&_b]:font-bold [&_b]:text-foreground">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground">
           {children}
         </p>
       </div>

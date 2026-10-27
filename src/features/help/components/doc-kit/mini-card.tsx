@@ -16,9 +16,9 @@ export function MiniCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="rounded-xl border border-border p-4">
-      <AppIcon icon={icon} className="mb-2 size-5 text-primary" />
-      <p className="text-sm font-black text-foreground">{title}</p>
+    <Card className="p-4">
+      <AppIcon icon={icon} className="mb-2 size-5 text-primary-ink" />
+      <p className="text-sm font-semibold text-foreground">{title}</p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
         {children}
       </p>

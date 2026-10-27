@@ -122,7 +122,7 @@ export function ProductsMoreFilters({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Label className="text-xs font-semibold text-muted-foreground">
             Condition
           </Label>
           <Select
@@ -145,7 +145,7 @@ export function ProductsMoreFilters({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Label className="text-xs font-semibold text-muted-foreground">
             Price range
           </Label>
           <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function ProductsMoreFilters({
             />
           </div>
           {priceError && (
-            <p className="text-xs font-medium text-destructive">
+            <p className="text-xs font-medium text-destructive-ink">
               Min price can’t be greater than max.
             </p>
           )}

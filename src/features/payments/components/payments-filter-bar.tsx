@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -8,7 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AppIcon } from "@/components/shared/app-icon";
+import {
+  FilterBar,
+  FilterSearch,
+  filterControlClass,
+} from "@/components/shared/filter-bar";
 import type { AdminTransactionListParams } from "../types/payments";
 
 interface PaymentsFilterBarProps {
@@ -21,19 +24,12 @@ export function PaymentsFilterBar({
   onParamsChange,
 }: PaymentsFilterBarProps) {
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="relative flex-1 group">
-        <AppIcon
-          icon="solar:magnifer-linear"
-          className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
-        />
-        <Input
-          placeholder="Search by reference or order number..."
-          className="pl-12 h-12 rounded-md border border-border bg-card focus:ring-primary/20 font-medium"
-          value={params.search || ""}
-          onChange={(e) => onParamsChange({ ...params, search: e.target.value })}
-        />
-      </div>
+    <FilterBar>
+      <FilterSearch
+        placeholder="Search by reference or order number..."
+        value={params.search || ""}
+        onChange={(e) => onParamsChange({ ...params, search: e.target.value })}
+      />
 
       <Select
         value={params.status || "ALL"}
@@ -44,10 +40,10 @@ export function PaymentsFilterBar({
           })
         }
       >
-        <SelectTrigger className="h-12! data-[size=default]:h-12 px-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20 min-w-[180px]">
+        <SelectTrigger className={filterControlClass}>
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
-        <SelectContent className="bg-card border border-border text-xs font-medium text-foreground">
+        <SelectContent>
           <SelectItem value="ALL">All Statuses</SelectItem>
           <SelectItem value="PENDING">Pending</SelectItem>
           <SelectItem value="PAID">Paid</SelectItem>
@@ -55,6 +51,6 @@ export function PaymentsFilterBar({
           <SelectItem value="REFUNDED">Refunded</SelectItem>
         </SelectContent>
       </Select>
-    </div>
+    </FilterBar>
   );
 }

@@ -29,7 +29,7 @@ export function StaffOrderStatusChart({
       key: "pending",
       label: "Pending",
       value: orders.pendingOrders ?? 0,
-      color: "var(--gold)",
+      color: "var(--jewel)",
     },
     {
       key: "cancelled",
@@ -44,7 +44,7 @@ export function StaffOrderStatusChart({
       title="Orders"
       subtitle={`${(orders.todayOrders ?? 0).toLocaleString()} today`}
       icon="solar:cart-large-2-bold"
-      iconClass="bg-gold/15 text-gold"
+      iconClass="bg-jewel/15 text-jewel-ink"
       href="/orders"
       linkLabel="Manage orders"
       centerValue={orders.totalOrders ?? 0}

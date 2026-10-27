@@ -8,6 +8,7 @@ import type {
   MarkupResetResult,
   MarkupRule,
   MarkupRuleInput,
+  MarkupRuleType,
   MarkupRuleUpdateInput,
   ResetCategoryInput,
 } from "../types/pricing";
@@ -23,7 +24,20 @@ import type {
 const { pricing } = API_ENDPOINTS.products;
 
 export const pricingService = {
-  getMarkupRules: () => api.get<MarkupRule[]>(pricing.markupRules),
+  /**
+   * Every rule, or only one half of them.
+   *
+   * `?type=markup|discount` is server-side and case insensitive; the backend
+   * filters in application code after its cache read, and the cache key ignores
+   * the param, so a filtered call cannot poison the unfiltered list. An
+   * unrecognised value is a 400, not a silent empty list.
+   *
+   * Omitting the type returns everything, which is what the existing tables do.
+   */
+  getMarkupRules: (type?: MarkupRuleType) =>
+    api.get<MarkupRule[]>(pricing.markupRules, {
+      params: { type: type?.toLowerCase() },
+    }),
 
   getMarkupRule: (id: string) => api.get<MarkupRule>(pricing.markupRule(id)),
 
@@ -33,6 +47,7 @@ export const pricingService = {
   updateMarkupRule: (id: string, data: MarkupRuleUpdateInput) =>
     api.patch<MarkupRule>(pricing.markupRule(id), data),
 
+  /** Rejected (400) while the rule is active — cancel it first. */
   deleteMarkupRule: (id: string) =>
     api.delete<{ message: string }>(pricing.markupRule(id)),
 
@@ -54,8 +69,8 @@ export const pricingService = {
   /**
    * Cancel a rule: atomically deactivates it (isActive=false) and resets every
    * variant and part in its scope back to base price — the primary "undo".
-   * The rule record is kept for audit. Brand-only rules (no categoryId) are
-   * rejected by the backend (400) — use the category-reset path for those.
+   * The rule record is kept for audit. Works for brand-only rules too; the
+   * old 400 on rules with no categoryId was removed backend-side in 4f7f074.
    * @param ruleId The rule's DB UUID.
    * @returns Counts of variants and parts reset to base.
    */
@@ -65,7 +80,7 @@ export const pricingService = {
   /**
    * Reset all in-scope prices to base but leave the rule active. Prices drift
    * back up as products are created/edited — use cancel for a permanent undo.
-   * Like cancel, rejected (400) for brand-only rules.
+   * Like cancel, accepts brand-only rules since 4f7f074.
    */
   resetMarkupRule: (ruleId: string) =>
     api.post<MarkupResetResult>(pricing.resetMarkupRule(ruleId)),

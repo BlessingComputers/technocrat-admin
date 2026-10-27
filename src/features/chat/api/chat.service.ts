@@ -2,6 +2,7 @@ import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   ChatMessage,
+  ChatProductCard,
   ConversationDetail,
   ConversationNotes,
   ConversationSummary,
@@ -80,6 +81,15 @@ interface RawConversation {
   } | null;
 }
 
+function isRawConversation(value: unknown): value is RawConversation {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string"
+  );
+}
+
 /** Full name from a nested staff relation, or undefined when unnamed. */
 function staffDisplayName(
   staff: RawConversation["assignedStaff"],
@@ -93,11 +103,13 @@ function staffDisplayName(
 
 /** Coerce the list payload from the common envelope/collection shapes. */
 function toRawConversationArray(data: unknown): RawConversation[] {
-  if (Array.isArray(data)) return data as RawConversation[];
+  if (Array.isArray(data)) return data.filter(isRawConversation);
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
     for (const key of ["conversations", "items", "data", "results"]) {
-      if (Array.isArray(record[key])) return record[key] as RawConversation[];
+      if (Array.isArray(record[key])) {
+        return record[key].filter(isRawConversation);
+      }
     }
   }
   return [];
@@ -156,6 +168,8 @@ interface RawDetailMessage {
   body?: string | null;
   isInternal?: boolean | null;
   createdAt?: string | null;
+  idempotencyKey?: string | null;
+  products?: ChatProductCard[] | null;
 }
 
 interface RawConversationDetail {
@@ -184,6 +198,15 @@ function normalizeDetailMessage(
     body: raw.body ?? "",
     isInternal: raw.isInternal ?? undefined,
     createdAt: raw.createdAt ?? new Date().toISOString(),
+    // The one field the REST row and its live socket copy share — the ids
+    // never match, since the socket id is generated pre-persistence. Dropping
+    // it here left the store's dedup falling back to the id, so a message the
+    // thread already held could arrive again as a duplicate.
+    idempotencyKey: raw.idempotencyKey ?? undefined,
+    // Contract v4. Persisted on `chat_messages.products`, so reopening a
+    // conversation renders the same cards the AI showed live. `[]` on an older
+    // backend that omits the key entirely.
+    products: Array.isArray(raw.products) ? raw.products : [],
   };
 }
 

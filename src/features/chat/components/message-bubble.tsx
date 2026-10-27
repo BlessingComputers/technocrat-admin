@@ -31,7 +31,7 @@ export function MessageBubble({
       <div className="flex max-w-[75%] flex-col gap-1">
         {message.replyTo && (
           <div className="rounded-md border-l-2 border-primary bg-muted/60 px-3 py-1.5">
-            <p className="text-xs font-medium text-primary">
+            <p className="text-xs font-medium text-primary-ink">
               {message.replyTo.senderName}
             </p>
             <p className="line-clamp-2 text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ export function MessageBubble({
             icon="solar:check-read-linear"
             className={cn(
               "size-4",
-              message.read ? "text-secondary" : "text-muted-foreground/50",
+              message.read ? "text-secondary-ink" : "text-muted-foreground/50",
             )}
           />
         )}

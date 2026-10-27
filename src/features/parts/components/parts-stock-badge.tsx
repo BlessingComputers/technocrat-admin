@@ -24,7 +24,7 @@ export function PartsStockBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-semibold",
         PART_STOCK_PILL[state],
         className,
       )}

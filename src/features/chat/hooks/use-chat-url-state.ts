@@ -22,6 +22,10 @@ const STAFF_ROOM_SLUG = "staff-room";
 
 const TABS: readonly ConversationTab[] = ["all", "mine", "queue"];
 
+function isConversationTab(value: string | null): value is ConversationTab {
+  return value !== null && TABS.some((tab) => tab === value);
+}
+
 function idFromUrl(value: string | null): string | null {
   if (!value) return null;
   return value === STAFF_ROOM_SLUG ? STAFF_ROOM_ID : value;
@@ -37,9 +41,8 @@ export function useChatUrlState() {
   const searchParams = useSearchParams();
 
   const urlSelectedId = idFromUrl(searchParams.get("c"));
-  const tabParam = searchParams.get("tab") as ConversationTab | null;
-  const urlTab: ConversationTab =
-    tabParam && TABS.includes(tabParam) ? tabParam : "all";
+  const tabParam = searchParams.get("tab");
+  const urlTab: ConversationTab = isConversationTab(tabParam) ? tabParam : "all";
 
   // URL → store: covers the initial load (deep link) and back/forward.
   useEffect(() => {

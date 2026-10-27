@@ -1,4 +1,4 @@
-import type { NavGroup } from "@/types/nav";
+import type { NavGroup, NavItem } from "@/types/nav";
 import type { HelpDoc } from "@/types/help";
 
 // ──────────────────────────────────────────────
@@ -78,10 +78,56 @@ export function hasPermission(
 // ──────────────────────────────────────────────
 
 /**
+ * Does this row's own gate pass? Ignores `children` — see `filterNavItem`.
+ */
+function passesOwnGate(
+  item: NavItem,
+  permissions: UserPermission[],
+): boolean {
+  // Non-super-admins only reach here, so a role gate is a straight refusal.
+  if (item.superAdminOnly) return false;
+  if (
+    item.requiredPermission &&
+    !hasPermission(permissions, item.requiredPermission)
+  ) {
+    return false;
+  }
+  if (item.requiredPermissions && item.requiredPermissions.length > 0) {
+    return hasAnyPermissionInGroup(permissions, item.requiredPermissions);
+  }
+  return true;
+}
+
+/**
+ * Filters one nav row, returning it (children pruned) or `null` if it should not
+ * render.
+ *
+ * A parent is kept only when at least one child survives: a parent has no route
+ * of its own, so an empty one would be a row that opens nothing. Its own gate
+ * still applies first, which is why the configs leave the Payments parent
+ * ungated — its children answer to different authorities.
+ */
+function filterNavItem(
+  item: NavItem,
+  permissions: UserPermission[],
+): NavItem | null {
+  if (!passesOwnGate(item, permissions)) return null;
+  if (!item.children) return item;
+
+  const children = item.children
+    .map((child) => filterNavItem(child, permissions))
+    .filter((child): child is NavItem => child !== null);
+
+  return children.length > 0 ? { ...item, children } : null;
+}
+
+/**
  * Filters nav groups and their items based on the user's permissions.
  *
- * - Items without `requiredPermissions` are always visible.
- * - Items with `requiredPermissions` require at least one matching group.
+ * - Items without a gate are always visible.
+ * - `requiredPermissions` needs at least one matching group; `requiredPermission`
+ *   needs that exact permission; both apply when both are set.
+ * - A parent row survives only if at least one of its children does.
  * - Empty groups (all items filtered out) are hidden entirely.
  * - SUPER_ADMIN bypasses all filtering.
  */
@@ -97,13 +143,9 @@ export function filterNavByPermissions(
   return navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        if (item.superAdminOnly) return false;
-        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-          return true;
-        }
-        return hasAnyPermissionInGroup(permissions, item.requiredPermissions);
-      }),
+      items: group.items
+        .map((item) => filterNavItem(item, permissions))
+        .filter((item): item is NavItem => item !== null),
     }))
     .filter((group) => group.items.length > 0);
 }

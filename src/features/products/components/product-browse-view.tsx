@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { BulkSelectionBar } from "@/components/shared/bulk-selection-bar";
 import { AppIcon } from "@/components/shared/app-icon";
@@ -23,7 +30,9 @@ import {
 } from "../api/products.queries";
 import type { ProductSummary } from "../types/products";
 import { useProductFilters } from "../hooks/use-product-filters";
+import { useCatalogProductStats } from "../hooks/use-catalog-product-stats";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
+import { ProductsStatsBar } from "./products-stats-bar";
 import { ProductsFilterBar } from "./products-filter-bar";
 import { ProductsTable } from "./products-table";
 import { ProductsPagination } from "./products-pagination";
@@ -45,8 +54,20 @@ function conditionLabel(key: string): string {
  * here. Drops the old `max-w-7xl` cap to fill the wider canvas (ADR-0010).
  */
 export function ProductBrowseView() {
-  const { params, searchInput, setFilter, setSearch, setPage, setSort, reset } =
-    useProductFilters();
+  const {
+    params,
+    searchInput,
+    setFilter,
+    setSearch,
+    setPage,
+    setLimit,
+    setSort,
+    reset,
+  } = useProductFilters();
+  const router = useRouter();
+  // Products-only counts — the same numbers the hub shows under its Products
+  // filter, so the two surfaces can never disagree.
+  const stats = useCatalogProductStats();
   const [deleteTarget, setDeleteTarget] = useState<ProductSummary | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -131,11 +152,41 @@ export function ProductBrowseView() {
         <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
           <Link href="/catalogues">
             <AppIcon icon="solar:arrow-left-linear" className="mr-2 size-4" />
-            Back to products
+            Back to catalogue
           </Link>
         </Button>
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
+        {/* Adding a product belongs on the list you are already working in, not
+            only on the hub one level up. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground">
+              <AppIcon icon="solar:add-circle-linear" className="mr-2 size-5" />
+              Add Product
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem onClick={() => router.push("/catalogues/new")}>
+              <AppIcon icon="solar:box-linear" className="mr-2 size-4" />
+              Single product
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/catalogues/bulk")}>
+              <AppIcon
+                icon="solar:magic-stick-3-linear"
+                className="mr-2 size-4"
+              />
+              Bulk / AI import
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </PageHeader>
+
+      <ProductsStatsBar
+        stats={stats}
+        lowStockHref="/catalogues/all?stock=low"
+        outOfStockHref="/catalogues/all?stock=out"
+        isLoading={stats.isLoading}
+      />
 
       <ProductsFilterBar
         params={params}
@@ -157,7 +208,7 @@ export function ProductBrowseView() {
         disabled={bulkDelete.isPending}
       />
 
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <ProductsTable
           products={products}
           isLoading={isLoading}
@@ -177,7 +228,11 @@ export function ProductBrowseView() {
             )
           }
         />
-        <ProductsPagination meta={meta} onPageChange={setPage} />
+        <ProductsPagination
+          meta={meta}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
       </Card>
 
       <ProductBulkEditDialog

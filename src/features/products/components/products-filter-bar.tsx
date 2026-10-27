@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppIcon } from "@/components/shared/app-icon";
+import { FilterSearch } from "@/components/shared/filter-bar";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
 import type {
@@ -134,19 +134,12 @@ export function ProductsFilterBar({
 
       {/* Search + selects */}
       <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-        <div className="relative w-full flex-1 lg:max-w-md">
-          <AppIcon
-            icon="solar:magnifer-linear"
-            className="absolute left-3 top-2.5 size-4 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            placeholder="Search products..."
-            className="h-9 w-full border border-border bg-card pl-9 font-medium focus:ring-primary/20"
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
+        <FilterSearch
+          wrapperClassName="w-full lg:max-w-md"
+          placeholder="Search products..."
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
 
         <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:flex sm:items-center">
           <Select
@@ -155,7 +148,7 @@ export function ProductsFilterBar({
               onChange({ category: v === "all" ? undefined : v })
             }
           >
-            <SelectTrigger className="h-9 w-full border border-border bg-card sm:w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -172,7 +165,7 @@ export function ProductsFilterBar({
             value={brand}
             onValueChange={(v) => onChange({ brand: v === "all" ? undefined : v })}
           >
-            <SelectTrigger className="h-9 w-full border border-border bg-card sm:w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Brand" />
             </SelectTrigger>
             <SelectContent>
@@ -194,7 +187,7 @@ export function ProductsFilterBar({
               })
             }
           >
-            <SelectTrigger className="h-9 w-full border border-border bg-card sm:w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Stock" />
             </SelectTrigger>
             <SelectContent>

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
+import { getProductTitle } from "@/lib/utils/product-name";
 import { useProducts } from "../api/products.queries";
+import { RESTOCK_PREVIEW_LIMIT } from "../constants/product-display";
 import { ProductStockBadge } from "./product-stock-badge";
 import { RecentProductsSnapshotSkeleton } from "./products-skeletons";
-
-const LIMIT = 6;
 
 /**
  * Actionable "needs restock" queue for the products hub: out-of-stock items
@@ -18,25 +18,25 @@ const LIMIT = 6;
  * Inventory Health donut (the donut shows *how much*, this shows *which items*).
  */
 export function ProductsRestockList() {
-  const out = useProducts({ stock: "out", limit: LIMIT });
-  const low = useProducts({ stock: "low", limit: LIMIT });
+  const out = useProducts({ stock: "out", limit: RESTOCK_PREVIEW_LIMIT });
+  const low = useProducts({ stock: "low", limit: RESTOCK_PREVIEW_LIMIT });
 
   const isLoading = out.isLoading || low.isLoading;
   const isError = out.isError || low.isError;
   const items = [...(out.data?.data ?? []), ...(low.data?.data ?? [])].slice(
     0,
-    LIMIT,
+    RESTOCK_PREVIEW_LIMIT,
   );
 
   return (
-    <Card className="flex h-full flex-col gap-0 overflow-hidden rounded-xl border border-border bg-card p-0">
+    <Card className="flex h-full flex-col gap-0 overflow-hidden p-0">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning-ink">
             <AppIcon icon="solar:danger-triangle-bold" className="size-5" />
           </span>
           <div className="space-y-0.5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+            <h3 className="text-base font-semibold text-foreground">
               Needs Restock
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -46,7 +46,7 @@ export function ProductsRestockList() {
         </div>
         <Link
           href="/catalogues/all?stock=low"
-          className="shrink-0 text-xs font-medium text-primary hover:underline"
+          className="shrink-0 text-xs font-medium text-primary-ink hover:underline"
         >
           View all →
         </Link>
@@ -55,16 +55,16 @@ export function ProductsRestockList() {
       {isLoading ? (
         <RecentProductsSnapshotSkeleton />
       ) : isError ? (
-        <div className="px-4 py-8 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="px-4 py-8 text-center text-xs font-medium text-muted-foreground">
           Couldn’t load restock queue
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-10 text-center">
           <AppIcon
             icon="solar:check-circle-bold"
-            className="size-8 text-success"
+            className="size-8 text-success-ink"
           />
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             Everything is in stock
           </span>
         </div>
@@ -92,8 +92,11 @@ export function ProductsRestockList() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {p.name}
+                <p
+                  className="truncate text-sm font-semibold text-foreground"
+                  title={p.name}
+                >
+                  {getProductTitle(p.name)}
                 </p>
                 <p className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
                   {formatPrice(p.lowestPrice || 0)}

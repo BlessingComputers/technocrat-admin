@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DlqRow } from "./dlq-row";
 import { PaymentsTableSkeleton } from "../payments-skeletons";
 import type { DlqEntry } from "../../types/payments";
+import { Card } from "@/components/ui/card";
 
 const HEADERS = ["Job", "Payment", "Failure", ""];
 
@@ -20,8 +21,8 @@ export function DlqTable({ entries, isLoading, isError, onRetry }: DlqTableProps
 
   if (isError) {
     return (
-      <div className="py-20 text-center bg-card rounded-lg border border-border">
-        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+      <Card className="gap-0 py-20 text-center">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-8" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">
@@ -33,13 +34,13 @@ export function DlqTable({ entries, isLoading, isError, onRetry }: DlqTableProps
         <Button variant="outline" onClick={onRetry} className="mt-4">
           Retry
         </Button>
-      </div>
+      </Card>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <div className="py-20 text-center bg-card rounded-lg border border-border">
+      <Card className="gap-0 py-20 text-center">
         <AppIcon
           icon="solar:inbox-archive-linear"
           className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4"
@@ -50,19 +51,19 @@ export function DlqTable({ entries, isLoading, isError, onRetry }: DlqTableProps
         <p className="text-sm text-muted-foreground mt-1">
           Jobs that exhaust every retry land here — empty is good news.
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto bg-card rounded-lg border border-border w-full">
+    <Card className="gap-0 overflow-x-auto w-full py-0">
       <table className="w-full text-left min-w-[800px]">
         <thead>
           <tr className="border-b border-border bg-primary/[0.04]">
             {HEADERS.map((label) => (
               <th
                 key={label || "actions"}
-                className="px-8 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                className="px-8 py-4 text-xs font-semibold text-muted-foreground"
               >
                 {label}
               </th>
@@ -75,6 +76,6 @@ export function DlqTable({ entries, isLoading, isError, onRetry }: DlqTableProps
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }

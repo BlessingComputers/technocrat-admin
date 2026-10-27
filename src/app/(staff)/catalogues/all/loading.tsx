@@ -1,7 +1,10 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { Card } from "@/components/ui/card";
 import { ProductsTableSkeleton } from "@/features/products";
-import { SkeletonFilterBar } from "@/components/shared/skeletons";
+import {
+  SkeletonFilterBar,
+  SkeletonStatCards,
+} from "@/components/shared/skeletons";
 
 export default function ProductsBrowseLoading() {
   return (
@@ -10,8 +13,9 @@ export default function ProductsBrowseLoading() {
         title="Browse Products"
         description="Search, filter, and manage the full catalog"
       />
+      <SkeletonStatCards count={4} />
       <SkeletonFilterBar />
-      <Card className="gap-0 overflow-hidden rounded-lg border border-border bg-card p-0">
+      <Card className="gap-0 overflow-hidden p-0">
         <ProductsTableSkeleton />
       </Card>
     </div>

@@ -69,16 +69,16 @@ function PaymentNotFound() {
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <AppIcon
         icon="solar:danger-circle-linear"
-        className="w-16 h-16 text-destructive"
+        className="w-16 h-16 text-destructive-ink"
       />
-      <h2 className="text-2xl font-black text-foreground">
+      <h2 className="text-2xl font-semibold text-foreground">
         Payment Not Found
       </h2>
       <p className="text-muted-foreground font-medium">
         This payment does not exist or could not be loaded.
       </p>
       <Link href="/payments">
-        <Button variant="outline" className="rounded-xl px-8 font-bold">
+        <Button variant="outline" className="rounded-xl px-8 font-medium">
           Return to Payments
         </Button>
       </Link>

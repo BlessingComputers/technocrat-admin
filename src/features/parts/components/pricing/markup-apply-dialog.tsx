@@ -88,7 +88,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
         ) : result ? (
           <>
             <p className="text-sm text-muted-foreground">
-              <span className="font-bold text-foreground">
+              <span className="font-semibold text-foreground">
                 {result.totalParts}
               </span>{" "}
               part{result.totalParts === 1 ? "" : "s"} will be repriced.
@@ -100,7 +100,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
                     key={r.partId}
                     className="flex items-center justify-between gap-3 px-2 py-1.5 text-xs"
                   >
-                    <span className="truncate font-bold text-foreground">
+                    <span className="truncate font-semibold text-foreground">
                       {r.name}
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5 font-mono tabular-nums">
@@ -108,7 +108,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
                         {r.currentPrice == null ? "—" : formatPrice(r.currentPrice)}
                       </span>
                       <AppIcon icon="solar:arrow-right-linear" className="size-3 text-muted-foreground" />
-                      <span className="font-bold text-success">
+                      <span className="font-semibold text-success-ink">
                         {r.projectedPrice == null
                           ? "—"
                           : formatPrice(r.projectedPrice)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { periodToDateRange } from "../utils/period-to-range";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface DateRange {
   startDate: string;
@@ -26,15 +27,15 @@ export function UploaderDateRange({
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="space-y-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <MetaLabel>
           Period
-        </span>
+        </MetaLabel>
         <div className="flex flex-wrap gap-1.5">
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
               onClick={() => onChange(periodToDateRange(preset.id, null))}
-              className="rounded-lg bg-muted/40 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-lg bg-muted/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {preset.label}
             </button>
@@ -68,9 +69,9 @@ function DateField({
 }) {
   return (
     <div className="space-y-1.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <MetaLabel>
         {label}
-      </span>
+      </MetaLabel>
       <input
         type="date"
         value={value}

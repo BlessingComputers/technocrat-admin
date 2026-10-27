@@ -22,13 +22,13 @@ export function InvoiceSummaryCard({ invoice }: InvoiceSummaryCardProps) {
   }
 
   return (
-    <Card className="gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="gap-0 p-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_auto_1fr] lg:gap-10">
         {/* Identity */}
         <div>
           <p className="text-sm text-muted-foreground">Invoice Number</p>
           <div className="mt-1.5 flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
               {invoice.invoiceId}
             </h2>
             <button
@@ -72,7 +72,7 @@ export function InvoiceSummaryCard({ invoice }: InvoiceSummaryCardProps) {
         <div className="grid grid-cols-2 gap-8">
           <div>
             <p className="text-sm text-muted-foreground">Total Amount</p>
-            <p className="mt-1.5 text-xl font-bold tracking-tight text-foreground tabular-nums">
+            <p className="mt-1.5 text-xl font-semibold tracking-tight text-foreground tabular-nums">
               {formatPrice(invoice.totalAmount)}
             </p>
           </div>

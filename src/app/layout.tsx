@@ -2,7 +2,7 @@
  * Admin app — root layout.
  *
  * Notable differences from the main app's layout.tsx:
- * - metadataBase points at admin.blessingcomputers.com
+ * - metadataBase points at the configured admin URL
  * - robots.index = false, robots.follow = false (every page)
  * - No marketing OpenGraph/Twitter card data
  * - EmergencyUnblock is mounted app-wide (incl. the login page) so locked-out
@@ -12,23 +12,38 @@
  */
 
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "react-hot-toast";
 import { EmergencyUnblock } from "@/features/emergency-unblock";
 import { Analytics } from "@vercel/analytics/next";
+import { BRAND } from "@/config/brand";
 
-const outfit = Outfit({
+// Self-hosted Outfit variable font. Kept local (not next/font/google) so dev and
+// builds never depend on reaching fonts.gstatic.com.
+const outfit = localFont({
   variable: "--font-outfit",
-  subsets: ["latin"],
+  display: "swap",
+  src: [
+    {
+      path: "../assets/fonts/outfit-latin.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+    {
+      path: "../assets/fonts/outfit-latin-ext.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://admin.blessingcomputers.com"),
+  metadataBase: new URL(BRAND.adminUrl),
   title: {
-    default: "Admin · Blessing Computers",
+    default: BRAND.adminTitle,
     template: "%s · Admin",
   },
   description: "Internal staff dashboard.",

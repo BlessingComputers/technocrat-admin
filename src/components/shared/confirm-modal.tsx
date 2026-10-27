@@ -54,12 +54,12 @@ export function ConfirmModal({
               icon="solar:danger-triangle-bold"
               className={cn(
                 "size-6",
-                variant === "destructive" ? "text-destructive" : "text-primary",
+                variant === "destructive" ? "text-destructive-ink" : "text-primary-ink",
               )}
             />
           </div>
           <DialogHeader className="text-left">
-            <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
             <DialogDescription className="text-muted-foreground pt-1 text-sm leading-relaxed">
               {description}
             </DialogDescription>

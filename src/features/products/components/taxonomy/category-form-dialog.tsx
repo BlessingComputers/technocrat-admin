@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { slugify } from "../../schemas/product-form";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 export interface CategoryFormValues {
   name: string;
@@ -61,14 +62,14 @@ export function CategoryFormDialog({
           <DialogTitle className="text-xl font-semibold tracking-tight">
             {isEditing ? `Edit ${kind}` : `Add ${kind}`}
           </DialogTitle>
-          <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mt-1">
+          <MetaLabel tone="pinned" className="block mt-1">
             Catalog organization
-          </p>
+          </MetaLabel>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+            <Label className="text-xs font-semibold text-muted-foreground ml-1">
               {kind} Name
             </Label>
             <Input
@@ -80,7 +81,7 @@ export function CategoryFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+            <Label className="text-xs font-semibold text-muted-foreground ml-1">
               Description (optional)
             </Label>
             <Input
@@ -90,7 +91,7 @@ export function CategoryFormDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground ml-1">
+            <Label className="text-xs font-semibold text-muted-foreground ml-1">
               Image URL (optional)
             </Label>
             <Input

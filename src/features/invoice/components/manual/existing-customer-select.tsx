@@ -85,14 +85,14 @@ export function ExistingCustomerSelect({
         <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
           <AppIcon
             icon="solar:user-check-linear"
-            className="h-5 w-5 shrink-0 text-primary"
+            className="h-5 w-5 shrink-0 text-primary-ink"
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-foreground">
+            <p className="truncate text-sm font-semibold text-foreground">
               {selectedLabel}
             </p>
             {selectedEmail && (
-              <p className="truncate text-[11px] font-medium text-muted-foreground">
+              <p className="truncate text-xs font-medium text-muted-foreground">
                 {selectedEmail}
               </p>
             )}
@@ -103,7 +103,7 @@ export function ExistingCustomerSelect({
               onClear();
               setInput("");
             }}
-            className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive"
+            className="ml-auto text-xs font-medium text-muted-foreground hover:text-destructive-ink"
           >
             Remove
           </button>
@@ -129,7 +129,7 @@ export function ExistingCustomerSelect({
             blurTimer.current = setTimeout(() => setFocused(false), 150);
           }}
           placeholder="Search by email or name…"
-          className="h-11 rounded-lg bg-muted/50 border-border pl-11 font-bold"
+          className="h-11 rounded-lg bg-muted/50 border-border pl-11 font-semibold"
         />
 
         {showResults && (
@@ -156,11 +156,11 @@ export function ExistingCustomerSelect({
                   }}
                   className="flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors hover:bg-muted"
                 >
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-sm font-semibold text-foreground">
                     {`${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim() ||
                       "Unnamed"}
                   </span>
-                  <span className="text-[11px] font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {customer.email}
                   </span>
                 </button>
@@ -175,7 +175,7 @@ export function ExistingCustomerSelect({
 
 function FieldLabel() {
   return (
-    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+    <Label className="text-xs font-medium text-muted-foreground ml-1">
       Link to existing customer{" "}
       <span className="text-muted-foreground/60">(optional)</span>
     </Label>

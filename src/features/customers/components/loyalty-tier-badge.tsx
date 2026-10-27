@@ -10,14 +10,14 @@ interface LoyaltyTierBadgeProps {
 export function LoyaltyTierBadge({ tier, className }: LoyaltyTierBadgeProps) {
   if (!tier) {
     return (
-      <span className="text-[10px] font-bold text-muted-foreground">—</span>
+      <span className="text-xs font-semibold text-muted-foreground">—</span>
     );
   }
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest",
+        "inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium",
         loyaltyTierClasses(tier),
         className,
       )}

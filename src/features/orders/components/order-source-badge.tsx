@@ -26,7 +26,7 @@ const SOURCE_META: Record<
 export function OrderSourceBadge({ source }: OrderSourceBadgeProps) {
   const meta = SOURCE_META[source];
   return (
-    <Badge variant={meta.tone} className="gap-1 uppercase tracking-wide">
+    <Badge variant={meta.tone} className="gap-1">
       <AppIcon icon={meta.icon} className="w-3 h-3" />
       {meta.label}
     </Badge>

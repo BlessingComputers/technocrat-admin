@@ -52,7 +52,7 @@ function lastWeekDays(start: string, end: string): string[] {
 
 /**
  * Team upload volume over the last (up to) 7 days of the queried window as a
- * stacked bar chart — products (maroon) + parts (gold) per day, aggregated
+ * stacked bar chart — products (green) + parts (jewel) per day, aggregated
  * across every uploader's `dailyBreakdown`. The day axis is zero-filled from the
  * period so sparse activity shows empty slots instead of a single stretched bar.
  */
@@ -87,8 +87,8 @@ export function UploadPerformanceChart({
   return (
     <div className="border-b border-border px-6 py-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <AppIcon icon="solar:chart-square-bold" className="size-4 text-primary" />
+        <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <AppIcon icon="solar:chart-square-bold" className="size-4 text-primary-ink" />
           Team Uploads · Last {rows.length} {rows.length === 1 ? "day" : "days"}
         </h3>
         <span className="text-xs font-medium text-muted-foreground tabular-nums">

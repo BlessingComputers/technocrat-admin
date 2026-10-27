@@ -37,7 +37,7 @@ interface ProductsTableProps {
 const COL_SPAN = 9;
 
 const HEAD =
-  "font-semibold text-xs uppercase tracking-wide text-muted-foreground";
+  "font-semibold text-xs text-muted-foreground";
 
 function SortableHead({
   sortKey,
@@ -58,7 +58,7 @@ function SortableHead({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="flex items-center gap-1 group select-none uppercase"
+        className="flex items-center gap-1 group select-none"
       >
         {children}
         <AppIcon
@@ -70,7 +70,7 @@ function SortableHead({
           className={cn(
             "size-3 transition-opacity",
             isActive
-              ? "opacity-100 text-primary"
+              ? "opacity-100 text-primary-ink"
               : "opacity-0 group-hover:opacity-50",
           )}
         />
@@ -132,7 +132,7 @@ export function ProductsTable({
             <TableRow>
               <TableCell colSpan={COL_SPAN} className="h-[360px]">
                 <div className="flex flex-col items-center justify-center gap-4 text-center max-w-md mx-auto">
-                  <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+                  <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive-ink">
                     <AppIcon icon="solar:danger-circle-linear" className="size-8" />
                   </div>
                   <div>
@@ -156,7 +156,7 @@ export function ProductsTable({
                   icon="solar:box-linear"
                   className="size-8 opacity-30 mx-auto mb-2"
                 />
-                <span className="text-xs font-medium uppercase tracking-wide">
+                <span className="text-xs font-medium">
                   No products match your filters
                 </span>
               </TableCell>

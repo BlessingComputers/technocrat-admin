@@ -10,6 +10,7 @@ import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 
 import { useCategories, useBrands } from "../../api/products.queries";
@@ -30,15 +31,46 @@ import { MarkupApplyDialog } from "./markup-apply-dialog";
 import { CategoryResetDialog } from "./category-reset-dialog";
 import { ruleScopeLabel } from "./markup-rule-utils";
 
-/** Markup rules management (Products tab of `/pricing`). */
+/**
+ * Why a create failed, when the server will not say.
+ *
+ * A duplicate scope is the likeliest cause. Since `59919cd` closed ask 27,
+ * `createRule` refuses one with a real `409 MARKUP_RULE_SCOPE_CONFLICT` whose
+ * message names the blocking rule ("… (rule: MR-1234). Update it instead."),
+ * and that message is the only place the id appears; there is no structured
+ * `conflictingRuleId`. So show it verbatim rather than paraphrasing it.
+ *
+ * Production is behind that fix and still turns the same refusal into a 500
+ * with its message replaced, so the 5xx branch keeps the older guess.
+ */
+function createErrorMessage(err: unknown): string {
+  const status = err instanceof ApiError ? err.status : undefined;
+  if (status === 409) {
+    // `raw` skips the generic 409 default ("This conflicts with existing
+    // data…"), which would bury the rule id the server sent.
+    const named = getErrorMessage(err, "", { raw: true }).trim();
+    if (named && !/^request failed with status/i.test(named)) {
+      return `${named} The list has been reloaded.`;
+    }
+    return "Couldn’t create the rule — a rule already covers this scope. The list has been reloaded; check it and edit that rule instead.";
+  }
+  if (status !== undefined && status >= 500) {
+    return "Couldn’t create the rule — a rule may already cover this scope. The list has been reloaded; check it and edit that rule instead.";
+  }
+  return getErrorMessage(err, "Failed to create rule.");
+}
+
+/** Markup rules management (Products half of `/pricing/markup`). */
 export function MarkupRulesView() {
+  // MARKUP only. Deals are the same rows with a negative percentage and they
+  // live on /pricing/deals; an existing one does not appear here any more.
   const {
     data: rules = [],
     isLoading,
     isError,
     isFetching,
     refetch,
-  } = useMarkupRules();
+  } = useMarkupRules("MARKUP");
   const { data: categories = [] } = useCategories();
   const { data: brands = [] } = useBrands();
 
@@ -57,14 +89,22 @@ export function MarkupRulesView() {
   const [cancelTarget, setCancelTarget] = useState<MarkupRule | null>(null);
   const [resetTarget, setResetTarget] = useState<MarkupRule | null>(null);
   const [categoryResetOpen, setCategoryResetOpen] = useState(false);
+  // Bumped on every open so the dialog remounts with fresh seed state (the
+  // codebase's form-dialog reset pattern — no setState-in-effect sync). Without
+  // it the dialog keeps the state it mounted with, so opening Edit on a
+  // product-scoped rule leaves the scope mode on "taxonomy" with no product,
+  // and the form rejects itself for having no scope.
+  const [formKey, setFormKey] = useState(0);
 
   const openCreate = () => {
     setEditTarget(null);
+    setFormKey((k) => k + 1);
     setFormOpen(true);
   };
 
   const openEdit = (rule: MarkupRule) => {
     setEditTarget(rule);
+    setFormKey((k) => k + 1);
     setFormOpen(true);
   };
 
@@ -78,6 +118,10 @@ export function MarkupRulesView() {
           applyTo: values.applyTo,
           notes: values.notes,
           isActive: values.isActive,
+          // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
+          // clear it server-side, but only on the row being edited, and that
+          // row is a markup — the backend ignores both fields on a positive
+          // percentage. A deal's expiry is edited from /pricing/deals.
         },
       });
       toast.promise(promise, {
@@ -104,9 +148,9 @@ export function MarkupRulesView() {
     toast.promise(promise, {
       loading: "Creating rule…",
       success: "Rule created. Use Preview & Apply to reprice existing products.",
-      error: (err) => getErrorMessage(err, "Failed to create rule."),
+      error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => {});
+    promise.then(() => setFormOpen(false)).catch(() => refetch());
   };
 
   const confirmDelete = () => {
@@ -161,8 +205,8 @@ export function MarkupRulesView() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title="Products Pricing"
-        description="Percentage markup rules, scoped by category and brand"
+        title="Products Markup"
+        description="Standing markup rules, scoped by product, category and brand. Sales live under Deals."
       >
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
         <Button asChild variant="outline" className="rounded-lg font-medium h-10">
@@ -188,7 +232,7 @@ export function MarkupRulesView() {
         </Button>
       </PageHeader>
 
-      <Card className="overflow-hidden border border-border rounded-lg bg-card p-0 gap-0">
+      <Card className="overflow-hidden p-0 gap-0">
         <MarkupRulesTable
           rules={rules}
           isLoading={isLoading}
@@ -203,6 +247,7 @@ export function MarkupRulesView() {
       </Card>
 
       <MarkupRuleFormDialog
+        key={formKey}
         isOpen={formOpen}
         onOpenChange={setFormOpen}
         initial={editTarget}

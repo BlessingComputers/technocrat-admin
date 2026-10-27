@@ -2,6 +2,7 @@
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { MetaLabel } from "@/components/shared/meta-label";
 import { isAiMessage } from "@/lib/constants/ai-sender";
 import { cn } from "@/lib/utils/cn";
 
@@ -38,7 +39,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <AppIcon
               icon="solar:eye-closed-linear"
               aria-hidden
-              className="size-3.5 text-warning"
+              className="size-3.5 text-warning-ink"
             />
             Shadow mode — not visible to customer
           </span>
@@ -60,9 +61,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
       >
         {!isCustomer && (
-          <p className="mb-0.5 text-xs font-semibold text-primary-foreground/70">
+          <MetaLabel tone="pinned" className="mb-0.5 block font-semibold">
             {message.senderName}
-          </p>
+          </MetaLabel>
         )}
         <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
           <LinkifiedText body={message.body} />
@@ -91,7 +92,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 className={cn(
                   "size-3.5",
                   message.status === "FAILED"
-                    ? "text-destructive"
+                    ? "text-destructive-ink"
                     : message.status === "READ"
                       ? "text-primary-foreground"
                       : undefined,

@@ -61,7 +61,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="h-10 px-4 rounded-lg font-black text-[10px] uppercase tracking-widest"
+          className="h-10 px-4 rounded-lg font-medium text-xs"
         >
           <AppIcon icon="solar:card-recive-linear" className="w-3 h-3 mr-2" />
           Record Refund
@@ -69,7 +69,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-md rounded-xl p-8 border border-border">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-black text-foreground">
+          <DialogTitle className="text-2xl font-semibold text-foreground">
             Record Refund
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
@@ -79,7 +79,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
         </DialogHeader>
         <div className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Amount (leave blank for full remaining balance)
             </Label>
             <Input
@@ -92,7 +92,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Refund Method
             </Label>
             <Input
@@ -103,7 +103,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Reason
             </Label>
             <Textarea
@@ -116,7 +116,7 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
           <Button
             onClick={submit}
             disabled={disabled}
-            className="w-full h-12 rounded-lg font-black disabled:opacity-50"
+            className="w-full h-12 rounded-lg font-medium disabled:opacity-50"
           >
             {mutation.isPending ? "Recording..." : "Record Refund"}
           </Button>

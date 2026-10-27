@@ -11,6 +11,7 @@ import { InvoiceKpiCard } from "./kpis/invoice-kpi-card";
 import { InvoiceTable } from "./invoice-table";
 import { InvoicePagination } from "./invoice-pagination";
 import type { InvoiceListParams } from "../types/invoice";
+import { Card } from "@/components/ui/card";
 
 const LIMIT = 20;
 
@@ -36,7 +37,7 @@ export function RejectedInvoicesView() {
           <AppIcon icon="solar:arrow-left-linear" className="h-4 w-4" />
           Back
         </Link>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
           Rejected invoices
         </h1>
       </div>
@@ -54,20 +55,20 @@ export function RejectedInvoicesView() {
             title="Refunded"
             value={formatPrice(summary?.refundedAmount ?? 0)}
             icon="solar:bill-check-linear"
-            iconClassName="text-success"
+            iconClassName="text-success-ink"
             isLoading={isLoading}
           />
           <InvoiceKpiCard
             title="Pending refund"
             value={formatPrice(summary?.pendingRefundAmount ?? 0)}
             icon="solar:bill-list-linear"
-            iconClassName="text-warning"
+            iconClassName="text-warning-ink"
             isLoading={isLoading}
           />
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <Card className="gap-0 overflow-hidden py-0">
         <div className="p-6 pb-4">
           <div className="relative">
             <AppIcon
@@ -105,7 +106,7 @@ export function RejectedInvoicesView() {
             />
           </div>
         )}
-      </div>
+      </Card>
     </PageContainer>
   );
 }

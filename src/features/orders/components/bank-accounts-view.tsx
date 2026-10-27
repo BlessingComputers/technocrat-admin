@@ -19,7 +19,7 @@ import {
   type BankAccountFormData,
 } from "../schemas/bank-account-form";
 
-/** Bank Accounts view (route `/checkout/bank-accounts`). Part of the orders feature (ADR-0002). */
+/** Bank Accounts view (route `/payments/bank-accounts`). Part of the orders feature (ADR-0002). */
 export function BankAccountsView() {
   const { data: accounts = [], isLoading } = useBankAccounts();
 
@@ -83,7 +83,7 @@ export function BankAccountsView() {
       >
         <Button
           onClick={openCreateDialog}
-          className="rounded-lg bg-primary text-primary-foreground font-black px-6 h-12"
+          className="rounded-lg bg-primary text-primary-foreground font-medium px-6 h-12"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 w-5 h-5" />
           Add Account

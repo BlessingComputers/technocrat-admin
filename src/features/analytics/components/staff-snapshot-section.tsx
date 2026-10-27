@@ -22,7 +22,7 @@ export function StaffSnapshotSection({
 
   return (
     <section className="space-y-4 border-t border-border/70 pt-6">
-      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
         Your Snapshot
       </h2>

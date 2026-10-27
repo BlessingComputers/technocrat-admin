@@ -20,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatNaira, type ProductFormValues } from "../../schemas/product-form";
 
-const LABEL = "text-xs text-muted-foreground uppercase font-medium";
+const LABEL = "text-xs text-muted-foreground font-medium";
 
 /**
  * Pricing & inventory for the product. The variant concept is no longer
@@ -44,7 +44,7 @@ export function VariantsSection({
     <div className="space-y-4 pt-6 border-t border-border">
       <div className="flex items-center gap-2">
         <div className="size-7 bg-primary/10 rounded-full flex items-center justify-center">
-          <AppIcon icon="solar:tag-price-linear" className="size-4 text-primary" />
+          <AppIcon icon="solar:tag-price-linear" className="size-4 text-primary-ink" />
         </div>
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -57,7 +57,7 @@ export function VariantsSection({
       </div>
 
       {missingDefaultVariant && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-400">
+        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-warning-ink">
           <AppIcon
             icon="solar:danger-triangle-linear"
             className="size-4 mt-0.5 shrink-0"
@@ -71,7 +71,7 @@ export function VariantsSection({
         </div>
       )}
 
-      <Card className="border-border bg-muted/10 overflow-hidden p-0">
+      <Card className="bg-muted/10 overflow-hidden p-0">
         <CardContent className="p-4">
           <fieldset
             disabled={missingDefaultVariant}

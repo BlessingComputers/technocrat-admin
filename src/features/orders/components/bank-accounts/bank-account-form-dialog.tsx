@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
+import { MetaLabel } from "@/components/shared/meta-label";
 import {
   EMPTY_BANK_ACCOUNT_FORM,
   type BankAccountFormData,
@@ -84,7 +85,7 @@ export function BankAccountFormDialog({
                 value={formData.accountNumber}
                 onChange={(v) => updateField("accountNumber", v)}
                 required
-                inputClassName="font-black tracking-widest"
+                inputClassName="font-semibold tracking-widest"
               />
               <FormFieldText
                 label="Bank Code"
@@ -130,12 +131,12 @@ function BankAccountFormDialogHeader({ isEditing }: { isEditing: boolean }) {
   return (
     <div className="bg-primary p-8 text-primary-foreground relative">
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-      <DialogTitle className="text-2xl font-black tracking-tight relative z-10">
+      <DialogTitle className="text-2xl font-semibold tracking-tight relative z-10">
         {isEditing ? "Edit Account" : "Add Account"}
       </DialogTitle>
-      <p className="text-primary-foreground/70 text-xs font-bold uppercase tracking-widest mt-1 relative z-10">
+      <MetaLabel tone="pinned" className="block mt-1 relative z-10">
         Configure payment details
-      </p>
+      </MetaLabel>
     </div>
   );
 }
@@ -157,14 +158,14 @@ function FormFieldText({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+      <Label className="text-xs font-medium text-muted-foreground ml-1">
         {label}
       </Label>
       <Input
         required={required}
         placeholder={placeholder}
         className={cn(
-          "rounded-lg bg-muted/50 border-border h-12 focus:bg-card transition-all font-bold",
+          "rounded-lg bg-muted/50 border-border h-12 focus:bg-card transition-all font-semibold",
           inputClassName,
         )}
         value={value}
@@ -186,9 +187,9 @@ function PrimaryToggle({
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all font-black text-[10px] uppercase tracking-widest",
+        "flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all font-medium text-xs",
         isPrimary
-          ? "bg-primary/5 border-primary text-primary"
+          ? "bg-primary/5 border-primary text-primary-ink"
           : "bg-card border-border text-muted-foreground",
       )}
     >
@@ -213,10 +214,10 @@ function ActiveToggle({
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all font-black text-[10px] uppercase tracking-widest",
+        "flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all font-medium text-xs",
         isActive
-          ? "bg-success/10 border-success text-success"
-          : "bg-destructive/10 border-destructive text-destructive",
+          ? "bg-success/10 border-success text-success-ink"
+          : "bg-destructive/10 border-destructive text-destructive-ink",
       )}
     >
       <AppIcon icon="solar:power-linear" className="w-4 h-4" />
@@ -240,14 +241,14 @@ function BankAccountFormDialogActions({
         type="button"
         variant="ghost"
         onClick={onCancel}
-        className="flex-1 rounded-lg font-bold text-muted-foreground h-12"
+        className="flex-1 rounded-lg font-medium text-muted-foreground h-12"
       >
         Cancel
       </Button>
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="flex-2 rounded-lg bg-primary text-primary-foreground font-black h-12"
+        className="flex-2 rounded-lg bg-primary text-primary-foreground font-medium h-12"
       >
         {isSubmitting ? "Saving..." : isEditing ? "Update Account" : "Add Account"}
       </Button>

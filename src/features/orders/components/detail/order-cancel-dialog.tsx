@@ -45,7 +45,7 @@ export function OrderCancelDialog({
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="h-10 px-4 rounded-lg border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 font-black text-[10px] uppercase tracking-widest"
+          className="h-10 px-4 rounded-lg border-destructive/20 bg-destructive/5 text-destructive-ink hover:bg-destructive/10 font-medium text-xs"
         >
           <AppIcon icon="solar:forbidden-circle-linear" className="w-3 h-3 mr-2" />
           Cancel Order
@@ -53,18 +53,18 @@ export function OrderCancelDialog({
       </DialogTrigger>
       <DialogContent className="max-w-md rounded-xl p-8 border border-border">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-black text-destructive">
+          <DialogTitle className="text-2xl font-semibold text-destructive-ink">
             Cancel Order
           </DialogTitle>
           {consequence && (
-            <p className="text-xs text-destructive/70 font-bold uppercase tracking-widest mt-1">
+            <p className="text-xs text-destructive-ink/70 font-medium mt-1">
               {consequence}
             </p>
           )}
         </DialogHeader>
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Cancellation Reason
             </Label>
             <Textarea
@@ -78,7 +78,7 @@ export function OrderCancelDialog({
             <Button
               variant="ghost"
               onClick={() => setOpen(false)}
-              className="flex-1 rounded-xl font-bold"
+              className="flex-1 rounded-xl font-medium"
             >
               Keep Order
             </Button>
@@ -90,7 +90,7 @@ export function OrderCancelDialog({
                 })
               }
               disabled={disabled}
-              className="flex-[2] h-12 rounded-xl bg-destructive hover:bg-destructive/90 text-white font-black shadow-lg shadow-destructive/20 disabled:opacity-50"
+              className="flex-[2] h-12 rounded-xl bg-destructive hover:bg-destructive/90 text-white font-medium shadow-lg shadow-destructive/20 disabled:opacity-50"
             >
               {isPending ? "Processing..." : "Confirm Cancellation"}
             </Button>

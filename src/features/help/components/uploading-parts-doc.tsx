@@ -189,7 +189,7 @@ export function UploadingPartsDoc() {
           top of cost. Instead of pricing every part by hand, you make a rule like
           &ldquo;add 25% to all Battery parts&rdquo; and apply it.
         </p>
-        <Path items={["Products", "All parts", "Pricing"]} />
+        <Path items={["Pricing", "Markup", "Parts"]} />
         <Steps
           steps={[
             {

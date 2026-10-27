@@ -36,9 +36,9 @@ export function AnalyticsPeriodSelect({
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-2 rounded-lg text-xs font-medium uppercase tracking-wide"
+          className="h-9 gap-2 rounded-lg text-xs font-medium"
         >
-          <AppIcon icon="solar:calendar-linear" className="size-4 text-primary" />
+          <AppIcon icon="solar:calendar-linear" className="size-4 text-primary-ink" />
           {current.label}
           <AppIcon
             icon="solar:alt-arrow-down-linear"
@@ -52,15 +52,15 @@ export function AnalyticsPeriodSelect({
             key={p.value}
             onClick={() => onChange(p.value)}
             className={cn(
-              "cursor-pointer text-xs font-medium uppercase tracking-wide",
-              value === p.value && "text-primary",
+              "cursor-pointer text-xs font-medium",
+              value === p.value && "text-primary-ink",
             )}
           >
             {p.label}
             {value === p.value && (
               <AppIcon
                 icon="solar:check-circle-bold"
-                className="ml-auto size-4 text-primary"
+                className="ml-auto size-4 text-primary-ink"
               />
             )}
           </DropdownMenuItem>

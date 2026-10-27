@@ -128,7 +128,7 @@ function ProfileRow({
       href={href}
       className="flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/40"
     >
-      <AppIcon icon={icon} className="size-5 shrink-0 text-primary" />
+      <AppIcon icon={icon} className="size-5 shrink-0 text-primary-ink" />
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="truncate text-sm font-medium text-foreground">{value}</p>

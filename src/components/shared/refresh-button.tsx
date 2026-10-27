@@ -28,7 +28,7 @@ export function RefreshButton({
       onClick={onRefresh}
       variant="outline"
       className={cn(
-        "h-10 px-4 rounded-md bg-white border border-border hover:bg-gray-50 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-500 transition-all",
+        "h-10 px-4 rounded-md bg-card border border-border hover:bg-accent flex items-center gap-2 text-xs font-medium text-muted-foreground transition-all",
         className,
       )}
       disabled={isRefreshing}
@@ -36,7 +36,7 @@ export function RefreshButton({
       <AppIcon
         icon="solar:refresh-linear"
         className={cn(
-          "w-3.5 h-3.5 text-gray-500 transition-transform",
+          "w-3.5 h-3.5 text-muted-foreground transition-transform",
           isRefreshing && "animate-spin",
         )}
       />

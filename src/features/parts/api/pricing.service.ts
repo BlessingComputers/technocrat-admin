@@ -8,6 +8,7 @@ import type {
   PartMarkupResetResult,
   PartMarkupRule,
   PartMarkupRuleInput,
+  PartMarkupRuleType,
   PartMarkupRuleUpdateInput,
 } from "../types/pricing";
 
@@ -18,7 +19,15 @@ import type {
 const { markup } = API_ENDPOINTS.products.parts;
 
 export const partsPricingService = {
-  getMarkupRules: () => api.get<PartMarkupRule[]>(markup.rules),
+  /**
+   * Every rule, or only one half of them. `?type=markup|discount` is
+   * server-side and case insensitive, and an unrecognised value is a 400 rather
+   * than a silent empty list. Omitting it returns everything.
+   */
+  getMarkupRules: (type?: PartMarkupRuleType) =>
+    api.get<PartMarkupRule[]>(markup.rules, {
+      params: { type: type?.toLowerCase() },
+    }),
 
   createMarkupRule: (data: PartMarkupRuleInput) =>
     api.post<PartMarkupRule>(markup.rules, data),
@@ -26,6 +35,7 @@ export const partsPricingService = {
   updateMarkupRule: (id: string, data: PartMarkupRuleUpdateInput) =>
     api.patch<PartMarkupRule>(markup.rule(id), data),
 
+  /** Rejected (400) while the rule is active — cancel it first. */
   deleteMarkupRule: (id: string) =>
     api.delete<{ message: string }>(markup.rule(id)),
 

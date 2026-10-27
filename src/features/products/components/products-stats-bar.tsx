@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
 import type { ProductStats } from "../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface ProductsStatsBarProps {
   stats: ProductStats;
@@ -11,6 +12,8 @@ interface ProductsStatsBarProps {
   lowStockHref: string;
   /** Browse-view deep link for the out-of-stock card. */
   outOfStockHref: string;
+  /** Shows a pulse in place of each value while the counts resolve. */
+  isLoading?: boolean;
 }
 
 const CARDS = [
@@ -18,25 +21,25 @@ const CARDS = [
     key: "total" as const,
     title: "Total Products",
     icon: "solar:box-linear",
-    chip: "bg-primary/10 text-primary",
+    chip: "bg-primary/10 text-primary-ink",
   },
   {
     key: "active" as const,
     title: "Active Products",
     icon: "solar:check-circle-linear",
-    chip: "bg-success/15 text-success",
+    chip: "bg-success/15 text-success-ink",
   },
   {
     key: "lowStock" as const,
     title: "Low Stock",
     icon: "solar:danger-circle-linear",
-    chip: "bg-warning/15 text-warning",
+    chip: "bg-warning/15 text-warning-ink",
   },
   {
     key: "outOfStock" as const,
     title: "Out of Stock",
     icon: "solar:close-circle-linear",
-    chip: "bg-destructive/12 text-destructive",
+    chip: "bg-destructive/12 text-destructive-ink",
   },
 ];
 
@@ -44,6 +47,7 @@ export function ProductsStatsBar({
   stats,
   lowStockHref,
   outOfStockHref,
+  isLoading,
 }: ProductsStatsBarProps) {
   const hrefByKey: Partial<Record<(typeof CARDS)[number]["key"], string>> = {
     lowStock: lowStockHref,
@@ -58,7 +62,7 @@ export function ProductsStatsBar({
           const inner = (
             <Card
               className={cn(
-                "rounded-lg border border-border bg-card p-6",
+                "p-6",
                 href &&
                   "transition-colors hover:border-primary/40 hover:bg-muted/30",
               )}
@@ -79,12 +83,16 @@ export function ProductsStatsBar({
                   />
                 )}
               </div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <MetaLabel className="block mb-1">
                 {card.title}
-              </p>
-              <h3 className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats[card.key]}
-              </h3>
+              </MetaLabel>
+              {isLoading ? (
+                <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
+              ) : (
+                <h3 className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
+                  {stats[card.key].toLocaleString()}
+                </h3>
+              )}
             </Card>
           );
 
@@ -98,15 +106,15 @@ export function ProductsStatsBar({
         })}
       </div>
 
-      {stats.needsRestock > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+      {!isLoading && stats.needsRestock > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 text-sm text-warning-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-4 shrink-0" />
           <span>
             <strong>{stats.needsRestock}</strong> products are low on or out of
             stock.{" "}
             <Link
               href={lowStockHref}
-              className="font-medium underline underline-offset-2 hover:text-warning/80"
+              className="font-medium underline underline-offset-2 hover:text-warning-ink/80"
             >
               View affected
             </Link>

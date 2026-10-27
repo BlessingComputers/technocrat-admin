@@ -37,7 +37,7 @@ export function ManualCustomerFields({
 
   return (
     <section className="space-y-5">
-      <h3 className="text-sm font-black text-foreground">
+      <h3 className="text-sm font-semibold text-foreground">
         Customer&apos;s Information
       </h3>
 
@@ -86,14 +86,14 @@ export function ManualCustomerFields({
           onClick={() => setAddressOpen((o) => !o)}
           className="flex w-full items-center justify-between bg-primary/5 px-4 py-3 text-left"
         >
-          <span className="text-xs font-black uppercase tracking-widest text-primary">
+          <span className="text-xs font-medium text-primary-ink">
             Add Address{" "}
-            <span className="text-primary/60">(optional)</span>
+            <span className="text-primary-ink/60">(optional)</span>
           </span>
           <AppIcon
             icon="solar:alt-arrow-down-linear"
             className={cn(
-              "h-4 w-4 text-primary transition-transform",
+              "h-4 w-4 text-primary-ink transition-transform",
               addressOpen && "rotate-180",
             )}
           />

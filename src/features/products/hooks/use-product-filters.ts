@@ -16,6 +16,8 @@ import type { ProductsListParams } from "../types/products";
  */
 const SEARCH_DEBOUNCE_MS = 300;
 const DEFAULT_LIMIT = 20;
+/** Rows-per-page choices offered in the table footer. */
+const ALLOWED_LIMITS = [20, 50, 100];
 const DEFAULT_SORT_KEY = "newest";
 const DEFAULT_SORT_DIR: "asc" | "desc" = "desc";
 
@@ -33,10 +35,13 @@ function parseParams(sp: URLSearchParams): ProductsListParams {
   const tab = sp.get("tab") as Tab | null;
   const stock = sp.get("stock") as ProductsListParams["stock"] | null;
   const dir = sp.get("dir");
+  // Allow-list the page size: it goes straight into a backend query param, and
+  // an arbitrary `?limit=100000` is a denial-of-service handed to the caller.
+  const limit = toInt(sp.get("limit"));
 
   return {
     page: toInt(sp.get("page")) ?? 1,
-    limit: DEFAULT_LIMIT,
+    limit: limit && ALLOWED_LIMITS.includes(limit) ? limit : DEFAULT_LIMIT,
     search: sp.get("search") || undefined,
     category: sp.get("category") || undefined,
     brand: sp.get("brand") || undefined,
@@ -68,6 +73,8 @@ function toQueryString(params: ProductsListParams): string {
   if (params.sortDir && params.sortDir !== DEFAULT_SORT_DIR)
     sp.set("dir", params.sortDir);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
+  if (params.limit && params.limit !== DEFAULT_LIMIT)
+    sp.set("limit", String(params.limit));
   return sp.toString();
 }
 
@@ -142,6 +149,13 @@ export function useProductFilters() {
     [commit, params],
   );
 
+  // Changing the page size changes which rows page 1 holds, so it resets to 1
+  // rather than stranding the operator on a page that no longer exists.
+  const setLimit = useCallback(
+    (limit: number) => commit({ ...params, limit, page: 1 }, "push"),
+    [commit, params],
+  );
+
   const setSort = useCallback(
     (key: string) => {
       const nextDir: SortDir =
@@ -162,5 +176,14 @@ export function useProductFilters() {
     window.history.pushState(null, "", pathname);
   }, [pathname]);
 
-  return { params, searchInput, setFilter, setSearch, setPage, setSort, reset };
+  return {
+    params,
+    searchInput,
+    setFilter,
+    setSearch,
+    setPage,
+    setLimit,
+    setSort,
+    reset,
+  };
 }

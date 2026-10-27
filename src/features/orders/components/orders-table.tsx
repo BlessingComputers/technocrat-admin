@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { OrderTableRow } from "./order-table-row";
 import { OrdersTableSkeleton } from "./orders-skeletons";
 import type { AdminOrderRow, AdminOrderListParams } from "../types/orders";
+import { Card } from "@/components/ui/card";
+import { metaLabelVariants } from "@/components/shared/meta-label";
+import { cn } from "@/lib/utils/cn";
 
 type SortValue = NonNullable<AdminOrderListParams["sortBy"]>;
 
@@ -50,8 +53,8 @@ export function OrdersTable({
 
   if (isError) {
     return (
-      <div className="py-20 text-center bg-card rounded-lg border border-border">
-        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+      <Card className="gap-0 py-20 text-center">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-8" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">
@@ -63,13 +66,13 @@ export function OrdersTable({
         <Button variant="outline" onClick={onRetry} className="mt-4">
           Retry
         </Button>
-      </div>
+      </Card>
     );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="py-20 text-center bg-card rounded-lg border border-border">
+      <Card className="gap-0 py-20 text-center">
         <AppIcon
           icon="solar:box-linear"
           className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4"
@@ -78,17 +81,21 @@ export function OrdersTable({
         <p className="text-sm text-muted-foreground mt-1">
           Try adjusting your search or filters
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto bg-card rounded-lg border border-border w-full">
+    <Card className="gap-0 overflow-x-auto w-full py-0">
       <table className="w-full text-left min-w-[1000px]">
         <thead>
           <tr className="border-b border-border bg-primary/[0.04]">
             {HEADERS.map((col) => {
-              const base = `px-8 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground${col.align === "right" ? " text-right" : ""}`;
+              const base = cn(
+                metaLabelVariants(),
+                "px-8 py-4",
+                col.align === "right" && "text-right",
+              );
 
               if (!col.sort) {
                 return (
@@ -113,8 +120,8 @@ export function OrdersTable({
                   <button
                     type="button"
                     onClick={() => onSortChange(next)}
-                    className={`group/sort inline-flex items-center gap-1 rounded-sm uppercase tracking-wide outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                      active ? "text-primary" : "hover:text-foreground"
+                    className={`group/sort inline-flex items-center gap-1 rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                      active ? "text-primary-ink" : "hover:text-foreground"
                     }`}
                   >
                     {col.label}
@@ -143,6 +150,6 @@ export function OrdersTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }

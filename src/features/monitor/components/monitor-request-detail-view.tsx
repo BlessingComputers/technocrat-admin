@@ -67,7 +67,7 @@ function RequestNotFound() {
     <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
       <AppIcon
         icon="solar:danger-circle-linear"
-        className="w-16 h-16 text-destructive"
+        className="w-16 h-16 text-destructive-ink"
       />
       <h2 className="text-xl font-semibold text-foreground">
         Request log not found

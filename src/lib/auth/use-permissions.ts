@@ -16,7 +16,7 @@ import {
  * mirroring `filterNavByPermissions`.
  */
 export function usePermissions() {
-  const { staffSession } = useStaffSession();
+  const { staffSession, isLoading } = useStaffSession();
   const permissions = staffSession?.permissions ?? [];
   const superAdmin = isSuperAdmin(staffSession);
 
@@ -29,5 +29,6 @@ export function usePermissions() {
       superAdmin || hasAnyPermissionInGroup(permissions, groups),
     isSuperAdmin: superAdmin,
     session: staffSession,
+    isLoading,
   };
 }

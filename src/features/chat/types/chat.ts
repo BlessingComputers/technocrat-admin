@@ -10,7 +10,18 @@
  */
 
 // ── Enums (mirror the OpenAPI query enums) ──────────────────────────
-import type { AiEscalationReason, AiState } from "./chat.contract";
+import type {
+  AiEscalationReason,
+  AiState,
+  ProductCard,
+} from "./chat.contract";
+
+/**
+ * One inline product card attached to an AI reply. Re-exported from the pulled
+ * wire contract rather than re-typed, so a field change lands as a type error
+ * here instead of silently rendering `undefined`.
+ */
+export type ChatProductCard = ProductCard;
 
 export type ConversationStatus =
   | "WAITING"
@@ -55,6 +66,15 @@ export interface ChatMessage {
     senderName: string;
     body: string;
   } | null;
+  /**
+   * Catalogue products the AI grounded this reply in (contract v4). Only ever
+   * non-empty on an AI reply in a customer conversation — `staffroom:history`
+   * never carries the field, and neither does any CUSTOMER/STAFF message.
+   * Server-sourced rows are normalized to `[]` rather than left undefined, so
+   * the renderer has one case; optional because optimistic rows are built
+   * locally and never carry one.
+   */
+  products?: ChatProductCard[];
 }
 
 // ── Conversations ───────────────────────────────────────────────────
@@ -87,14 +107,24 @@ export interface ConversationSummary {
   memberCount?: number;
   /**
    * AI first-responder state. `HANDLING` is silent-normal, the AI is
-   * answering and no one has claimed it; `ESCALATED` is a one-way door — it
-   * will not reply again until RESOLVED; `OFF` means the AI never engaged.
-   * "Needs a human" is `ESCALATED | OFF`; "AI handling" is `HANDLING`. This
-   * is orthogonal to `assignedStaffId` — claiming a `HANDLING` conversation
-   * does not itself change this field.
+   * answering — including on a conversation an agent has already claimed;
+   * `ESCALATED` is a one-way door — it will not reply again until RESOLVED;
+   * `OFF` means the AI never engaged, or a staff member explicitly stopped
+   * it. "Needs a human" is `ESCALATED | OFF`; "AI handling" is `HANDLING`.
+   *
+   * Orthogonal to `assignedStaffId` in both directions: claiming a `HANDLING`
+   * conversation does not change this field, and no longer quiets the AI
+   * either. Only `PATCH /conversations/:id/ai` and the reply cap do that.
    */
   aiState: AiState;
-  /** Why the AI escalated. `null` unless `aiState` is `ESCALATED`. */
+  /**
+   * Why the AI escalated, or why it skipped one message. Present on an
+   * `ESCALATED` conversation (`CUSTOMER_REQUESTED`, `BLOCKED_TOPIC`,
+   * `FRUSTRATION`, `REPLY_CAP`) but also on a still-`HANDLING` one
+   * (`CANNOT_ANSWER`, `ERROR`), where it records a single skipped message and
+   * clears on the AI's next successful reply. A reason is therefore never
+   * evidence that the AI stopped — read `aiState` for that.
+   */
   aiEscalationReason?: AiEscalationReason | null;
 }
 

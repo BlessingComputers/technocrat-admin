@@ -2,7 +2,11 @@ import React from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface PageHeaderProps {
-  title: string;
+  /**
+   * Usually a string. Typed as a node because the product detail header hangs
+   * a muted part number off the end of the title, inside the same `h1`.
+   */
+  title: React.ReactNode;
   description?: string;
   children?: React.ReactNode;
   className?: string;
@@ -26,7 +30,7 @@ export function PageHeader({
       )}
     >
       <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold text-foreground tracking-tight">
+        <h1 className="font-heading text-2xl font-semibold text-foreground tracking-tight">
           {title}
         </h1>
         {description && (

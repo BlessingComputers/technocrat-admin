@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils/cn";
 import type { AppliedDateRange } from "../types/analytics";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface DashboardDateFilterProps {
   period: string;
@@ -79,9 +80,9 @@ export function DashboardDateFilter({
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-2 rounded-lg text-xs font-medium uppercase tracking-wide"
+          className="h-9 gap-2 rounded-lg text-xs font-medium"
         >
-          <AppIcon icon="solar:calendar-linear" className="size-4 text-primary" />
+          <AppIcon icon="solar:calendar-linear" className="size-4 text-primary-ink" />
           {triggerLabel}
           <AppIcon
             icon="solar:alt-arrow-down-linear"
@@ -97,15 +98,15 @@ export function DashboardDateFilter({
               type="button"
               onClick={() => handleSelect(p.id)}
               className={cn(
-                "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-muted",
-                period === p.id ? "text-primary" : "text-foreground",
+                "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted",
+                period === p.id ? "text-primary-ink" : "text-foreground",
               )}
             >
               {p.label}
               {period === p.id && (
                 <AppIcon
                   icon="solar:check-circle-bold"
-                  className="size-4 text-primary"
+                  className="size-4 text-primary-ink"
                 />
               )}
             </button>
@@ -130,12 +131,12 @@ export function DashboardDateFilter({
             <Button
               type="submit"
               size="sm"
-              className="h-9 w-full rounded-lg bg-primary text-xs font-medium uppercase tracking-wide hover:bg-primary/90"
+              className="h-9 w-full rounded-lg bg-primary text-xs font-medium hover:bg-primary/90"
             >
               Apply Range
             </Button>
             {appliedCustomDates && (
-              <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-success">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-success-ink">
                 <AppIcon
                   icon="solar:magic-stick-3-bold"
                   className="size-3.5 animate-pulse"
@@ -161,10 +162,12 @@ function DateInput({
 }) {
   return (
     <div className="w-full space-y-1.5">
-      <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <AppIcon icon="solar:calendar-mark-linear" className="size-3.5" />
-        {label}
-      </label>
+      <MetaLabel asChild>
+        <label className="flex items-center gap-1.5">
+          <AppIcon icon="solar:calendar-mark-linear" className="size-3.5" />
+          {label}
+        </label>
+      </MetaLabel>
       <input
         type="date"
         value={value}

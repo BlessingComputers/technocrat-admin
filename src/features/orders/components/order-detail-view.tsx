@@ -168,13 +168,13 @@ export function OrderDetailView({ manualOrderId }: OrderDetailViewProps) {
 function OrderNotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <AppIcon icon="solar:danger-circle-linear" className="w-16 h-16 text-destructive" />
-      <h2 className="text-2xl font-black text-foreground">Order Not Found</h2>
+      <AppIcon icon="solar:danger-circle-linear" className="w-16 h-16 text-destructive-ink" />
+      <h2 className="text-2xl font-semibold text-foreground">Order Not Found</h2>
       <p className="text-muted-foreground font-medium">
         The order you are looking for does not exist or has been deleted.
       </p>
       <Link href="/orders">
-        <Button variant="outline" className="rounded-xl px-8 font-bold">
+        <Button variant="outline" className="rounded-xl px-8 font-medium">
           Return to Orders
         </Button>
       </Link>

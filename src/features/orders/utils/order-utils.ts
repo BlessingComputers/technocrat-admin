@@ -32,13 +32,24 @@ export function orderStatusTone(status: string): StatusTone {
   return "muted";
 }
 
+/**
+ * The unified orders list renders both payment vocabularies through one badge,
+ * so this switch has to answer for both. Manual orders say CONFIRMED /
+ * PROOF_UPLOADED / REJECTED; gateway orders say PAID / FAILED / REFUNDED
+ * (`NormalizedPaymentStatus`). The gateway three were missing and fell through
+ * to the `warning` default, which painted a settled payment amber.
+ */
 export function paymentStatusTone(status: string): StatusTone {
   switch (status?.toUpperCase()) {
     case "CONFIRMED":
+    case "PAID":
       return "success";
     case "PROOF_UPLOADED":
       return "info";
+    case "REFUNDED":
+      return "info";
     case "REJECTED":
+    case "FAILED":
       return "danger";
     case "PENDING":
     default:

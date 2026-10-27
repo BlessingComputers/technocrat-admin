@@ -14,6 +14,7 @@ import {
   useSetPartPrimaryImage,
 } from "../../api/parts.queries";
 import type { PartImage, PartImageWithStorage } from "../../types/parts";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (backend rejects larger)
@@ -247,9 +248,9 @@ export function PartImageSection({
       {/* Existing images */}
       {sortedImages.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             Current Images
-          </p>
+          </MetaLabel>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {sortedImages.map((img) => {
               const hasPendingPrimary = pendingFiles.some((f) => f.isPrimary);
@@ -278,7 +279,7 @@ export function PartImageSection({
                         variant="secondary"
                         size="icon"
                         disabled={busy}
-                        className="size-8 rounded-md text-warning transition-transform hover:scale-110"
+                        className="size-8 rounded-md text-warning-ink transition-transform hover:scale-110"
                         onClick={() => handleSetPrimary(img.id)}
                       >
                         <AppIcon
@@ -300,7 +301,7 @@ export function PartImageSection({
                       variant="secondary"
                       size="icon"
                       disabled={busy}
-                      className="size-8 rounded-md text-destructive transition-transform hover:scale-110"
+                      className="size-8 rounded-md text-destructive-ink transition-transform hover:scale-110"
                       onClick={() => setImageToDelete(img)}
                     >
                       <AppIcon icon="solar:trash-bin-trash-linear" className="size-3.5" />
@@ -318,7 +319,7 @@ export function PartImageSection({
         <div className="space-y-4 rounded-lg border border-dashed border-border bg-muted/30 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary" />
+              <AppIcon icon="solar:gallery-linear" className="size-4 text-primary-ink" />
               <div className="flex flex-col">
                 <p className="text-sm font-semibold text-foreground">
                   Ready to Upload ({pendingFiles.length})
@@ -430,8 +431,8 @@ export function PartImageSection({
                         }
                         className={
                           status === "done"
-                            ? "size-7 text-success"
-                            : "size-7 animate-spin text-primary"
+                            ? "size-7 text-success-ink"
+                            : "size-7 animate-spin text-primary-ink"
                         }
                       />
                     </div>
@@ -455,7 +456,7 @@ export function PartImageSection({
                           type="button"
                           variant="secondary"
                           size="icon"
-                          className="size-7 rounded-md text-warning transition-transform hover:scale-110"
+                          className="size-7 rounded-md text-warning-ink transition-transform hover:scale-110"
                           onClick={() => setPendingPrimary(pf.id)}
                           disabled={uploadImages.isPending}
                         >
@@ -486,7 +487,7 @@ export function PartImageSection({
         <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted transition-colors group-hover:bg-primary/10">
           <AppIcon
             icon="solar:cloud-upload-linear"
-            className="size-5 text-muted-foreground transition-colors group-hover:text-primary"
+            className="size-5 text-muted-foreground transition-colors group-hover:text-primary-ink"
           />
         </div>
         <p className="mb-1 text-sm font-semibold text-foreground">Select Images</p>

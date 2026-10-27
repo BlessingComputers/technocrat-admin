@@ -46,9 +46,9 @@ export function PresenceToggle({
           className={cn(
             "size-2 rounded-full",
             connection === "connected"
-              ? "bg-emerald-500"
+              ? "bg-success"
               : connection === "connecting"
-                ? "bg-amber-500"
+                ? "bg-warning"
                 : "bg-muted-foreground/50",
           )}
         />
@@ -58,7 +58,7 @@ export function PresenceToggle({
       <div className="flex items-center gap-2">
         <Label
           htmlFor="whatsapp-presence"
-          className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          className="cursor-pointer text-xs font-semibold text-muted-foreground"
         >
           Available
         </Label>

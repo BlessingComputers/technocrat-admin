@@ -11,7 +11,7 @@ export function LogTableRow({ log }: { log: MonitorLogListItem }) {
       <td className="px-6 py-3">
         <Link
           href={`/security/${log.requestId}`}
-          className="font-mono text-xs font-semibold text-primary hover:underline"
+          className="font-mono text-xs font-semibold text-primary-ink hover:underline"
         >
           {log.method}
         </Link>
@@ -24,7 +24,7 @@ export function LogTableRow({ log }: { log: MonitorLogListItem }) {
           {log.route ?? log.path}
         </div>
         {log.error && (
-          <div className="text-xs text-destructive mt-0.5 max-w-[320px] truncate">
+          <div className="text-xs text-destructive-ink mt-0.5 max-w-[320px] truncate">
             {log.error.message}
           </div>
         )}
@@ -52,7 +52,7 @@ export function LogTableRow({ log }: { log: MonitorLogListItem }) {
       <td className="px-6 py-3 text-right">
         <Link
           href={`/security/${log.requestId}`}
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors"
         >
           View
           <AppIcon icon="solar:alt-arrow-right-linear" className="w-3 h-3" />

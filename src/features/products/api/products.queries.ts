@@ -13,6 +13,7 @@ import type {
   CategoryInput,
   CreateProductDto,
   NewProductImage,
+  ProductImageMeta,
   ProductsListParams,
   UpdateProductDto,
   UploadedImageMeta,
@@ -25,11 +26,12 @@ export const productKeys = {
   lists: () => [...productKeys.all, "list"] as const,
   list: (filters: ProductsListParams) =>
     [...productKeys.lists(), filters] as const,
-  stats: () => [...productKeys.all, "stats"] as const,
   detail: (id: string) => [...productKeys.all, "detail", id] as const,
   bulkBatch: (batchId: string) =>
     [...productKeys.all, "bulk-batch", batchId] as const,
   categories: ["product-categories"] as const,
+  categoryDetail: (id: string) =>
+    ["product-categories", "detail", id] as const,
   subcategories: ["product-subcategories"] as const,
   brands: ["product-brands"] as const,
 };
@@ -48,13 +50,6 @@ export function useProducts(
   });
 }
 
-export function useProductStats() {
-  return useQuery({
-    queryKey: productKeys.stats(),
-    queryFn: () => productsService.getProductsStats(),
-  });
-}
-
 export function useProduct(productId?: string) {
   return useQuery({
     queryKey: productKeys.detail(productId || ""),
@@ -67,6 +62,21 @@ export function useCategories() {
   return useQuery({
     queryKey: productKeys.categories,
     queryFn: () => productsService.getCategories(),
+  });
+}
+
+/**
+ * One category, with its banner gallery.
+ *
+ * Separate from `useCategories` on purpose: the tree that hook returns omits
+ * `banners` on every node, so the panel cannot show a gallery from the list it
+ * has already loaded.
+ */
+export function useCategoryDetail(categoryId: string) {
+  return useQuery({
+    queryKey: productKeys.categoryDetail(categoryId),
+    queryFn: () => productsService.getCategoryById(categoryId),
+    enabled: Boolean(categoryId),
   });
 }
 
@@ -121,7 +131,6 @@ export function useCreateProduct() {
     }) => productsService.createProduct(data, images, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -138,7 +147,6 @@ export function useUpdateProduct() {
     }) => productsService.updateProduct(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
       queryClient.invalidateQueries({
         queryKey: productKeys.detail(variables.id),
       });
@@ -153,7 +161,6 @@ export function useUpdateProductStatus() {
       productsService.updateProductStatus(id, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -164,7 +171,6 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => productsService.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -175,7 +181,6 @@ export function usePermanentlyDeleteProduct() {
     mutationFn: (id: string) => productsService.permanentlyDeleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -187,7 +192,6 @@ export function useBulkEditProducts() {
       productsService.bulkEditProducts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -199,7 +203,6 @@ export function useBulkDeleteProducts() {
       productsService.bulkDeleteProducts(productIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -214,7 +217,6 @@ export function useBulkCreateProducts() {
     }) => productsService.bulkCreateProducts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.stats() });
     },
   });
 }
@@ -502,6 +504,74 @@ export function useDeleteBrand() {
     mutationFn: (brandId: string) => productsService.deleteBrand(brandId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.brands });
+    },
+  });
+}
+
+// ── Category banners ───────────────────────────────────────────────────
+
+export function useUploadCategoryBanners() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      files,
+      onProgress,
+      meta,
+    }: {
+      categoryId: string;
+      files: File[];
+      onProgress?: (completed: number, total: number) => void;
+      meta?: ProductImageMeta[];
+    }) =>
+      productsService.uploadCategoryBanners(
+        categoryId,
+        files,
+        onProgress,
+        meta,
+      ),
+    // Invalidate on settle, not just success: the upload runs one request per
+    // banner, so a failure partway through still leaves earlier files stored.
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productKeys.categoryDetail(variables.categoryId),
+      });
+    },
+  });
+}
+
+export function useDeleteCategoryBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      bannerId,
+    }: {
+      categoryId: string;
+      bannerId: string;
+    }) => productsService.deleteCategoryBanner(categoryId, bannerId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productKeys.categoryDetail(variables.categoryId),
+      });
+    },
+  });
+}
+
+export function useSetPrimaryCategoryBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      bannerId,
+    }: {
+      categoryId: string;
+      bannerId: string;
+    }) => productsService.setPrimaryCategoryBanner(categoryId, bannerId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: productKeys.categoryDetail(variables.categoryId),
+      });
     },
   });
 }

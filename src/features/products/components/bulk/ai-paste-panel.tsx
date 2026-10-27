@@ -56,10 +56,10 @@ export function AiPastePanel({
   };
 
   return (
-    <Card className="border border-border">
+    <Card>
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+          <div className="size-8 rounded-lg bg-primary/10 text-primary-ink flex items-center justify-center">
             <AppIcon icon="solar:magic-stick-3-bold" className="size-4" />
           </div>
           <div>

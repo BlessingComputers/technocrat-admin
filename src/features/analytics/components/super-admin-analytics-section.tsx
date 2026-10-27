@@ -19,7 +19,7 @@ export function SuperAdminAnalyticsSection() {
   return (
     <section className="space-y-4 border-t border-border/70 pt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
           <span className="h-2 w-2 rounded-full bg-primary" />
           Business Analytics
         </h2>

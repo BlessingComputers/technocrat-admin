@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface PartsStatsBarProps {
   total: number;
@@ -15,25 +16,25 @@ const CARDS = [
     key: "total" as const,
     title: "Total Parts",
     icon: "solar:cpu-bolt-linear",
-    chip: "bg-primary/10 text-primary",
+    chip: "bg-primary/10 text-primary-ink",
   },
   {
     key: "inStock" as const,
     title: "In Stock",
     icon: "solar:check-circle-linear",
-    chip: "bg-success/15 text-success",
+    chip: "bg-success/15 text-success-ink",
   },
   {
     key: "outOfStock" as const,
     title: "Out of Stock",
     icon: "solar:close-circle-linear",
-    chip: "bg-destructive/12 text-destructive",
+    chip: "bg-destructive/12 text-destructive-ink",
   },
   {
     key: "partTypes" as const,
     title: "Part Types",
     icon: "solar:widget-5-linear",
-    chip: "bg-warning/15 text-warning",
+    chip: "bg-warning/15 text-warning-ink",
   },
 ];
 
@@ -50,7 +51,7 @@ export function PartsStatsBar({
       {CARDS.map((card) => (
         <Card
           key={card.key}
-          className="rounded-lg border border-border bg-card p-6"
+          className="p-6"
         >
           <div className="mb-4 flex items-start justify-between">
             <div
@@ -62,13 +63,13 @@ export function PartsStatsBar({
               <AppIcon icon={card.icon} className="h-6 w-6" />
             </div>
           </div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block mb-1">
             {card.title}
-          </p>
+          </MetaLabel>
           {isLoading ? (
             <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
           ) : (
-            <h3 className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
+            <h3 className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
               {values[card.key]}
             </h3>
           )}

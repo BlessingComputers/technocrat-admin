@@ -32,6 +32,8 @@ interface ChatThreadProps {
   reassignSlot?: ReactNode;
   /** AI stop/resume control (ticket A5), rendered in the header. */
   aiControlSlot?: ReactNode;
+  /** "AI is still answering" strip, rendered under the header when claimed. */
+  aiNoticeSlot?: ReactNode;
   /** Mobile "back" to the conversation list (the two panes stack there). */
   onBack: () => void;
   onTogglePanel: () => void;
@@ -67,6 +69,7 @@ export function ChatThread({
   assignedStaffAvatar,
   reassignSlot,
   aiControlSlot,
+  aiNoticeSlot,
   onBack,
   onTogglePanel,
   onSend,
@@ -97,6 +100,8 @@ export function ChatThread({
         onTogglePanel={onTogglePanel}
         onResolve={onResolve}
       />
+
+      {aiNoticeSlot}
 
       <MessageList
         messages={messages}

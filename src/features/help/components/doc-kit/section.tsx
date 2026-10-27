@@ -20,11 +20,11 @@ export function Section({
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
           <AppIcon icon={icon} className="size-5" />
         </div>
         <div>
-          <h2 className="text-lg font-black tracking-tight text-foreground">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
             {title}
           </h2>
           {subtitle && (
@@ -35,7 +35,7 @@ export function Section({
       {/* Prose caps to a legible measure so paragraphs stay readable in the
           wide DocShell (ADR-0012); wide children — grids, Bento, Path — are
           left to span the full width. */}
-      <div className="space-y-3 text-sm leading-relaxed text-muted-foreground [&>p]:max-w-3xl [&_b]:font-bold [&_b]:text-foreground">
+      <div className="space-y-3 text-sm leading-relaxed text-muted-foreground [&>p]:max-w-3xl [&_b]:font-semibold [&_b]:text-foreground">
         {children}
       </div>
     </section>

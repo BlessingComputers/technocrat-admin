@@ -17,13 +17,21 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { loginAction, type LoginState } from "../api/login-action";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 type LoginFormProps = React.ComponentProps<"div">;
+
+/** Messages for `?notice=` after a password change or reset redirects here. */
+const NOTICES: Record<string, string> = {
+  "password-changed": "Password changed. Sign in with your new password.",
+  "password-reset": "Password reset. Sign in with your new password.",
+};
 
 export function LoginForm({ className, ...props }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
+  const notice = NOTICES[searchParams.get("notice") ?? ""];
 
   const initialState: LoginState = {
     email: "",
@@ -65,11 +73,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
             <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
               <AppIcon
                 icon="solar:shield-check-bold"
-                className="size-6 text-primary"
+                className="size-6 text-primary-ink"
               />
             </div>
           </div>
-          <CardTitle className="font-heading text-2xl font-bold tracking-tight">
+          <CardTitle className="font-heading text-2xl font-semibold tracking-tight">
             Staff Portal
           </CardTitle>
           <CardDescription>
@@ -77,6 +85,15 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {notice && (
+            <div
+              role="status"
+              className="mb-4 flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-3 text-sm font-medium text-success-ink"
+            >
+              <AppIcon icon="solar:check-circle-linear" className="size-4 shrink-0" />
+              {notice}
+            </div>
+          )}
           <form action={formAction}>
             <input type="hidden" name="redirectTo" value={redirectTo} />
             <FieldGroup className="gap-4">
@@ -93,7 +110,15 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
                 />
               </Field>
               <Field className="w-full">
-                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-primary-ink underline-offset-4 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -139,7 +164,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
               </Field>
 
               {state?.error && (
-                <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm font-medium text-destructive animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm font-medium text-destructive-ink animate-in fade-in slide-in-from-top-1">
                   <AppIcon
                     icon="solar:lock-keyhole-minimalistic-bold"
                     className="size-4 shrink-0"
@@ -159,7 +184,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           />
           Restricted access for authorized personnel only
         </p>
-        <p className="text-[10px] text-muted-foreground/60">
+        <p className="text-xs text-muted-foreground/60">
           All login attempts and session activities are monitored for security.
         </p>
       </div>

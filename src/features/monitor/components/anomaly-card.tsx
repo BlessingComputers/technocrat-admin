@@ -7,6 +7,7 @@ import {
   formatLogTimestamp,
 } from "../utils/monitor-utils";
 import type { MonitorAnomaly } from "../types/monitor";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 /** Formats a rate (0–1) as a percent, or a plain ms value for latency spikes. */
 function formatMetric(type: MonitorAnomaly["type"], value: number): string {
@@ -20,7 +21,7 @@ export function AnomalyCard({ anomaly }: { anomaly: MonitorAnomaly }) {
       <CardContent className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive-ink">
               <AppIcon icon="solar:danger-triangle-linear" className="size-5" />
             </span>
             <div>
@@ -42,17 +43,17 @@ export function AnomalyCard({ anomaly }: { anomaly: MonitorAnomaly }) {
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <MetaLabel className="block">
               Current
-            </p>
+            </MetaLabel>
             <p className="font-semibold tabular-nums text-foreground">
               {formatMetric(anomaly.type, anomaly.current)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <MetaLabel className="block">
               24h baseline
-            </p>
+            </MetaLabel>
             <p className="font-semibold tabular-nums text-foreground">
               {formatMetric(anomaly.type, anomaly.baseline)}
             </p>

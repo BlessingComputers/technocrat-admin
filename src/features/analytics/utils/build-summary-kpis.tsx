@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import { AppIcon } from "@/components/shared/app-icon";
+import type { StatTone } from "@/components/shared/stats-bar";
 import { formatPrice } from "@/lib/utils/format";
 import type { StaffDashboardData } from "../types/analytics";
 
@@ -9,8 +8,9 @@ export interface SummaryKpi {
   trend: string;
   trendType: "up" | "down";
   description: string;
-  icon: ReactNode;
-  color: "primary" | "emerald" | "amber" | "blue";
+  /** Iconify name, resolved by <Stat>. */
+  icon: string;
+  tone: StatTone;
 }
 
 /** Default empty-state KPIs shown when there's no dashboard data yet. */
@@ -22,8 +22,8 @@ export function buildDefaultKpis(): SummaryKpi[] {
       trend: "0%",
       trendType: "up",
       description: "All time",
-      icon: <AppIcon icon="solar:chart-2-bold" className="size-4" />,
-      color: "primary",
+      icon: "solar:chart-2-linear",
+      tone: "primary",
     },
     {
       title: "Total Orders",
@@ -31,8 +31,8 @@ export function buildDefaultKpis(): SummaryKpi[] {
       trend: "0%",
       trendType: "up",
       description: "All time",
-      icon: <AppIcon icon="solar:cart-large-2-bold" className="size-4" />,
-      color: "amber",
+      icon: "solar:cart-large-2-linear",
+      tone: "warning",
     },
     {
       title: "Total Products",
@@ -40,8 +40,8 @@ export function buildDefaultKpis(): SummaryKpi[] {
       trend: "0%",
       trendType: "up",
       description: "Active",
-      icon: <AppIcon icon="solar:box-bold" className="size-4" />,
-      color: "emerald",
+      icon: "solar:box-linear",
+      tone: "success",
     },
   ];
 }
@@ -60,8 +60,8 @@ export function buildStaffKpis(data: StaffDashboardData): SummaryKpi[] {
       trend: `+${payments?.revenueGrowth || 0}%`,
       trendType: (payments?.revenueGrowth || 0) >= 0 ? "up" : "down",
       description: "Your sales",
-      icon: <AppIcon icon="solar:chart-2-bold" className="size-4" />,
-      color: "primary",
+      icon: "solar:chart-2-linear",
+      tone: "primary",
     },
     {
       title: "Handled Orders",
@@ -69,8 +69,8 @@ export function buildStaffKpis(data: StaffDashboardData): SummaryKpi[] {
       trend: "Active",
       trendType: "up",
       description: `${orders?.pendingOrders || 0} pending`,
-      icon: <AppIcon icon="solar:cart-large-2-bold" className="size-4" />,
-      color: "amber",
+      icon: "solar:cart-large-2-linear",
+      tone: "warning",
     },
     {
       title: "Low Stock Alerts",
@@ -78,8 +78,8 @@ export function buildStaffKpis(data: StaffDashboardData): SummaryKpi[] {
       trend: "Critical",
       trendType: "down",
       description: `${inventory?.outOfStockVariants || 0} out of stock`,
-      icon: <AppIcon icon="solar:box-bold" className="size-4" />,
-      color: "emerald",
+      icon: "solar:box-linear",
+      tone: "success",
     },
     {
       title: "Active Customers",
@@ -87,8 +87,8 @@ export function buildStaffKpis(data: StaffDashboardData): SummaryKpi[] {
       trend: "Total",
       trendType: "up",
       description: `${customers?.totalCustomers || 0} in database`,
-      icon: <AppIcon icon="solar:users-group-rounded-bold" className="size-4" />,
-      color: "blue",
+      icon: "solar:users-group-rounded-linear",
+      tone: "info",
     },
   ];
 }

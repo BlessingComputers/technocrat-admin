@@ -7,7 +7,7 @@ interface InvoiceKpiCardProps {
   title: string;
   value: string | number;
   icon: string;
-  /** Color class for the trailing glyph, e.g. `text-warning`. */
+  /** Color class for the trailing glyph, e.g. `text-warning-ink`. */
   iconClassName?: string;
   note?: string;
   noteClassName?: string;
@@ -29,7 +29,7 @@ export function InvoiceKpiCard({
   const card = (
     <Card
       className={cn(
-        "gap-0 rounded-xl border border-border/60 bg-card p-6 shadow-soft",
+        "gap-0 p-6",
         href && "transition-shadow hover:shadow-soft-lg",
       )}
     >
@@ -42,14 +42,14 @@ export function InvoiceKpiCard({
       </div>
       <p
         className={cn(
-          "mt-4 text-3xl font-bold tracking-tight text-foreground tabular-nums",
+          "mt-4 text-3xl font-semibold tracking-tight text-foreground tabular-nums",
           isLoading && "animate-pulse text-muted-foreground/30",
         )}
       >
         {isLoading ? "—" : value}
       </p>
       {note && (
-        <p className={cn("mt-2 text-[11px] font-semibold", noteClassName)}>
+        <p className={cn("mt-2 text-xs font-semibold", noteClassName)}>
           {note}
         </p>
       )}

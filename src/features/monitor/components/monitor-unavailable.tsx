@@ -1,6 +1,7 @@
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
+import { Card } from "@/components/ui/card";
 
 /**
  * The monitoring Mongo connection is independent of the primary DB — every
@@ -9,8 +10,8 @@ import { ApiError } from "@/lib/api/client";
  */
 export function MonitorUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="py-20 text-center bg-card rounded-lg border border-border">
-      <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-warning/10 text-warning">
+    <Card className="gap-0 py-20 text-center">
+      <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-warning/10 text-warning-ink">
         <AppIcon icon="solar:danger-triangle-linear" className="size-8" />
       </div>
       <h3 className="text-lg font-semibold text-foreground">
@@ -23,7 +24,7 @@ export function MonitorUnavailable({ onRetry }: { onRetry: () => void }) {
       <Button variant="outline" onClick={onRetry} className="mt-4">
         Retry
       </Button>
-    </div>
+    </Card>
   );
 }
 

@@ -101,7 +101,7 @@ top-down by staff frequency.
 | 13 | `customer-chat` | `/chat` (assignment, replies) | — (all staff) | ☐ |
 | 14 | `managing-socials` | `/socials` | `socials` | ☐ |
 | 15 | `users-and-roles` | `/users` (RBAC) | `users` | ☐ |
-| 16 | `staff-uploads` | `/users/uploads` + analytics | `products` | ☐ |
+| 16 | `staff-uploads` | `/uploads` + analytics | `products` | ☐ |
 | 17 | `security-and-unblock` | `/security`, emergency unblock | `security` | ☐ |
 | 18 | `settings` | `/settings` | — | ☐ |
 

@@ -1,3 +1,4 @@
+import { StatsBar } from "@/components/shared/stats-bar";
 import { KpiCard } from "./kpi-card";
 import { buildDefaultKpis, buildStaffKpis } from "../utils/build-summary-kpis";
 import type { DashboardData, StaffDashboardData } from "../types/analytics";
@@ -27,10 +28,10 @@ export function SummaryKpisGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <StatsBar>
       {kpis.map((kpi, i) => (
         <KpiCard key={i} {...kpi} />
       ))}
-    </div>
+    </StatsBar>
   );
 }

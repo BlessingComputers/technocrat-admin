@@ -16,7 +16,7 @@ export function ProductStockBadge({ status, className }: ProductStockBadgeProps)
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-semibold",
         STOCK_PILL[key] ?? STOCK_PILL.OUT_OF_STOCK,
         className,
       )}

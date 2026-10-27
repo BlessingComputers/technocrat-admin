@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./brand-tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -26,16 +27,34 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-ink: var(--destructive-ink);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-ink: var(--warning-ink);
   --color-warning: var(--warning);
   --color-success-foreground: var(--success-foreground);
+  --color-success-ink: var(--success-ink);
   --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-gold-foreground: var(--gold-foreground);
+  --color-gold-ink: var(--gold-ink);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-foreground: var(--whatsapp-foreground);
+  --color-whatsapp-ink: var(--whatsapp-ink);
+  --color-tier-bronze: var(--tier-bronze);
+  --color-tier-bronze-ink: var(--tier-bronze-ink);
+  --color-tier-silver: var(--tier-silver);
+  --color-tier-silver-ink: var(--tier-silver-ink);
+  --color-tier-gold: var(--tier-gold);
+  --color-tier-gold-ink: var(--tier-gold-ink);
+  --color-tier-platinum: var(--tier-platinum);
+  --color-tier-platinum-ink: var(--tier-platinum-ink);
   --color-gold: var(--gold);
   --color-info-foreground: var(--info-foreground);
+  --color-info-ink: var(--info-ink);
   --color-info: var(--info);
+  --color-secondary-ink: var(--secondary-ink);
+  --color-primary-ink: var(--primary-ink);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -72,18 +91,47 @@
  * in dark) — no tint. The light content canvas is a slight cool gray so white
  * cards/chrome pop. Active nav item is maroon (primary) in both themes.
  */
+/* Two text suffixes, and they are NOT interchangeable (ported from the
+   storefront's globals.css, which reasons this out in full):
+
+   `-foreground` is text placed ON that colour as a solid surface. It is pinned
+   to the surface, so it does NOT flip between themes — `text-gold-foreground`
+   on `bg-gold` is correct in both.
+   `-ink` is that colour used AS text, on the page, a card, or a low-alpha tint
+   (`bg-warning/15`). It MUST flip, because the thing behind it flips.
+
+   The test is not which colour it is, it is what the text is sitting ON.
+   `bg-destructive text-white` is a solid surface and does not flip;
+   `text-destructive-ink` on a form is text and does.
+
+   Every ratio below is MEASURED, not estimated, against the worst realistic
+   pairing: the role's own 15% tint laid over `--accent` (the hover surface, the
+   lightest thing a status chip can land on in light mode). Before these tokens
+   existed, EVERY status role failed AA as text — measured 1.90:1 to 4.59:1 in
+   light and 1.89:1 to 3.37:1 in dark. That is what the `.dark` block's "NOT
+   fixed here" note below was describing; it is fixed here now. */
 :root {
-  --radius: 0.5rem;
+  --radius: var(--brand-radius);
   --background: oklch(0.97 0.003 256.85); /* slight cool-gray canvas */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.559998 0.229498 29.2768);
+  --primary: var(--brand-primary);
   --primary-foreground: oklch(0.985 0 0);
+  /* Blessing Maroon AS TEXT — 4.98:1. Goes DEEPER and less chromatic than
+     `--primary`, not merely darker, and that is the whole point: maroon (h 29.28)
+     and Alert Red (h 27.33) sit two degrees apart, so a contrast-only fix landed
+     this 1.4 OKLab units from `--destructive-ink` — close enough that a link and
+     an error message were the same colour. This pair is 6.4 units apart. */
+  --primary-ink: oklch(0.47 0.185 29.2768);
   --secondary: oklch(0.2781 0.0296 256.85);
   --secondary-foreground: oklch(0.985 0 0);
+  /* Slate Navy AS TEXT — 9.57:1. `--secondary` is a *surface* role and barely
+     moves between themes (navy panels stay navy), so used as text it measured
+     1.18:1 on the dark page. Identical value in light, flips in dark. */
+  --secondary-ink: oklch(0.2781 0.0296 256.85);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   /* Neutral hover/focus surface — shadcn's `accent` role (primitive hovers,
@@ -94,15 +142,64 @@
      (KPI chips, etc.), NOT the primitives' hover slot. */
   --gold: oklch(0.735 0.1462 84.27);
   --gold-foreground: oklch(0.2843 0.0562 83.83);
+  /* Gold AS TEXT — 4.60:1. Note this is NOT `--gold-foreground`: the near-black
+     Gold Ink is correct on *solid* gold and stays there, but on a `bg-gold/15`
+     chip it is the wrong instrument. Solid gold as text measured 1.90:1. */
+  --gold-ink: oklch(0.505 0.116 84.27);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Alert Red AS TEXT — 4.60:1, and 6.4 OKLab units from `--primary-ink` (see
+     the note there). Darker AND hotter than `--destructive`: the chroma is what
+     keeps it apart from maroon once the lightness drops. */
+  --destructive-ink: oklch(0.45 0.245 27.325);
   /* TODO(designer): confirm success/warning against her green/gold ramps. */
   --success: oklch(0.627 0.17 152);
   --success-foreground: oklch(0.985 0 0);
+  /* 4.66:1. `--success` as text measured 2.55:1 — every green status chip in
+     the app was failing AA on its own tint. */
+  --success-ink: oklch(0.467 0.146 152);
   --warning: oklch(0.68 0.16 65);
   --warning-foreground: oklch(0.985 0 0);
+  /* 4.66:1. `--warning` as text measured 2.35:1, the worst in the set — amber
+     is intrinsically light, so it can never be its own text colour. */
+  --warning-ink: oklch(0.5 0.134 65);
+  /* WhatsApp's own channel green — a third-party MARK, not a palette role, and
+     the one hue in this file that sits outside ADR-0009 on purpose: it
+     identifies WhatsApp, which loses its meaning if recoloured. Never reach for
+     it as an accent or a status; the WhatsApp slice and the chat popup's
+     channel badge are its whole surface area. Ported from the storefront
+     (`blessingcomputers/src/app/globals.css`), which measured it. `--whatsapp`
+     is 2.01:1 on white, so it is a SURFACE only and can never be the text
+     token — hence the -ink role. */
+  --whatsapp: oklch(0.76 0.17 152);
+  --whatsapp-foreground: oklch(0.29 0.08 152);
+  --whatsapp-ink: oklch(0.5 0.13 152); /* 5.26:1 at its worst light surface */
+
+  /* Loyalty-tier metals — REFERENTS, not palette roles.
+     ⚠️ Second sanctioned exception, on the same argument as `--whatsapp`: a
+     bronze medal recoloured to a brand hue stops reading as bronze. Before this
+     existed the tiers borrowed STATUS tones, and BRONZE was mapped to `danger`
+     — a customer's loyalty tier rendered in error red. That is the bug these
+     tokens exist to fix, and the reason they are not `--warning`/`--muted`.
+     Fenced to `loyaltyTierClasses()`; never an accent, never a status.
+     ⚠️ `--tier-gold` is NOT `--gold`. `--gold` is this app's brand accent and
+     obeys the Gold-As-Jewel Rule; `--tier-gold` is a medal. Do not collapse
+     them — a GOLD-tier customer is not a branded surface.
+     Each base is a SURFACE only (used at /15), hence the paired -ink roles.
+     Measured OKLCH -> sRGB -> WCAG, alpha composited on gamma-encoded sRGB;
+     ratios below are ink on the metal's own 15% tint over `--accent`, the
+     worst realistic pairing (hover). */
+  --tier-bronze: oklch(0.63 0.115 55); /* #be753f */
+  --tier-bronze-ink: oklch(0.45 0.1 52); /* 5.74:1 */
+  --tier-silver: oklch(0.78 0.008 255); /* #b4b8bc */
+  --tier-silver-ink: oklch(0.48 0.008 255); /* 5.24:1 */
+  --tier-gold: oklch(0.8 0.13 88); /* #e1b850 */
+  --tier-gold-ink: oklch(0.5 0.1 80); /* 4.89:1 */
+  --tier-platinum: oklch(0.86 0.025 240); /* #c3d4e0 — cool, to stay legibly
+                                             apart from neutral silver */
+  --tier-platinum-ink: oklch(0.47 0.03 245); /* 5.65:1 */
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.559998 0.229498 29.2768);
+  --ring: var(--brand-ring);
   /* Brand data-viz ramp — strictly the ADR-0009 palette, no off-palette hues:
      maroon (primary) → gold (accent) → blue (secondary hue) → green (success)
      → deep maroon. chart-1 is the hero (primary). */
@@ -116,6 +213,9 @@
      navy `--secondary` is too dark for tinted chips). Replaces ad-hoc sky-*. */
   --info: oklch(0.5 0.12 256.85);
   --info-foreground: oklch(0.985 0 0);
+  /* 4.65:1. `--info` was the one role that already passed flat (4.59:1), but
+     only just, and it fails the moment the chip lands on a hovered row. */
+  --info-ink: oklch(0.48 0.118 256.85);
 
   /* Chrome (sidebar + topbar share this) — pure white in light mode. */
   --sidebar: oklch(1 0 0);
@@ -168,17 +268,18 @@
    measured, not estimated, and the worst text pairing in the matrix is
    `--muted-foreground` on `--accent` at 5.10:1.
 
-   NOT fixed here, because each needs a text-only `-ink` token rather than a
-   surface change (`--primary` etc. are solid fills as well as text colours, so
-   their values can't be tuned for text without moving every button and badge):
-     · `text-primary` — 3.27:1 on the page, 2.84:1 on a card. Fails AA, and
-       failed on the old ramp too (3.6:1). 266 uses.
-     · `text-destructive` passes flat (5.13:1 on a card) but `bg-destructive
-       text-white` measures 2.89:1 — also pre-existing.
-     · `text-info` — 4.39:1 on a card, 3.48:1 on `--accent`.
-     · every status colour used as text on its own 10%-alpha tint (the status
-       chips) lands between 2.4:1 and 4.8:1.
-   See the `-ink` pattern in blessingcomputers/globals.css for the fix. */
+   FIXED, by the `-ink` token layer added above and below. The problem was that
+   `--primary` etc. are solid fills as well as text colours, so their values
+   can't be tuned for text without moving every button and badge — which is
+   exactly what a separate text-only role solves. Measured before/after:
+     · `text-primary` — was 1.89:1 at worst, now `text-primary-ink` at 5.82:1.
+     · `text-info` — was 2.54:1, now `text-info-ink` at 4.60:1.
+     · every status colour as text on its own tint (the status chips) was
+       between 1.89:1 and 3.37:1; all now clear 4.5:1.
+   STILL OPEN, because it is a *surface* problem and not an `-ink` one:
+     · `bg-destructive text-white` measures 2.89:1. Fixing it means moving
+       `--destructive` as a fill, which moves every destructive button and
+       badge — a deliberate design change, not a token addition. */
 .dark {
   --background: oklch(0.225 0.012 256.85);
   /* 16.38:1 on the page, 14.20:1 on a card, 11.26:1 on `--accent`. */
@@ -189,13 +290,20 @@
      of the page, and at 1.00:1 it read as part of whatever it covered. */
   --popover: oklch(0.315 0.015 256.85);
   --popover-foreground: oklch(0.985 0.005 256.85);
-  --primary: oklch(0.559998 0.229498 29.2768);
+  --primary: var(--brand-primary);
   --primary-foreground: oklch(0.985 0 0);
+  /* Maroon AS TEXT, lifted above the surface rather than dropped below it —
+     the inversion is the whole `-ink` idea. 5.82:1, and 5.0 OKLab units from
+     `--destructive-ink` so the link/error distinction survives the theme. */
+  --primary-ink: oklch(0.8 0.13 29.2768);
   /* Pinned navy panel. Now the same value as the light theme's `--secondary`,
      which is what "pinned" should have meant all along — the panel no longer
      shifts hue between themes. */
   --secondary: oklch(0.2781 0.0296 256.85);
   --secondary-foreground: oklch(0.985 0 0);
+  /* Navy AS TEXT flips to a cool near-white, because the navy it would
+     otherwise be measured 1.01:1 on a dark card — invisible. */
+  --secondary-ink: oklch(0.92 0.02 256.85);
   /* The workhorse fill, and it has to read *inside* a card (1.07:1) — that is
      the single biggest visible change in this theme. */
   --muted: oklch(0.295 0.014 256.85);
@@ -209,18 +317,39 @@
   --gold: oklch(0.78 0.15 84.27);
   /* Stays near-black: still correct on *solid* gold, in both themes (8.57:1). */
   --gold-foreground: oklch(0.22 0.05 83.83);
+  /* 4.63:1 on a gold tint. This is the pair the `-ink`/`-foreground` split
+     exists for: near-black on solid gold, warm gold on a gold chip. */
+  --gold-ink: oklch(0.795 0.148 84.27);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-ink: oklch(0.824 0.17 22.216); /* 4.61:1 */
   --success: oklch(0.7 0.16 152);
   --success-foreground: oklch(0.16 0.03 152);
+  --success-ink: oklch(0.765 0.151 152); /* 4.66:1 */
   --warning: oklch(0.78 0.15 70);
   --warning-foreground: oklch(0.2 0.04 65);
+  --warning-ink: oklch(0.8 0.147 70); /* 4.66:1 */
+  --whatsapp: oklch(0.78 0.16 152);
+  --whatsapp-foreground: oklch(0.29 0.08 152);
+  --whatsapp-ink: oklch(0.76 0.13 152); /* 8.39:1 on the page */
+
+  /* Loyalty-tier metals, dark. Bases lift slightly so the metal still reads as
+     metal on a dark card; inks flip to light per the -ink rule. Ratios are
+     ink on the 15% tint over dark `--accent` (the worst pairing). */
+  --tier-bronze: oklch(0.68 0.115 55);
+  --tier-bronze-ink: oklch(0.78 0.1 58); /* 4.68:1 */
+  --tier-silver: oklch(0.8 0.008 255);
+  --tier-silver-ink: oklch(0.84 0.008 255); /* 5.27:1 */
+  --tier-gold: oklch(0.82 0.13 88);
+  --tier-gold-ink: oklch(0.86 0.11 88); /* 5.59:1 */
+  --tier-platinum: oklch(0.88 0.025 240);
+  --tier-platinum-ink: oklch(0.9 0.025 240); /* 6.03:1 */
   /* 10% white was a 1.2:1 hairline on the old near-black page. The surfaces are
      lighter now, so the alpha rises with them to hold the same definition —
      the border, not a shadow, is what defines a surface at rest. Carries the
      navy cast so it doesn't read as a cool-gray line on a navy panel. */
   --border: oklch(1 0.02 256.85 / 12%);
   --input: oklch(1 0.02 256.85 / 18%);
-  --ring: oklch(0.559998 0.229498 29.2768);
+  --ring: var(--brand-ring);
   /* Brand data-viz ramp (dark) — strict palette, lifted for the dark canvas. */
   --chart-1: oklch(0.62 0.2 29.2768);
   --chart-2: oklch(0.8 0.15 84.27);
@@ -230,6 +359,7 @@
 
   --info: oklch(0.64 0.13 256.85);
   --info-foreground: oklch(0.16 0.03 256.85);
+  --info-ink: oklch(0.765 0.115 256.85); /* 4.60:1 */
 
   /* Chrome (sidebar + topbar) = the card surface, per the `:root` rule above:
      chrome and cards share a plane, the canvas recedes below both. */

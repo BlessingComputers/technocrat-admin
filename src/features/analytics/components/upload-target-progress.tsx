@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface UploadTargetProgressProps {
   today: number;
@@ -33,9 +34,9 @@ export function UploadTargetProgress({
       </div>
       <Progress value={Math.min(percent, 100)} className="h-1.5" />
       {isCustom && (
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <MetaLabel>
           Custom target
-        </span>
+        </MetaLabel>
       )}
     </div>
   );

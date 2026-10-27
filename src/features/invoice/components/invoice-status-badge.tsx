@@ -17,7 +17,7 @@ export function InvoiceStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold whitespace-nowrap",
+        "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap",
         meta.className,
         className,
       )}

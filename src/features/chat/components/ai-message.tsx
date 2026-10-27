@@ -1,5 +1,6 @@
 import { AppIcon } from "@/components/shared/app-icon";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { ChatProductCards } from "./chat-product-cards";
 import { formatTime } from "../utils/chat-format";
 import type { ChatMessage } from "../types/chat";
 
@@ -21,11 +22,11 @@ export function AiMessage({ message }: { message: ChatMessage }) {
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gold/15">
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-jewel/15">
           <AppIcon
             icon="solar:magic-stick-3-linear"
             aria-hidden
-            className="size-3.5 text-gold"
+            className="size-3.5 text-jewel-ink"
           />
         </span>
         <span className="text-sm font-medium text-foreground">
@@ -39,7 +40,7 @@ export function AiMessage({ message }: { message: ChatMessage }) {
             <AppIcon
               icon="solar:eye-closed-linear"
               aria-hidden
-              className="size-3.5 text-warning"
+              className="size-3.5 text-warning-ink"
             />
             Shadow mode — not visible to customer
           </span>
@@ -47,10 +48,14 @@ export function AiMessage({ message }: { message: ChatMessage }) {
       </div>
 
       {/* `whitespace-pre-wrap` is required, not cosmetic: the escalation note
-          arrives as "[AI handover · reason]\nsummary" and collapses without it. */}
+          arrives as "[AI handover · reason]\nsummary" — or, for a
+          per-message skip, "[AI skipped this message · reason]" — and
+          collapses without it. */}
       <div className="max-w-[75%] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>
+
+      <ChatProductCards products={message.products} />
 
       <span className="px-1 text-xs text-muted-foreground">
         {formatTime(message.createdAt)}

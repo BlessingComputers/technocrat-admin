@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadTargetProgress } from "./upload-target-progress";
 import type { UploaderSummary } from "../types/upload-analytics";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 function initials(name: string): string {
   return name
@@ -60,9 +61,9 @@ export function UploaderDetailHeader({
           <Stat label="Total" value={totals.total} />
           <Stat label="Daily avg" value={dailyAverage.toFixed(1)} />
           <div className="min-w-40">
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <MetaLabel className="block mb-1.5">
               Today vs target
-            </p>
+            </MetaLabel>
             <UploadTargetProgress
               today={todayStat.total}
               target={dailyTarget}
@@ -79,10 +80,10 @@ export function UploaderDetailHeader({
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-xl font-bold leading-none tabular-nums">{value}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="text-xl font-semibold leading-none tabular-nums">{value}</p>
+      <MetaLabel className="block mt-1">
         {label}
-      </p>
+      </MetaLabel>
     </div>
   );
 }

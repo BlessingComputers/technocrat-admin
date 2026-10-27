@@ -47,7 +47,7 @@ export function BulkRateLimitModal({
     <Dialog open={open} onOpenChange={(o) => !o && onWait()}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-warning/10 text-warning">
+          <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-warning/10 text-warning-ink">
             <AppIcon icon="solar:clock-circle-linear" className="size-5" />
           </div>
           <DialogTitle>Image upload limit reached</DialogTitle>

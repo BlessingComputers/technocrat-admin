@@ -118,7 +118,7 @@ export function SkeletonTable({
   return (
     <Card
       className={cn(
-        "gap-0 overflow-hidden rounded-lg border border-border bg-card p-0",
+        "gap-0 overflow-hidden p-0",
         className,
       )}
     >
@@ -237,7 +237,7 @@ export function SkeletonFormPage({ sections = 3 }: { sections?: number }) {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <SkeletonPageHeader actions={2} />
       {Array.from({ length: sections }).map((_, i) => (
-        <Card key={i} className="rounded-xl border border-border p-6">
+        <Card key={i} className="p-6">
           <div className="space-y-4">
             <Skeleton className="h-5 w-48" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

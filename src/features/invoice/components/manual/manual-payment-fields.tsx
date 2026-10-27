@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppIcon } from "@/components/shared/app-icon";
 import { ManualField } from "./manual-field";
 import type { ManualInvoiceFormState } from "../../schemas/manual-invoice";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface ManualPaymentFieldsProps {
   form: ManualInvoiceFormState;
@@ -30,18 +31,18 @@ export function ManualPaymentFields({
 }: ManualPaymentFieldsProps) {
   return (
     <section className="space-y-5">
-      <h3 className="text-sm font-black text-foreground">Payment &amp; Audit</h3>
+      <h3 className="text-sm font-semibold text-foreground">Payment &amp; Audit</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-            Payment method <span className="text-destructive">*</span>
+          <Label className="text-xs font-medium text-muted-foreground ml-1">
+            Payment method <span className="text-destructive-ink">*</span>
           </Label>
           <Select
             value={form.paymentMethod}
             onValueChange={(v) => onChange({ paymentMethod: v })}
           >
-            <SelectTrigger className="h-11 w-full rounded-lg bg-muted/50 border-border font-bold">
+            <SelectTrigger className="h-11 w-full rounded-lg bg-muted/50 border-border font-semibold">
               <SelectValue placeholder="Select method" />
             </SelectTrigger>
             <SelectContent>
@@ -63,14 +64,14 @@ export function ManualPaymentFields({
         />
 
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+          <Label className="text-xs font-medium text-muted-foreground ml-1">
             Sales channel <span className="text-muted-foreground/60">(optional)</span>
           </Label>
           <Select
             value={form.saleChannel || undefined}
             onValueChange={(v) => onChange({ saleChannel: v })}
           >
-            <SelectTrigger className="h-11 w-full rounded-lg bg-muted/50 border-border font-bold">
+            <SelectTrigger className="h-11 w-full rounded-lg bg-muted/50 border-border font-semibold">
               <SelectValue placeholder="Walk in" />
             </SelectTrigger>
             <SelectContent>
@@ -85,7 +86,7 @@ export function ManualPaymentFields({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <Label className="text-xs font-medium text-muted-foreground ml-1">
           Note
         </Label>
         <Textarea
@@ -98,18 +99,18 @@ export function ManualPaymentFields({
 
       {/* Issued by — set from the authenticated admin, shown read-only. */}
       <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+        <Label className="text-xs font-medium text-muted-foreground ml-1">
           Invoice issued by
         </Label>
-        <div className="flex h-11 items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 text-sm font-bold text-foreground">
+        <div className="flex h-11 items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 text-sm font-semibold text-foreground">
           <AppIcon
             icon="solar:user-linear"
             className="h-4 w-4 text-muted-foreground"
           />
           {issuedByName || "Current admin"}
-          <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <MetaLabel className="ml-auto">
             Auto
-          </span>
+          </MetaLabel>
         </div>
       </div>
     </section>

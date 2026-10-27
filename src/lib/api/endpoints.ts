@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
     onboard: endpoint("/auth/staff/onboard"),
     resetPassword: endpoint("/auth/staff/reset-password"),
     forgotPassword: endpoint("/auth/staff/forgot-password"),
+    changePassword: endpoint("/auth/staff/change-password"),
     profile: endpoint("/auth/staff/profile"),
     logout: endpoint("/auth/staff/logout"),
   },
@@ -32,6 +33,16 @@ export const API_ENDPOINTS = {
     permissions: endpoint("/v1/admin/rbac/permissions"),
     roles: endpoint("/v1/admin/rbac/roles"),
     staff: endpoint("/v1/admin/rbac/staff"),
+  },
+  // Treasure hunts (backend ask 29, `eb45ded`; typed since `3d223e3`). A
+  // campaign groups one-product drops, each backed by an ordinary Deal. Staff
+  // routes need `huntCampaigns:read`/`:write`. Path params take DB UUIDs, never
+  // the human `HUNT-XXXXXXXX`.
+  hunts: {
+    list: endpoint("/v1/hunt-campaigns"),
+    detail: (id: string) => endpoint(`/v1/hunt-campaigns/${id}`),
+    huntDeal: (id: string, huntDealId: string) =>
+      endpoint(`/v1/hunt-campaigns/${id}/hunt-deals/${huntDealId}`),
   },
   products: {
     base: endpoint("/v1/products"),
@@ -49,6 +60,19 @@ export const API_ENDPOINTS = {
     featured: endpoint("/v1/products/featured"),
     bySlug: endpoint("/v1/products/slug"),
     categories: endpoint("/v1/products/categories"),
+    // One category by DB UUID. The tree at `categories` omits `banners` on
+    // every node, so this is the only read that returns a category's gallery.
+    category: (categoryId: string) =>
+      endpoint(`/v1/products/categories/${categoryId}`),
+    // Category banners — the landing-page hero gallery, distinct from the
+    // single `imageUrl` thumbnail. No reorder route exists (see ask 20);
+    // `sortOrder` is fixed at upload time.
+    categoryBanners: (categoryId: string) =>
+      endpoint(`/v1/products/categories/${categoryId}/banners`),
+    categoryBanner: (categoryId: string, bannerId: string) =>
+      endpoint(`/v1/products/categories/${categoryId}/banners/${bannerId}`),
+    categoryBannerPrimary: (categoryId: string, bannerId: string) =>
+      endpoint(`/v1/products/categories/${categoryId}/banners/${bannerId}/primary`),
     brands: endpoint("/v1/products/brands"),
     // Parts — standalone parts catalog (own CRUD + images + part types).
     parts: {
@@ -96,6 +120,16 @@ export const API_ENDPOINTS = {
     adminReindex: (id: string) => endpoint(`/v1/products/admin/reindex/${id}`),
     adminSync: endpoint("/v1/products/admin/sync"),
     adminCacheClear: endpoint("/v1/products/admin/cache/clear"),
+    // Deals — a named, schedulable group of markup rules spanning products AND
+    // parts in one row. Starting one materialises each stored target into the
+    // same markup-rule rows `/flash-sales` writes, stamped with the deal's id.
+    // All five need `priceMarkup:*`, part targets included.
+    deals: {
+      list: endpoint("/v1/products/deals"),
+      detail: (id: string) => endpoint(`/v1/products/deals/${id}`),
+      start: (id: string) => endpoint(`/v1/products/deals/${id}/start`),
+      end: (id: string) => endpoint(`/v1/products/deals/${id}/end`),
+    },
     pricing: {
       markupRules: endpoint("/v1/products/pricing/markup-rules"),
       markupRule: (id: string) =>
@@ -233,6 +267,60 @@ export const API_ENDPOINTS = {
     detail: (id: string) => endpoint(`/v1/admin/customers/${id}`),
     analytics: endpoint("/v1/admin/analytics/customers"),
   },
+  // Pre-orders — customer requests for stock we don't hold yet. All three
+  // routes sit under the consolidated admin dashboard router, which is
+  // SUPER_ADMIN-gated wholesale (`router.use(authenticate, requireStaff,
+  // requireRole('SUPER_ADMIN'))`), so there is no RBAC permission group to
+  // gate on — the nav item uses `superAdminOnly` instead.
+  //
+  // `detail` and `status` take the row's internal UUID (`id`), NOT the
+  // human `PRE-…` reference (`preorderId`). The reference is the customer's
+  // handle on the record; the UUID is ours.
+  //
+  // ⚠️ `status` is live but undocumented in the OpenAPI spec — see
+  // BACKEND-ASKS.md item 8. It is real (probed: 401 unauthenticated, not 404).
+  preorders: {
+    base: endpoint("/v1/admin/preorders"),
+    detail: (id: string) => endpoint(`/v1/admin/preorders/${id}`),
+    status: (id: string) => endpoint(`/v1/admin/preorders/${id}/status`),
+    paymentTerms: (id: string) =>
+      endpoint(`/v1/admin/preorders/${id}/payment-terms`),
+    revisePaymentTerms: (id: string) =>
+      endpoint(`/v1/admin/preorders/${id}/payment-terms/revise`),
+    requestBalance: (id: string) =>
+      endpoint(`/v1/admin/preorders/${id}/balance/request-new`),
+    cancel: (id: string) => endpoint(`/v1/admin/preorders/${id}/cancel`),
+    markRefunded: (refundId: string) =>
+      endpoint(`/v1/admin/preorders/refunds/${refundId}/mark-refunded`),
+    extendPaymentDeadline: (requestId: string) =>
+      endpoint(`/v1/admin/preorders/payment-requests/${requestId}/extend`),
+    collectPayment: (requestId: string) =>
+      endpoint(`/v1/admin/preorders/payment-requests/${requestId}/collect`),
+    paymentHistory: (id: string) =>
+      endpoint(`/v1/admin/preorders/${id}/payment-history`),
+    paymentRequestReview: (requestId: string) =>
+      endpoint(`/v1/admin/preorders/payment-requests/${requestId}/review`),
+    paymentRequestApprove: (requestId: string) =>
+      endpoint(`/v1/admin/preorders/payment-requests/${requestId}/approve`),
+    paymentRequestReject: (requestId: string) =>
+      endpoint(`/v1/admin/preorders/payment-requests/${requestId}/reject`),
+  },
+  // Coupons — customer-facing discount codes. Same consolidated admin router
+  // as pre-orders above, so the same blanket SUPER_ADMIN role gate applies and
+  // the nav item uses `superAdminOnly` rather than an RBAC group.
+  //
+  // `detail` (`GET /admin/coupons/{id}`) landed in backend `b2661a1`. Before
+  // that a single coupon could only be reached by listing and filtering, which
+  // is why the edit route was keyed on the coupon's `code` — that history is
+  // still live in `couponService.findByCode`, kept so old shared links resolve.
+  //
+  // `detail` and `update` both take the row's internal UUID (`id`), not the
+  // human `CPN-…` (`couponId`) and not the customer-facing `code`.
+  coupons: {
+    base: endpoint("/v1/admin/coupons"),
+    detail: (id: string) => endpoint(`/v1/admin/coupons/${id}`),
+    update: (id: string) => endpoint(`/v1/admin/coupons/${id}`),
+  },
   // Upload analytics + per-staff daily upload targets.
   analytics: {
     uploaders: endpoint("/v1/analytics/uploaders"),
@@ -260,6 +348,18 @@ export const API_ENDPOINTS = {
     slides: (id: string) => endpoint(`/v1/promotions/${id}/slides`),
     slide: (id: string, slideId: string) =>
       endpoint(`/v1/promotions/${id}/slides/${slideId}`),
+    // Bulk placement+position write, one transaction. Note it sits ABOVE the
+    // `/:id` detail route on the backend, so "reorder" is a reserved id.
+    reorder: endpoint("/v1/promotions/reorder"),
+  },
+  // Sales notification recipients — the admin-managed list the "new sale" email
+  // is sent to (fired from the backend's onPaymentSuccess). All five routes
+  // require `salesNotifications:manage`, seeded into the admin role. Note the
+  // `/emails` sub-path: the module base is `/v1/sales-notifications` and the
+  // recipient collection hangs off it, so ids resolve at `/emails/:id`.
+  salesNotifications: {
+    emails: endpoint("/v1/sales-notifications/emails"),
+    email: (id: string) => endpoint(`/v1/sales-notifications/emails/${id}`),
   },
   // Monitor — request/error/anomaly log viewer over the backend's own Mongo
   // logging DB. Every route requires SUPER_ADMIN (backend-enforced, not an

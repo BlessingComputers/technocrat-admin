@@ -3,10 +3,11 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { MonitorStatusBadge } from "../monitor-status-badge";
 import { formatDuration } from "../../utils/monitor-utils";
 import type { MonitorLogDetail } from "../../types/monitor";
+import { Card } from "@/components/ui/card";
 
 export function RequestDetailHeader({ log }: { log: MonitorLogDetail }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-border bg-card p-6">
+    <Card className="md:flex-row md:items-center justify-between gap-4 p-6">
       <div className="flex items-center gap-4">
         <Link
           href="/security"
@@ -34,6 +35,6 @@ export function RequestDetailHeader({ log }: { log: MonitorLogDetail }) {
           {formatDuration(log.duration)}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

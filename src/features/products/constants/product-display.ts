@@ -18,3 +18,10 @@ export const SOURCE_LABEL: Record<string, string> = {
   OUTSOURCED: "Outsourced",
   MIXED: "Mixed",
 };
+
+/**
+ * How many products the hub's "needs restock" queue previews. Also the `limit`
+ * `useCatalogProductStats` asks for on its low/out-of-stock counts, so the two
+ * share one React Query cache entry per stock state instead of two.
+ */
+export const RESTOCK_PREVIEW_LIMIT = 6;

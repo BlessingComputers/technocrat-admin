@@ -71,15 +71,15 @@ export function RefundItemsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-2 border-dashed border-sky-400/70 bg-card sm:max-w-2xl">
+      <DialogContent className="border-2 border-dashed border-info/70 bg-card sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-foreground">
+          <DialogTitle className="text-lg font-semibold text-foreground">
             Select items to refund
           </DialogTitle>
         </DialogHeader>
 
-        <div className="rounded-xl border-2 border-dashed border-sky-400/50 p-4">
-          <h4 className="text-sm font-bold text-foreground">Items</h4>
+        <div className="rounded-xl border-2 border-dashed border-info/50 p-4">
+          <h4 className="text-sm font-semibold text-foreground">Items</h4>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left">
               <thead>

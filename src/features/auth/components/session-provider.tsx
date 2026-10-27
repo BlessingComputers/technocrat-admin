@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { AppIcon } from "@/components/shared/app-icon";
 import type { StaffSession } from "@/lib/auth/permissions";
 import { SessionContext } from "@/lib/auth/session-context";
@@ -26,10 +26,10 @@ import { useStaffProfileQuery } from "../api/auth.queries";
 
 function FullPageLoader() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <AppIcon
         icon="solar:refresh-linear"
-        className="w-10 h-10 text-primary animate-spin mb-4"
+        className="w-10 h-10 text-primary-ink animate-spin mb-4"
       />
       <p className="text-muted-foreground font-medium animate-pulse">
         Loading Staff Profile...
@@ -46,6 +46,7 @@ export function SessionProvider({
   initialSession?: StaffSession | null;
 }) {
   const hasInitialSession = !!initialSession;
+  const refreshingPermissions = useRef(false);
 
   // Seed ONLY when the server actually resolved a session. Seeding `null` would
   // make React Query treat it as fresh data and skip the fetch — the exact bug
@@ -54,9 +55,24 @@ export function SessionProvider({
     data: staffSession,
     isLoading,
     isError,
+    refetch,
   } = useStaffProfileQuery(
     hasInitialSession ? { initialData: initialSession } : undefined,
   );
+
+  useEffect(() => {
+    const refreshPermissions = async () => {
+      if (refreshingPermissions.current) return;
+      refreshingPermissions.current = true;
+      try {
+        await refetch();
+      } finally {
+        refreshingPermissions.current = false;
+      }
+    };
+    window.addEventListener("api:permission-denied", refreshPermissions);
+    return () => window.removeEventListener("api:permission-denied", refreshPermissions);
+  }, [refetch]);
 
   // Never render the permission-gated shell without a session. While the client
   // re-fetches an expired session, a failed refresh has the fetch client

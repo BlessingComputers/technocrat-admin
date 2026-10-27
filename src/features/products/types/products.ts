@@ -6,6 +6,23 @@
 
 // ── Taxonomy ──────────────────────────────────────────────────────────
 
+/**
+ * A large promotional/hero image on a category's storefront landing page.
+ *
+ * Not to be confused with `ProductCategory.imageUrl`, the small thumbnail shown
+ * in nav and category grids. Mirrors `ProductImage` field for field, because
+ * the backend table is a deliberate clone of `product_images` — but note there
+ * is no reorder endpoint and no way to edit `altText` after upload, so this is
+ * NOT a drop-in for the product gallery's full capability set.
+ */
+export interface CategoryBanner {
+  id: string;
+  url: string;
+  altText: string | null;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
 export interface ProductCategory {
   id: string;
   categoryId?: string;
@@ -19,6 +36,12 @@ export interface ProductCategory {
   sortOrder?: number;
   parentId?: string;
   children?: ProductCategory[] | string[];
+  /**
+   * Present only on `GET /products/categories/{id}` and on create/add-banner
+   * responses. The category tree omits the key entirely, so reading it off a
+   * list row gives `undefined` forever — fetch the category by id instead.
+   */
+  banners?: CategoryBanner[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -127,7 +150,13 @@ export interface ProductDetail {
   name: string;
   slug: string;
   description: string;
+  /** May be a subcategory's id — `category.slug` tells you which leaf. */
   categoryId: string;
+  /**
+   * NOT returned by the API — always undefined. Kept only because the parts
+   * prefill reads it; a product's subcategory is `categoryId` itself, resolved
+   * against the category tree (see ProductForm).
+   */
   subcategoryId?: string | null;
   brandId: string;
   primaryImage?: string;
@@ -268,9 +297,13 @@ export interface BulkDeleteProductsResult {
 export interface CreateProductDto {
   name: string;
   slug?: string;
+  /**
+   * The category the product is filed under — a subcategory's own id when one
+   * is chosen, since `Product.categoryId` is a single FK and a subcategory is
+   * just a Category with a parentId. There is deliberately no `subcategoryId`
+   * here: the backend has no such field and dropped it on the floor.
+   */
   categoryId: string;
-  /** Optional — must belong to categoryId. Omitted when none chosen. */
-  subcategoryId?: string | null;
   brandId: string;
   sourcingType?: "INHOUSE" | "OUTSOURCED";
   isActive?: boolean;

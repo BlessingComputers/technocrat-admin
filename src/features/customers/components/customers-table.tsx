@@ -2,6 +2,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { CustomerTableRow } from "./customer-table-row";
 import { CustomersTableSkeleton } from "./customers-skeletons";
 import type { Customer } from "../types/customers";
+import { Card } from "@/components/ui/card";
 
 interface CustomersTableProps {
   customers: Customer[];
@@ -25,30 +26,30 @@ export function CustomersTable({ customers, isLoading }: CustomersTableProps) {
 
   if (customers.length === 0) {
     return (
-      <div className="py-20 text-center bg-card rounded-lg border border-border">
+      <Card className="gap-0 py-20 text-center">
         <AppIcon
           icon="solar:users-group-rounded-linear"
           className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4"
         />
-        <h3 className="text-xl font-black text-foreground">
+        <h3 className="text-xl font-semibold text-foreground">
           No customers found
         </h3>
         <p className="text-muted-foreground font-medium">
           Try adjusting your search or filters
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto bg-card rounded-lg border border-border w-full">
+    <Card className="gap-0 overflow-x-auto w-full py-0">
       <table className="w-full text-left min-w-[900px]">
         <thead>
           <tr className="border-b border-border bg-primary/[0.04]">
             {TABLE_HEADERS.map((header) => (
               <th
                 key={header}
-                className={`px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground${header === "Actions" ? " text-right" : ""}`}
+                className={`px-8 py-5 text-xs font-medium text-muted-foreground${header === "Actions" ? " text-right" : ""}`}
               >
                 {header}
               </th>
@@ -61,6 +62,6 @@ export function CustomersTable({ customers, isLoading }: CustomersTableProps) {
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }

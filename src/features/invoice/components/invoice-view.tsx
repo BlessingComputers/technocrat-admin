@@ -18,6 +18,7 @@ import { InvoiceFilterBar } from "./invoice-filter-bar";
 import { InvoiceTable } from "./invoice-table";
 import { InvoicePagination } from "./invoice-pagination";
 import { ManualInvoiceTable } from "./manual/manual-invoice-table";
+import { Card } from "@/components/ui/card";
 import type {
   InvoiceListParams,
   InvoiceStatus,
@@ -110,7 +111,7 @@ export function InvoiceView() {
         <InvoiceTabs value={tab} onChange={handleTabChange} />
         <Button
           asChild
-          className="h-10 rounded-lg bg-primary px-5 font-black text-primary-foreground"
+          className="h-10 rounded-lg bg-primary px-5 font-medium text-primary-foreground"
         >
           <Link href="/invoices/manual/new">
             <AppIcon icon="solar:add-circle-linear" className="mr-2 h-4 w-4" />
@@ -119,7 +120,7 @@ export function InvoiceView() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft">
+      <Card className="gap-0 overflow-hidden py-0">
         {showControls && (
           <div className="p-6 pb-4">
             <InvoiceFilterBar
@@ -155,7 +156,7 @@ export function InvoiceView() {
             />
           </div>
         )}
-      </div>
+      </Card>
     </PageContainer>
   );
 }

@@ -9,7 +9,7 @@ interface AnalyticsChartCardProps {
   subtitle?: string;
   /** Solar icon name for the header chip. */
   icon: string;
-  /** Tailwind classes for the icon chip (e.g. "bg-primary/10 text-primary"). */
+  /** Tailwind classes for the icon chip (e.g. "bg-primary/10 text-primary-ink"). */
   iconClass?: string;
   /** Optional node rendered at the top-right of the header (e.g. a KPI value). */
   headerRight?: ReactNode;
@@ -30,7 +30,7 @@ export function AnalyticsChartCard({
   title,
   subtitle,
   icon,
-  iconClass = "bg-primary/10 text-primary",
+  iconClass = "bg-primary/10 text-primary-ink",
   headerRight,
   href,
   linkLabel = "View all",
@@ -56,7 +56,7 @@ export function AnalyticsChartCard({
               <AppIcon icon={icon} className="size-5" />
             </span>
             <div className="space-y-0.5">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+              <h3 className="text-base font-semibold text-foreground">
                 {title}
               </h3>
               {subtitle && (
@@ -72,7 +72,7 @@ export function AnalyticsChartCard({
         {href && (
           <Link
             href={href}
-            className="mt-auto inline-flex items-center gap-1.5 self-start text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+            className="mt-auto inline-flex items-center gap-1.5 self-start text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
           >
             {linkLabel}
             <AppIcon

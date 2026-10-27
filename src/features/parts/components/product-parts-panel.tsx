@@ -15,6 +15,7 @@ import { useProductParts, useUnlinkPart } from "../api/parts.queries";
 import type { ProductPartLink } from "../types/parts";
 import { PartsStockBadge } from "./parts-stock-badge";
 import { AttachPartDialog } from "./attach-part-dialog";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface ProductPartsPanelProps {
   productId: string;
@@ -100,7 +101,7 @@ export function ProductPartsPanel({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <AppIcon icon="solar:refresh-linear" className="size-7 animate-spin text-primary" />
+          <AppIcon icon="solar:refresh-linear" className="size-7 animate-spin text-primary-ink" />
         </div>
       ) : isError ? (
         <div className="rounded-lg border border-border bg-muted/20 p-8 text-center">
@@ -110,7 +111,7 @@ export function ProductPartsPanel({
         </div>
       ) : groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 px-6 py-12 text-center">
-          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary-ink">
             <AppIcon icon="solar:cpu-bolt-linear" className="size-6" />
           </div>
           <h4 className="text-sm font-semibold tracking-tight text-foreground">
@@ -134,9 +135,9 @@ export function ProductPartsPanel({
         <div className="space-y-5">
           {groups.map(([category, links]) => (
             <div key={category} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <MetaLabel className="block">
                 {category}
-              </p>
+              </MetaLabel>
               <div className="space-y-2">
                 {links.map((link) => {
                   const p = link.part;
@@ -168,7 +169,7 @@ export function ProductPartsPanel({
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/catalogues/parts/${p.partId}/edit`}
-                          className="block truncate text-sm font-semibold text-foreground transition-colors hover:text-primary hover:underline"
+                          className="block truncate text-sm font-semibold text-foreground transition-colors hover:text-primary-ink hover:underline"
                           title={p.name}
                         >
                           {p.name}
@@ -192,7 +193,7 @@ export function ProductPartsPanel({
 
                       <div className="hidden shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground sm:block">
                         {p.price == null ? (
-                          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="text-xs font-medium text-muted-foreground">
                             On request
                           </span>
                         ) : (
@@ -228,7 +229,7 @@ export function ProductPartsPanel({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive-ink"
                           onClick={() => setToRemove(p)}
                           title="Remove from product"
                         >

@@ -29,8 +29,9 @@ export function GettingStartedDoc() {
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <MiniCard icon="solar:hamburger-menu-linear" title="The sidebar">
-            Down the left is the menu — Overview, Catalogues, Orders, and the
-            rest. It&apos;s how you move between sections.
+            Down the left is the menu, grouped by the kind of work: Sales,
+            Catalog, Customers, Marketing, System. A row with an arrow (Pricing,
+            Payments) opens to show what&apos;s inside it.
           </MiniCard>
           <MiniCard icon="solar:widget-2-linear" title="The top bar">
             Across the top sit search, notifications, theme, and this Help button
@@ -81,7 +82,7 @@ export function GettingStartedDoc() {
           />
           <Tile
             icon="solar:question-circle-linear"
-            tone="gold"
+            tone="jewel"
             title="Search the Help Center"
             body="Not sure how to do something? Open Help, type what you're after, and the matching guide comes up."
           />

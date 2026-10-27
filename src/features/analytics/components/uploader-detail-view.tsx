@@ -16,8 +16,9 @@ import { UploaderDetailHeader } from "./uploader-detail-header";
 import { UploaderItemsTabs } from "./uploader-items-tabs";
 import { UploaderItemsList } from "./uploader-items-list";
 import type { UploaderItem } from "../types/upload-analytics";
+import { Card } from "@/components/ui/card";
 
-/** Per-uploader drill-down (route `/users/uploads/[staffId]`): header stats plus
+/** Per-uploader drill-down (route `/uploads/[staffId]`): header stats plus
  * the actual products and parts they created in the selected window. */
 export function UploaderDetailView({ staffId }: { staffId: string }) {
   const { range, tab, page, setRange, setTab, setPage } =
@@ -71,7 +72,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
         description="Everything this staff member created in the selected period."
       >
         <Button asChild variant="ghost" size="sm" className="font-medium">
-          <Link href="/users/uploads">
+          <Link href="/uploads">
             <AppIcon icon="solar:arrow-left-linear" className="mr-1.5 size-4" />
             Back
           </Link>
@@ -79,9 +80,9 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
       </PageHeader>
 
       <div className="space-y-6">
-        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <Card className="gap-0 p-4 sm:p-5">
           <UploaderDateRange range={range} onChange={setRange} />
-        </div>
+        </Card>
 
         <UploaderDetailHeader uploader={uploader} isLoading={report.isLoading} />
 

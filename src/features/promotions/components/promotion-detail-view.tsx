@@ -17,7 +17,12 @@ import {
   usePublishPromotion,
   useUpdatePromotion,
 } from "../api/promotions.queries";
-import { PromotionForm } from "./promotion-form";
+import {
+  isPlacementKey,
+  placementLabel,
+  templateFor,
+} from "../constants/placements";
+import { PromotionForm, type PromotionFormSubmit } from "./promotion-form";
 import { PromotionSlideManager } from "./promotion-slide-manager";
 import { PromotionStatusBadge } from "./promotion-status-badge";
 
@@ -34,26 +39,21 @@ export function PromotionDetailView({ id }: { id: string }) {
 
   if (isError || !promotion) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+      <Card className="items-center justify-center gap-3 py-16 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive-ink">
           <AppIcon icon="solar:danger-circle-linear" className="size-6" />
         </div>
-        <p className="text-sm font-bold text-foreground">
+        <p className="text-sm font-semibold text-foreground">
           Couldn&apos;t load this promotion
         </p>
         <Button variant="outline" onClick={() => refetch()}>
           Retry
         </Button>
-      </div>
+      </Card>
     );
   }
 
-  const handleSave = (values: {
-    title: string;
-    description?: string;
-    startAt?: string | null;
-    endAt?: string | null;
-  }) => {
+  const handleSave = (values: PromotionFormSubmit) => {
     const promise = updatePromotion.mutateAsync(values);
     toast.promise(promise, {
       loading: "Saving…",
@@ -66,7 +66,9 @@ export function PromotionDetailView({ id }: { id: string }) {
     const promise = publish.mutateAsync();
     toast.promise(promise, {
       loading: "Publishing…",
-      success: "Promotion published — it's now live on the homepage.",
+      // Not "live on the homepage" any more — there are eleven slots across
+      // four surfaces, and the promotion knows which one it is in.
+      success: `Promotion published — live in "${placementLabel(promotion.placement)}" within a few minutes.`,
       error: (err) => getErrorMessage(err, "Failed to publish promotion."),
     });
   };
@@ -111,7 +113,7 @@ export function PromotionDetailView({ id }: { id: string }) {
         <PermissionGate permission="promotions:delete">
           <Button
             variant="outline"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive-ink hover:text-destructive-ink"
             onClick={() => setConfirmDelete(true)}
           >
             <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />
@@ -121,14 +123,27 @@ export function PromotionDetailView({ id }: { id: string }) {
       </PageHeader>
 
       {promotion.status === "DRAFT" && promotion.slides.length === 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning-ink">
           <AppIcon icon="solar:info-circle-bold" className="size-5 shrink-0" />
           Add at least one slide below before publishing.
         </div>
       )}
 
-      <Card className="rounded-lg border border-border p-6">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
+      {/*
+        The placement key is one this build does not know — a slot the
+        storefront has since dropped, or a value written by hand. The banner
+        renders nowhere, silently, which is exactly the case worth naming.
+      */}
+      {!isPlacementKey(promotion.placement) && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive-ink">
+          <AppIcon icon="solar:danger-circle-bold" className="size-5 shrink-0" />
+          This promotion is unplaced ({promotion.placement || "no slot set"}) and
+          shows nowhere on the site. Pick a slot below.
+        </div>
+      )}
+
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-semibold text-foreground">
           Details
         </h2>
         <PromotionForm
@@ -139,11 +154,15 @@ export function PromotionDetailView({ id }: { id: string }) {
         />
       </Card>
 
-      <Card className="rounded-lg border border-border p-6">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-muted-foreground">
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-semibold text-foreground">
           Slides
         </h2>
-        <PromotionSlideManager promotionId={id} slides={promotion.slides} />
+        <PromotionSlideManager
+          promotionId={id}
+          slides={promotion.slides}
+          template={templateFor(promotion.placement)}
+        />
       </Card>
 
       <ConfirmModal

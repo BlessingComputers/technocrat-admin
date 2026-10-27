@@ -40,6 +40,7 @@ import {
   type BulkPartRow,
 } from "./bulk/bulk-part-helpers";
 import { parseNairaNullable } from "../schemas/part-form";
+import { Card } from "@/components/ui/card";
 
 const DEFAULT_MARKUP_PCT = 0;
 
@@ -245,7 +246,7 @@ export function BulkPartsView() {
     <div className="mx-auto max-w-6xl space-y-6">
       <Link
         href="/catalogues/parts"
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
         Parts
@@ -275,11 +276,11 @@ export function BulkPartsView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {rows.length} row{rows.length === 1 ? "" : "s"} ·{" "}
-          <span className="font-bold text-foreground">{validCount} ready</span>
+          <span className="font-semibold text-foreground">{validCount} ready</span>
           {rows.length - validCount > 0 && (
             <>
               {" · "}
-              <span className="font-bold text-warning">
+              <span className="font-semibold text-warning-ink">
                 {rows.length - validCount} need
                 {rows.length - validCount === 1 ? "s" : ""} attention
               </span>
@@ -355,7 +356,7 @@ export function BulkPartsView() {
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card py-16 text-center">
+        <Card className="gap-0 border-dashed py-16 text-center">
           <AppIcon
             icon="solar:cpu-bolt-linear"
             className="mx-auto mb-3 size-12 text-muted-foreground/30"
@@ -364,7 +365,7 @@ export function BulkPartsView() {
           <p className="text-sm text-muted-foreground">
             Paste a list above, or add a row to enter one manually.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-3">
           {rows.map((row) => (

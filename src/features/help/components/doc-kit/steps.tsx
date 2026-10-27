@@ -12,7 +12,7 @@ export function Steps({
       {steps.map((step, i) => (
         <li key={step.title} className="flex gap-4">
           <div className="flex flex-col items-center">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-black text-primary-foreground">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
               {i + 1}
             </span>
             {i < steps.length - 1 && (
@@ -20,7 +20,7 @@ export function Steps({
             )}
           </div>
           <div className="pb-6">
-            <p className="text-sm font-bold text-foreground">{step.title}</p>
+            <p className="text-sm font-semibold text-foreground">{step.title}</p>
             <p className="mt-0.5 text-sm text-muted-foreground">{step.body}</p>
           </div>
         </li>

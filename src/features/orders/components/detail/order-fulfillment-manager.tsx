@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 interface OrderFulfillmentManagerProps {
   currentStatus: string;
@@ -74,20 +75,20 @@ export function OrderFulfillmentManager({
   };
 
   return (
-    <Card className="p-8 sm:p-10 border border-border bg-card rounded-xl">
-      <h3 className="text-xl font-black text-foreground mb-8 flex items-center gap-3">
-        <AppIcon icon="solar:delivery-linear" className="w-6 h-6 text-primary" />
+    <Card className="p-8 sm:p-10">
+      <h3 className="text-xl font-semibold text-foreground mb-8 flex items-center gap-3">
+        <AppIcon icon="solar:delivery-linear" className="w-6 h-6 text-primary-ink" />
         Fulfilment
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Next Status
             </Label>
             <select
-              className="w-full h-14 px-6 rounded-md bg-muted/50 border border-border font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full h-14 px-6 rounded-md bg-muted/50 border border-border font-semibold text-sm outline-none focus:ring-2 focus:ring-primary/20"
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
             >
@@ -103,7 +104,7 @@ export function OrderFulfillmentManager({
           {showRider && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                <Label className="text-xs font-medium text-muted-foreground ml-1">
                   Rider Name
                 </Label>
                 <Input
@@ -115,7 +116,7 @@ export function OrderFulfillmentManager({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                <Label className="text-xs font-medium text-muted-foreground ml-1">
                   Rider Phone
                 </Label>
                 <Input
@@ -130,7 +131,7 @@ export function OrderFulfillmentManager({
           )}
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+            <Label className="text-xs font-medium text-muted-foreground ml-1">
               Fulfilment Note (Optional)
             </Label>
             <Textarea
@@ -144,16 +145,16 @@ export function OrderFulfillmentManager({
           <Button
             disabled={!newStatus || isPending}
             onClick={handleUpdate}
-            className="w-full h-14 rounded-md bg-foreground text-background font-black text-sm"
+            className="w-full h-14 rounded-md bg-foreground text-background font-medium text-sm"
           >
             {isPending ? "Updating..." : "Update Fulfilment Status"}
           </Button>
         </div>
 
         <div className="bg-muted/40 rounded-xl p-8 space-y-6 border border-border">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <MetaLabel className="block">
             Status Flow Guide
-          </p>
+          </MetaLabel>
           <div className="space-y-4">
             <StatusFlowItem
               label="Preparing Order"
@@ -197,7 +198,7 @@ function StatusFlowItem({ label, active }: { label: string; active: boolean }) {
       />
       <p
         className={cn(
-          "text-xs font-bold",
+          "text-xs font-semibold",
           active ? "text-foreground" : "text-muted-foreground",
         )}
       >

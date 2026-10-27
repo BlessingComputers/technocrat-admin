@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatLogTimestamp } from "../../utils/monitor-utils";
 import type { MonitorLogDetail } from "../../types/monitor";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
   return (
-    <Card className="p-6 border border-border bg-card rounded-xl space-y-5">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-        <AppIcon icon="solar:info-circle-linear" className="w-4 h-4 text-primary" />
+    <Card className="p-6 space-y-5">
+      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+        <AppIcon icon="solar:info-circle-linear" className="w-4 h-4 text-primary-ink" />
         Request Info
       </h3>
 
@@ -30,9 +31,9 @@ export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
 
       {log.tags.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             Tags
-          </p>
+          </MetaLabel>
           <div className="flex flex-wrap gap-1.5">
             {log.tags.map((tag) => (
               <Badge key={tag} variant="muted">
@@ -45,9 +46,9 @@ export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
 
       {log.userAgent && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             User Agent
-          </p>
+          </MetaLabel>
           <p className="text-xs font-mono text-foreground break-all">
             {log.userAgent}
           </p>
@@ -56,9 +57,9 @@ export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
 
       {Object.keys(log.query ?? {}).length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             Query params
-          </p>
+          </MetaLabel>
           <pre className="text-xs font-mono text-foreground bg-muted/40 rounded-lg p-3 overflow-x-auto">
             {JSON.stringify(log.query, null, 2)}
           </pre>
@@ -67,9 +68,9 @@ export function RequestInfoCard({ log }: { log: MonitorLogDetail }) {
 
       {log.requestBody !== undefined && (
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <MetaLabel className="block">
             Request body (sanitized)
-          </p>
+          </MetaLabel>
           <pre className="text-xs font-mono text-foreground bg-muted/40 rounded-lg p-3 overflow-x-auto">
             {JSON.stringify(log.requestBody, null, 2)}
           </pre>
@@ -90,9 +91,9 @@ function Row({
 }) {
   return (
     <div className="space-y-0.5">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <MetaLabel className="block">
         {label}
-      </div>
+      </MetaLabel>
       <div
         className={`text-sm text-foreground font-medium ${mono ? "font-mono text-xs" : ""}`}
       >

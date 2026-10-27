@@ -26,9 +26,9 @@ export function InvoiceDashboardKpis({
           title="Pending Review"
           value={data?.pendingReview ?? 0}
           icon="solar:bill-list-linear"
-          iconClassName="text-warning"
+          iconClassName="text-warning-ink"
           note={data?.pendingReview ? "Action required" : undefined}
-          noteClassName="text-warning"
+          noteClassName="text-warning-ink"
           isLoading={isLoading}
           href="/invoices/pending-review"
         />
@@ -36,16 +36,16 @@ export function InvoiceDashboardKpis({
           title="Approved"
           value={data?.approved ?? 0}
           icon="solar:bill-check-linear"
-          iconClassName="text-success"
+          iconClassName="text-success-ink"
           isLoading={isLoading}
         />
         <InvoiceKpiCard
           title="Rejected"
           value={data?.rejected ?? 0}
           icon="solar:bill-cross-linear"
-          iconClassName="text-destructive"
+          iconClassName="text-destructive-ink"
           note={data?.rejected ? "Process refund" : undefined}
-          noteClassName="text-destructive"
+          noteClassName="text-destructive-ink"
           isLoading={isLoading}
           href="/invoices/rejected"
         />

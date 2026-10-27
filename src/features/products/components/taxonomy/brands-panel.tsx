@@ -16,6 +16,7 @@ import {
 import type { BrandInput, ProductBrand } from "../../types/products";
 import { BrandCard } from "./brand-card";
 import { BrandFormDialog } from "./brand-form-dialog";
+import { Card } from "@/components/ui/card";
 
 export function BrandsPanel() {
   const { data: brands = [], isLoading } = useBrands();
@@ -116,7 +117,7 @@ export function BrandsPanel() {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="py-16 text-center bg-card rounded-2xl border border-dashed border-border">
+    <Card className="gap-0 py-16 text-center border-dashed">
       <AppIcon
         icon="solar:tag-linear"
         className="size-12 text-muted-foreground/30 mx-auto mb-3"
@@ -129,6 +130,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <AppIcon icon="solar:add-circle-linear" className="size-4 mr-2" />
         Add Brand
       </Button>
-    </div>
+    </Card>
   );
 }

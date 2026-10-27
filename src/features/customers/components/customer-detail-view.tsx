@@ -44,7 +44,7 @@ export function CustomerDetailView({ customerId }: CustomerDetailViewProps) {
       <PageHeader title={fullName(customer)} description={customer.email}>
         <Link
           href="/customers"
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors pr-6 border-r border-border"
+          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary-ink transition-colors pr-6 border-r border-border"
         >
           <AppIcon icon="solar:arrow-left-linear" className="w-3 h-3" />
           Back to Customers
@@ -76,14 +76,14 @@ function CustomerNotFound() {
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <AppIcon
         icon="solar:danger-circle-linear"
-        className="w-16 h-16 text-destructive"
+        className="w-16 h-16 text-destructive-ink"
       />
-      <h2 className="text-2xl font-black text-foreground">Customer Not Found</h2>
+      <h2 className="text-2xl font-semibold text-foreground">Customer Not Found</h2>
       <p className="text-muted-foreground font-medium">
         The customer you are looking for does not exist or has been deleted.
       </p>
       <Link href="/customers">
-        <Button variant="outline" className="rounded-xl px-8 font-bold">
+        <Button variant="outline" className="rounded-xl px-8 font-medium">
           Return to Customers
         </Button>
       </Link>

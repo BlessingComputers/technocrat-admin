@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils/cn";
 import { AnalyticsChartCard } from "./analytics-chart-card";
 import { ChartEmpty, ChartLoading } from "./chart-states";
 import { useProductAnalytics } from "../api/analytics.queries";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const chartConfig = {
   totalSales: { label: "Units sold", color: "var(--chart-1)" },
@@ -39,12 +40,12 @@ export function TopProductsChart() {
     {
       label: "Low stock",
       value: data?.lowStockVariants ?? 0,
-      tone: "text-warning",
+      tone: "text-warning-ink",
     },
     {
       label: "Out of stock",
       value: data?.outOfStockVariants ?? 0,
-      tone: "text-destructive",
+      tone: "text-destructive-ink",
     },
     {
       label: "Discontinued",
@@ -63,7 +64,7 @@ export function TopProductsChart() {
       title="Top Products"
       subtitle="Best sellers by units"
       icon="solar:box-bold"
-      iconClass="bg-success/15 text-success"
+      iconClass="bg-success/15 text-success-ink"
       href="/catalogues?page=1"
       linkLabel="View catalog"
     >
@@ -114,9 +115,9 @@ export function TopProductsChart() {
       <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/60 pt-4 sm:grid-cols-4">
         {stockChips.map((chip) => (
           <div key={chip.label} className="space-y-0.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <MetaLabel className="block">
               {chip.label}
-            </p>
+            </MetaLabel>
             <p className={cn("text-lg font-semibold tabular-nums", chip.tone)}>
               {chip.value.toLocaleString()}
             </p>

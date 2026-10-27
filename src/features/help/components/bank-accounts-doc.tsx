@@ -11,7 +11,7 @@ import {
 } from "./doc-kit";
 
 /**
- * "Bank Accounts" walkthrough (ADR-0012) for `/checkout/bank-accounts` — the
+ * "Bank Accounts" walkthrough (ADR-0012) for `/payments/bank-accounts` — the
  * company accounts customers pay into when they choose bank transfer at
  * checkout. Bento overview then vertical spine. Presentation-only; composes from
  * the Doc Kit.
@@ -31,7 +31,7 @@ export function BankAccountsDoc() {
           goes straight in front of a paying customer, so it&apos;s worth being
           careful.
         </p>
-        <Path items={["Sidebar", "Bank Accounts"]} />
+        <Path items={["Payments", "Bank Accounts"]} />
       </Section>
 
       {/* Overview — bento */}
@@ -91,7 +91,7 @@ export function BankAccountsDoc() {
           <StepCard
             n={4}
             span={5}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:check-circle-linear"
             title="You verify it"
           >

@@ -8,6 +8,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { parsePartsViaAi, type AiParsedPart } from "../../api/ai-parse.client";
 import type { Brand, Category, PartType } from "../../types/parts";
+import { Card } from "@/components/ui/card";
 import {
   applySellMarkup,
   formatNaira,
@@ -76,9 +77,9 @@ export function AiPastePanel({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <Card className="gap-0 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-ink">
           <AppIcon icon="solar:magic-stick-3-linear" className="size-4" />
         </div>
         <div>
@@ -110,6 +111,6 @@ export function AiPastePanel({
           {loading ? "Parsing…" : "Parse with AI"}
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

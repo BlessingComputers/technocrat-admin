@@ -137,11 +137,20 @@ export function ProductBulkEditDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={UNCHANGED}>Leave unchanged</SelectItem>
-                {categories.map((c) => (
+                {categories.flatMap((c) => [
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>,
+                  // The tree nests subcategories under `children`. A product
+                  // has one category FK, so a subcategory id is a valid target.
+                  ...(c.children ?? [])
+                    .filter((s): s is ProductCategory => typeof s !== "string")
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id} className="pl-6">
+                        {c.name} › {s.name}
+                      </SelectItem>
+                    )),
+                ])}
               </SelectContent>
             </Select>
           </Field>

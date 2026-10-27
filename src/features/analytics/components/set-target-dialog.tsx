@@ -118,7 +118,7 @@ function TargetForm({
           />
         </div>
         {error && (
-          <p className="text-xs font-medium text-destructive">{error}</p>
+          <p className="text-xs font-medium text-destructive-ink">{error}</p>
         )}
       </div>
 

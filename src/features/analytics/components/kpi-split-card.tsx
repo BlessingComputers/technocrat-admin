@@ -1,15 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Stat, type StatTone } from "@/components/shared/stats-bar";
 import { cn } from "@/lib/utils/cn";
-import type { ReactNode } from "react";
 import type { KpiSplitRow } from "../types/dashboard-kpi";
 
 interface KpiSplitCardProps {
-  icon: ReactNode;
-  /** Tailwind classes for the icon background tile, e.g. "bg-primary/10 text-primary". */
-  iconColorClass: string;
+  /** Iconify name. */
+  icon: string;
+  tone: StatTone;
   badgeLabel: string;
-  /** Tailwind classes for the badge, e.g. "bg-success/10 text-success". */
-  badgeColorClass: string;
+  badgeTone?: StatTone;
   title: string;
   value: string;
   /**
@@ -29,53 +27,33 @@ interface KpiSplitCardProps {
 }
 
 /**
- * Reusable KPI tile used by the super-admin live dashboard. Top row has an
- * icon + badge, then a big numeric value, a two-stripe progress bar, and two
- * breakdown rows underneath.
+ * KPI cell for the super-admin live dashboard: the shared `<Stat>` plus a
+ * two-stripe ratio bar and two breakdown rows in its footer slot.
+ *
+ * Ticket 07 rebuilt this on `<Stat>` so the richest KPI in the app still reads
+ * as the same instrument as the simplest. Render inside a `<StatsBar>`.
  */
 export function KpiSplitCard({
   icon,
-  iconColorClass,
+  tone,
   badgeLabel,
-  badgeColorClass,
+  badgeTone,
   title,
   value,
   split,
   rows,
 }: KpiSplitCardProps) {
   return (
-    <Card className="hover:border-primary/20 transition-all group relative overflow-hidden">
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div
-            className={cn(
-              "size-10 rounded-xl flex items-center justify-center",
-              iconColorClass,
-            )}
-          >
-            {icon}
-          </div>
-          <span
-            className={cn(
-              "text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md",
-              badgeColorClass,
-            )}
-          >
-            {badgeLabel}
-          </span>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {title}
-          </p>
-          <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            {value}
-          </h3>
-        </div>
-
-        <div className="space-y-1">
-          <div className="h-1.5 w-full bg-muted/60 rounded-full flex overflow-hidden">
+    <Stat
+      icon={icon}
+      tone={tone}
+      label={title}
+      value={value}
+      badge={badgeLabel}
+      badgeTone={badgeTone ?? "success"}
+      footer={
+        <>
+          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               className={cn("transition-all duration-500", split.firstColor)}
               style={{ width: `${split.firstPct}%` }}
@@ -85,33 +63,33 @@ export function KpiSplitCard({
               style={{ width: `${split.secondPct}%` }}
             />
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+          <div className="mt-1 flex justify-between text-xs text-muted-foreground">
             <span>{split.firstCaption}</span>
             <span>{split.secondCaption}</span>
           </div>
-        </div>
 
-        <div className="pt-2 border-t border-border/50 space-y-1.5 text-xs">
-          {rows.map((row, idx) => (
-            <SplitRow key={idx} row={row} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-xs">
+            {rows.map((row, idx) => (
+              <SplitRow key={idx} row={row} />
+            ))}
+          </div>
+        </>
+      }
+    />
   );
 }
 
 function SplitRow({ row }: { row: KpiSplitRow }) {
   return (
-    <div className="flex justify-between items-center text-muted-foreground">
-      <span className="flex items-center gap-1.5 font-bold">
-        <span className={cn("h-2 w-2 rounded-full", row.dotColor)} />
+    <div className="flex items-center justify-between text-muted-foreground">
+      <span className="flex items-center gap-1.5 font-medium">
+        <span className={cn("size-2 rounded-full", row.dotColor)} />
         {row.label}
       </span>
-      <span className="font-extrabold text-foreground">
+      <span className="font-semibold text-foreground">
         {row.value}
         {row.suffix && (
-          <span className="text-xs text-muted-foreground font-normal ml-1">
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
             {row.suffix}
           </span>
         )}

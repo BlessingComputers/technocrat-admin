@@ -32,7 +32,7 @@ export function ManualChargesSummary({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Charges & Currency */}
       <div className="space-y-4 rounded-lg bg-muted/30 p-5">
-        <h4 className="text-sm font-black text-foreground">Charges &amp; Currency</h4>
+        <h4 className="text-sm font-semibold text-foreground">Charges &amp; Currency</h4>
         <div className="grid grid-cols-2 gap-4">
           <ManualField
             label="Tax %"
@@ -51,14 +51,14 @@ export function ManualChargesSummary({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+          <Label className="text-xs font-medium text-muted-foreground ml-1">
             Currency
           </Label>
           <Select
             value={form.currency}
             onValueChange={(v) => onChange({ currency: v })}
           >
-            <SelectTrigger className="h-11 w-full rounded-lg bg-card border-border font-bold">
+            <SelectTrigger className="h-11 w-full rounded-lg bg-card border-border font-semibold">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +74,7 @@ export function ManualChargesSummary({
 
       {/* Amount Summary */}
       <div className="space-y-3 rounded-lg bg-muted/30 p-5">
-        <h4 className="text-sm font-black text-foreground">Amount Summary</h4>
+        <h4 className="text-sm font-semibold text-foreground">Amount Summary</h4>
         <SummaryRow label="Subtotal" value={formatPrice(totals.subtotal)} />
         <SummaryRow label="Shipping" value={formatPrice(totals.shipping)} />
         <SummaryRow
@@ -82,8 +82,8 @@ export function ManualChargesSummary({
           value={formatPrice(totals.tax)}
         />
         <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
-          <span className="text-sm font-black text-foreground">Total Amount</span>
-          <span className="text-lg font-black text-foreground tracking-tighter">
+          <span className="text-sm font-semibold text-foreground">Total Amount</span>
+          <span className="text-lg font-semibold text-foreground tracking-tighter">
             {formatPrice(totals.total)}
           </span>
         </div>
@@ -95,8 +95,8 @@ export function ManualChargesSummary({
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="font-bold text-muted-foreground">{label}:</span>
-      <span className="font-bold text-foreground">{value}</span>
+      <span className="font-semibold text-muted-foreground">{label}:</span>
+      <span className="font-semibold text-foreground">{value}</span>
     </div>
   );
 }

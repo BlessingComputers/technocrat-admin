@@ -26,9 +26,9 @@ export function ManualField({
 }: ManualFieldProps) {
   return (
     <div className={cn("space-y-2", className)}>
-      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+      <Label className="text-xs font-medium text-muted-foreground ml-1">
         {label}
-        {required && <span className="text-destructive"> *</span>}
+        {required && <span className="text-destructive-ink"> *</span>}
         {optional && (
           <span className="text-muted-foreground/60"> (optional)</span>
         )}
@@ -38,7 +38,7 @@ export function ManualField({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 rounded-lg bg-muted/50 border-border font-bold focus:bg-card transition-all"
+        className="h-11 rounded-lg bg-muted/50 border-border font-semibold focus:bg-card transition-all"
       />
     </div>
   );

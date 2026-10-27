@@ -70,7 +70,7 @@ export function CreatingManualInvoicesDoc() {
           <StepCard
             n={3}
             span={5}
-            tone="gold"
+            tone="jewel"
             bgIcon="solar:tag-price-linear"
             title="What it came to"
           >

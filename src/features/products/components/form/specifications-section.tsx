@@ -24,7 +24,7 @@ export function SpecificationsSection() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="size-7 bg-warning/15 rounded-full flex items-center justify-center">
-            <AppIcon icon="solar:info-circle-linear" className="size-4 text-warning" />
+            <AppIcon icon="solar:info-circle-linear" className="size-4 text-warning-ink" />
           </div>
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -95,7 +95,7 @@ export function SpecificationsSection() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive-ink opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => remove(index)}
               >
                 <AppIcon icon="solar:trash-bin-trash-linear" className="size-4" />

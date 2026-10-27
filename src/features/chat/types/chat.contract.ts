@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────
 
 /** Bump on every wire-visible change, then re-run the sync script. */
-export const CHAT_CONTRACT_VERSION = 3;
+export const CHAT_CONTRACT_VERSION = 4;
 
 // ── Event names ───────────────────────────────────────────────
 
@@ -80,6 +80,30 @@ export type AiEscalationReason =
     | 'FRUSTRATION'
     | 'REPLY_CAP'
     | 'ERROR';
+
+/**
+ * Inline product-card data for rendering a product reference inside a chat
+ * bubble. Only ever present on AI (SYSTEM) messages that grounded their
+ * reply in a real, search-verified catalogue product — every field is
+ * already server-verified, safe to render directly with no extra fetch.
+ * Field names mirror the storefront's own ProductListItem shape so an
+ * existing product-card component can be reused with minimal/no mapping.
+ */
+export interface ProductCard {
+    id: string;
+    productId: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    primaryImage: string | null;
+    brand: { name: string; slug: string } | null;
+    category: { name: string; slug: string } | null;
+    lowestPrice: number | null;
+    highestPrice: number | null;
+    availabilityStatus: string;
+    /** Absolute URL to the product's page — ready to use as a link href. */
+    url: string;
+}
 
 // ── Client → Server payloads ──────────────────────────────────
 
@@ -181,9 +205,38 @@ export interface QueuePositionEvent {
 }
 
 /**
+ * Prefix on `idempotencyKey` for the instant AI filler message published
+ * immediately after a customer message lands (backend-asks item 19,
+ * 2026-09-10) — e.g. "Got it — give me just a moment while I check that
+ * for you!". It arrives as an ordinary MESSAGE_RECEIVED event, with
+ * senderType: 'SYSTEM' and senderId: 'ai-assistant' — indistinguishable
+ * from a real AI reply on every OTHER field.
+ *
+ * It is deliberately ephemeral: never persisted (`queueSaveMessage` is
+ * never called for it), so it never appears in REST history and never
+ * counts toward `aiReplyCount`. A client that overlays live-only messages
+ * on top of a REST snapshot must exclude anything whose idempotencyKey
+ * starts with this prefix, or it becomes a permanent ghost bubble — it is
+ * genuinely never in the snapshot to reconcile against.
+ *
+ * There is no separate retraction event. The real reply that supersedes a
+ * given hold message is a LATER MESSAGE_RECEIVED for the SAME
+ * conversationId whose own idempotencyKey matches `ai:{conversationId}:*`
+ * (a deterministic `ai:${conversationId}:${aiReplyCount+1}`, unlike the
+ * hold message's random-uuid suffix) — treat that arrival as "the hold for
+ * this conversation is now superseded, safe to drop/replace."
+ */
+export const AI_HOLD_KEY_PREFIX = 'ai:hold:';
+
+/**
  * `chat:message:received` and `staffroom:message:received`.
  * Delivered to all room members EXCEPT the sender (the sender gets
  * MESSAGE_SAVED). Internal messages travel the staff-only room.
+ *
+ * A message whose `idempotencyKey` starts with AI_HOLD_KEY_PREFIX is the
+ * ephemeral AI hold filler — see that constant's doc comment for how to
+ * handle it (never persisted, never in REST history, superseded by the
+ * next AI reply for the same conversationId).
  */
 export interface MessageReceivedEvent {
     /** Server-generated message id (pre-persistence). */
@@ -199,6 +252,14 @@ export interface MessageReceivedEvent {
     createdAt: string;
     /** Key all echo/reconnect dedup on this. */
     idempotencyKey: string;
+    /**
+     * Product cards to render inline with this message, in addition to/
+     * instead of the text link in `body`. Only ever populated on AI
+     * (SYSTEM) messages that referenced real products — absent (or empty)
+     * on every CUSTOMER/STAFF message and any AI message that didn't
+     * mention a product.
+     */
+    products?: ProductCard[];
 }
 
 /**
@@ -270,6 +331,8 @@ export interface HistoryMessage {
     createdAt: string;
     /** Stable key shared with the live socket copy — reconcile on this, not createdAt. */
     idempotencyKey: string;
+    /** Same semantics as MessageReceivedEvent.products — see there. */
+    products?: ProductCard[];
 }
 
 /** `staffroom:history` — sent to a staff socket on connect. */

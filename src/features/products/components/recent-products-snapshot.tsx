@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { formatPrice } from "@/lib/utils/format";
+import { getProductTitle } from "@/lib/utils/product-name";
 import { useProducts } from "../api/products.queries";
 import { ProductStockBadge } from "./product-stock-badge";
 import { RecentProductsSnapshotSkeleton } from "./products-skeletons";
@@ -30,7 +31,7 @@ export function RecentProductsSnapshot() {
 
   if (isError) {
     return (
-      <div className="px-4 py-8 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="px-4 py-8 text-center text-xs font-medium text-muted-foreground">
         Couldn’t load recent products
       </div>
     );
@@ -40,12 +41,12 @@ export function RecentProductsSnapshot() {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
         <AppIcon icon="solar:box-linear" className="size-8 opacity-30" />
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           No products yet
         </span>
         <Link
           href="/catalogues/new"
-          className="text-xs font-medium text-primary hover:underline"
+          className="text-xs font-medium text-primary-ink hover:underline"
         >
           Add your first product →
         </Link>
@@ -77,7 +78,12 @@ export function RecentProductsSnapshot() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foreground">{p.name}</p>
+            <p
+              className="truncate text-sm font-semibold text-foreground"
+              title={p.name}
+            >
+              {getProductTitle(p.name)}
+            </p>
             <p className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
               {formatPrice(p.lowestPrice || 0)}
             </p>

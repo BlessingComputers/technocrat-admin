@@ -13,7 +13,7 @@ export function CustomerStatusBadge({
   return (
     <div
       className={cn(
-        "inline-flex px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest",
+        "inline-flex px-2.5 py-1 rounded-full border text-xs font-medium",
         customerStatusClasses(status),
         className,
       )}

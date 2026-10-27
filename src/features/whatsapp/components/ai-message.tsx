@@ -29,11 +29,11 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-gold/15">
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-jewel/15">
           <AppIcon
             icon="solar:magic-stick-3-linear"
             aria-hidden
-            className="size-3.5 text-gold"
+            className="size-3.5 text-jewel-ink"
           />
         </span>
         <span className="text-sm font-medium text-foreground">
@@ -47,7 +47,7 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
             <AppIcon
               icon="solar:eye-closed-linear"
               aria-hidden
-              className="size-3.5 text-warning"
+              className="size-3.5 text-warning-ink"
             />
             Shadow mode — not visible to customer
           </span>
@@ -55,7 +55,9 @@ export function AiMessage({ message }: { message: WhatsAppMessage }) {
       </div>
 
       {/* `whitespace-pre-wrap` is required, not cosmetic: the escalation note
-          arrives as "[AI handover · reason]\nsummary" and collapses without it. */}
+          arrives as "[AI handover · reason]\nsummary" — or, for a
+          per-message skip, "[AI skipped this message · reason]" — and
+          collapses without it. */}
       <div className="max-w-[min(32rem,80%)] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-3.5 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>

@@ -23,10 +23,10 @@ export function InvoiceCustomerCard({ invoice }: InvoiceCustomerCardProps) {
   const lines = addressLines(invoice);
 
   return (
-    <Card className="gap-0 rounded-2xl border border-border/60 bg-card p-8 shadow-soft">
+    <Card className="gap-0 p-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto_1fr] lg:gap-10">
         <div>
-          <h3 className="text-base font-bold text-foreground">
+          <h3 className="text-base font-semibold text-foreground">
             Customer Information
           </h3>
           <div className="mt-4 space-y-3 text-sm text-foreground">
@@ -61,7 +61,7 @@ export function InvoiceCustomerCard({ invoice }: InvoiceCustomerCardProps) {
         <div className="hidden w-px bg-border/70 lg:block" />
 
         <div>
-          <h3 className="text-base font-bold text-foreground">
+          <h3 className="text-base font-semibold text-foreground">
             Billing Address
           </h3>
           <div className="mt-4 space-y-1 text-sm leading-relaxed text-muted-foreground">

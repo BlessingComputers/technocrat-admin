@@ -20,7 +20,7 @@ export function StaffInventoryHealthChart({
 
   const slices: DonutSlice[] = [
     { key: "in_stock", label: "In stock", value: inStock, color: "var(--success)" },
-    { key: "low", label: "Low stock", value: low, color: "var(--gold)" },
+    { key: "low", label: "Low stock", value: low, color: "var(--jewel)" },
     { key: "out", label: "Out of stock", value: out, color: "var(--destructive)" },
   ].filter((s) => s.value > 0);
 
@@ -29,7 +29,7 @@ export function StaffInventoryHealthChart({
       title="Inventory"
       subtitle={`${(inventory.activeVariants ?? 0).toLocaleString()} active variants`}
       icon="solar:box-minimalistic-bold"
-      iconClass="bg-success/15 text-success"
+      iconClass="bg-success/15 text-success-ink"
       href="/inventories"
       linkLabel="Manage inventory"
       centerValue={total}
