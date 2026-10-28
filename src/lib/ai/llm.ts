@@ -27,6 +27,20 @@ export interface ChatMessage {
 }
 
 /** The seam: turn chat messages into the model's reply content. */
+/**
+ * House style for any text the AI writes that people read: shop descriptions
+ * and the lookup's notes for staff. Left to itself the model writes hedged,
+ * puffed-up copy ("responsibly built", "appears to be non-standard").
+ */
+export const PLAIN_WRITING = `
+WRITING RULES (for every description and note you write):
+- Plain English for shop staff and customers in Nigeria. Short sentences, under 20 words. Active voice. Everyday words.
+- Say what the product has, with the numbers: "8GB RAM and a 256GB SSD", not "ample memory and storage".
+- No hype: powerful, sleek, stunning, seamless, premium, perfect for, ideal for, elevate, experience, designed to, whether you're.
+- No hedging: appears, seems, typically, likely, may, could not be confirmed. When you're unsure, say what you saw instead ("the searches found no 4GB model").
+- No em dashes, parentheses, semicolons or markdown.
+`.trim();
+
 export type ChatCompleter = (messages: ChatMessage[]) => Promise<string>;
 
 /** Carries the HTTP status the route should surface for a parse failure. */
@@ -76,19 +90,84 @@ export interface ClaudeCompleterOptions {
  * accepts user/assistant roles in `messages`), constrains the reply with
  * Structured Outputs, and caches the static system prompt.
  */
+/**
+ * One raw Messages API call. Model, auth and error mapping live here; the
+ * request body (tools, schema, messages) is the caller's. Used by the
+ * smart-paste completer below and by the product enricher, which needs server
+ * tools and a multi-turn loop.
+ */
+export async function callClaude(
+  body: Record<string, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  const apiKey = serverEnv().claudeApiKey;
+  if (!apiKey) {
+    throw new AiParseError(
+      "CLAUDE_API_KEY not configured (.env.development for dev, " +
+        ".env.production for the deploy)",
+      500,
+    );
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ model: CLAUDE_MODEL, temperature: 0, ...body }),
+    });
+  } catch (err) {
+    throw new AiParseError(
+      `AI service unreachable: ${(err as Error).message}`,
+      503,
+    );
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Anthropic API Error:", response.status, errorBody);
+    // `statusText` is empty over HTTP/2, which is what made the old message
+    // ("AI service error (401): ") say nothing at all. Anthropic puts a real
+    // explanation in the body, so use that.
+    let detail = errorBody.slice(0, 200);
+    try {
+      detail = JSON.parse(errorBody)?.error?.message ?? detail;
+    } catch {
+      // Not JSON — the truncated body is the best detail available.
+    }
+    // A 401 is almost always a malformed key rather than a revoked one, and
+    // the shape is checkable. Say so instead of leaving it to guesswork.
+    const hint =
+      response.status === 401 && !apiKey.startsWith("sk-ant-")
+        ? " CLAUDE_API_KEY does not look like an Anthropic key: those begin with sk-ant-."
+        : "";
+    throw new AiParseError(
+      `Anthropic error (${response.status}): ${detail}${hint}`,
+      response.status,
+    );
+  }
+
+  const data = await response.json();
+  // Per-call usage, so the server log shows whether the cached system prompt
+  // (the reference lists) is being read back: `cache_read_input_tokens`
+  // should be non-zero from the second parse in a session onward.
+  console.info("[ai] Claude usage:", JSON.stringify(data?.usage));
+  // A safety refusal returns HTTP 200 with no text block — surface it clearly
+  // rather than as an empty-JSON parse failure.
+  if (data?.stop_reason === "refusal") {
+    throw new AiParseError("AI declined to parse this input", 422);
+  }
+  return data;
+}
+
 export function createClaudeCompleter(
   options: ClaudeCompleterOptions,
 ): ChatCompleter {
   return async (messages) => {
-    const apiKey = serverEnv().claudeApiKey;
-    if (!apiKey) {
-      throw new AiParseError(
-        "CLAUDE_API_KEY not configured (.env.development for dev, " +
-          ".env.production for the deploy)",
-        500,
-      );
-    }
-
     // Anthropic wants the system prompt as its own field; only user/assistant
     // roles are allowed inside `messages`.
     const system = messages
@@ -99,72 +178,19 @@ export function createClaudeCompleter(
       .filter((m) => m.role === "user")
       .map((m) => ({ role: "user" as const, content: m.content }));
 
-    let response: Response;
-    try {
-      response = await fetch(ANTHROPIC_API_URL, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": ANTHROPIC_VERSION,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: CLAUDE_MODEL,
-          max_tokens: MAX_TOKENS,
-          temperature: 0,
-          // Cache the static system prompt so repeat pastes in a bulk-upload
-          // session pay ~0.1x for it instead of full price on every call.
-          system: [
-            { type: "text", text: system, cache_control: { type: "ephemeral" } },
-          ],
-          messages: userMessages,
-          // Structured Outputs: the reply is guaranteed to match this schema.
-          output_config: {
-            format: { type: "json_schema", schema: options.schema },
-          },
-        }),
-      });
-    } catch (err) {
-      throw new AiParseError(
-        `AI service unreachable: ${(err as Error).message}`,
-        503,
-      );
-    }
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error("Anthropic API Error:", response.status, errorBody);
-      // `statusText` is empty over HTTP/2, which is what made the old message
-      // ("AI service error (401): ") say nothing at all. Anthropic puts a real
-      // explanation in the body, so use that.
-      let detail = errorBody.slice(0, 200);
-      try {
-        detail = JSON.parse(errorBody)?.error?.message ?? detail;
-      } catch {
-        // Not JSON — the truncated body is the best detail available.
-      }
-      // A 401 is almost always a malformed key rather than a revoked one, and
-      // the shape is checkable. Say so instead of leaving it to guesswork.
-      const hint =
-        response.status === 401 && !apiKey.startsWith("sk-ant-")
-          ? " CLAUDE_API_KEY does not look like an Anthropic key: those begin with sk-ant-."
-          : "";
-      throw new AiParseError(
-        `Anthropic error (${response.status}): ${detail}${hint}`,
-        response.status,
-      );
-    }
-
-    const data = await response.json();
-    // Per-call usage, so the server log shows whether the cached system prompt
-    // (the reference lists) is being read back: `cache_read_input_tokens`
-    // should be non-zero from the second parse in a session onward.
-    console.info("[ai] Claude usage:", JSON.stringify(data?.usage));
-    // A safety refusal returns HTTP 200 with no text block — surface it clearly
-    // rather than as an empty-JSON parse failure.
-    if (data?.stop_reason === "refusal") {
-      throw new AiParseError("AI declined to parse this input", 422);
-    }
+    const data = await callClaude({
+      max_tokens: MAX_TOKENS,
+      // Cache the static system prompt so repeat pastes in a bulk-upload
+      // session pay ~0.1x for it instead of full price on every call.
+      system: [
+        { type: "text", text: system, cache_control: { type: "ephemeral" } },
+      ],
+      messages: userMessages,
+      // Structured Outputs: the reply is guaranteed to match this schema.
+      output_config: {
+        format: { type: "json_schema", schema: options.schema },
+      },
+    });
     // Hitting the output ceiling truncates mid-JSON. Say so, instead of letting
     // it reach the user as an opaque "Failed to parse AI response as JSON".
     // 422 rather than 413: 413 reaches the browser as "Payload Too Large",

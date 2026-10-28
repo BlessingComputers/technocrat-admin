@@ -16,6 +16,7 @@
 import {
   AiParseError,
   createClaudeCompleter,
+  PLAIN_WRITING,
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
@@ -131,8 +132,10 @@ INSTRUCTIONS:
    "Part Number" spec — the part number belongs in "sku" (rule 5) and is shown
    as the part number automatically. Specifications must mirror the name.
 
-7. Generate a rich product description (2-3 sentences) highlighting key selling
-   points.
+7. Write a plain product description (2-3 sentences) from the name and specs
+   only. The first sentence says what it is, with the key numbers, e.g. "A
+   14-inch HP laptop with a 13th-gen Core i3, 8GB RAM and a 256GB SSD." Follow
+   the WRITING RULES at the end.
 
 8. Categorization (two steps — order matters):
    - Use the CATEGORIES list given below. Match each product to the MOST LIKELY Category ID by comparing the product type to category names.
@@ -148,6 +151,8 @@ INSTRUCTIONS:
     decorative emoji/bullets (🌱 etc.) at the start of lines.
 
 Return one entry per listing in the "products" array.
+
+${PLAIN_WRITING}
 `;
 
 /**

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireStaff } from "@/lib/auth/require-staff";
 import {
   parsePartText,
   AiParseError,
@@ -12,6 +13,8 @@ import {
  * Called by the parts bulk-upload view.
  */
 export async function POST(req: Request) {
+  const denied = await requireStaff();
+  if (denied) return denied;
   try {
     const input = (await req.json()) as ParsePartInput;
     if (!input?.rawText?.trim()) {

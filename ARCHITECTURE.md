@@ -28,7 +28,7 @@ The customer site lives in a separate repo.
 7. **No `localStorage`/`sessionStorage` calls in shared code.** The fetch
    client uses them for refresh locks; other code must not. State goes in
    Zustand stores under `features/<x>/store/`.
-8. **Server-only env vars (`CLAUDE_API_KEY`) must NOT be
+8. **Server-only env vars (`CLAUDE_API_KEY`, `POSTHOG_PERSONAL_API_KEY`) must NOT be
    referenced in client components.** Only `NEXT_PUBLIC_*` is safe in client code.
    All env access goes through `src/config/env.ts`; the backend address is a
    single derived seam (ADR-0015) — never introduce a second host variable.
@@ -485,7 +485,7 @@ The API base, the emergency-unblock URL, both sockets, and the codegen scripts a
 | `IMAGE_ASSET_HOSTS` | build-time | Comma-separated hostnames for `next/image` `remotePatterns`. Optional; defaults live in `config/env.ts`. Needs a rebuild, not a restart |
 | `STOREFRONT_URL` | server-only | Technocrat storefront origin. `/legal` publishing scrapes `<origin>/policies` from it (fails without it); promotion link discovery reads its pages. Never Blessing's |
 | `NEXT_PUBLIC_SOCKET_POLLING_FALLBACK` | public | Set to `"true"` to restore Socket.IO's polling→websocket upgrade for chat + WhatsApp. Default is WebSocket-only (App Platform 504s held-open long-polls). Escape hatch only — no code change needed |
-| `CLAUDE_API_KEY` | server-only | AI smart-paste routes (products + parts), primary provider — Claude Haiku 4.5 |
+| `CLAUDE_API_KEY` | server-only | AI smart-paste routes (products + parts), Claude Haiku 4.5. The only AI provider since Groq was retired on 2026-09-23 |
 
 **Never reference `CLAUDE_API_KEY` in client components** — read them
 through `serverEnv()`, which throws if touched in the browser. If a client component

@@ -1,5 +1,4 @@
-import { Card } from "@/components/ui/card";
-import { AppIcon } from "@/components/shared/app-icon";
+import { Stat, StatsBar } from "@/components/shared/stats-bar";
 import { formatPrice } from "@/lib/utils/format";
 import type { CheckoutStats } from "../types/orders";
 import { MetaLabel } from "@/components/shared/meta-label";
@@ -10,75 +9,46 @@ interface OrdersStatsBarProps {
 
 export function OrdersStatsBar({ stats }: OrdersStatsBarProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 rounded-lg bg-warning/15 text-warning-ink flex items-center justify-center">
-            <AppIcon icon="solar:clock-circle-linear" className="w-6 h-6" />
-          </div>
-          {stats?.awaitingPayment && stats.awaitingPayment > 0 && (
-            <span className="px-2 py-1 bg-warning/15 text-warning-ink text-xs font-medium rounded-full">
-              Pending
-            </span>
-          )}
-        </div>
-        <MetaLabel className="block mb-1">
-          Awaiting Payment
-        </MetaLabel>
-        <h3 className="text-3xl font-semibold text-foreground tracking-tight tabular-nums">
-          {stats?.awaitingPayment ?? 0}
-        </h3>
-      </Card>
-
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary-ink flex items-center justify-center">
-            <AppIcon icon="solar:document-text-linear" className="w-6 h-6" />
-          </div>
-          {stats?.pendingReview && stats.pendingReview > 0 && (
-            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full animate-pulse">
-              Urgent
-            </span>
-          )}
-        </div>
-        <MetaLabel className="block mb-1">
-          Pending Review
-        </MetaLabel>
-        <h3 className="text-3xl font-semibold text-foreground tracking-tight tabular-nums">
-          {stats?.pendingReview ?? 0}
-        </h3>
-      </Card>
-
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 rounded-lg bg-success/15 text-success-ink flex items-center justify-center">
-            <AppIcon icon="solar:calendar-linear" className="w-6 h-6" />
-          </div>
-        </div>
-        <MetaLabel className="block mb-1">
-          Confirmed Today
-        </MetaLabel>
-        <h3 className="text-3xl font-semibold text-foreground tracking-tight tabular-nums">
-          {stats?.confirmedToday ?? 0}
-        </h3>
-      </Card>
-
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gold/15 text-gold-foreground flex items-center justify-center">
-            <AppIcon icon="solar:wallet-linear" className="w-6 h-6" />
-          </div>
-          <span className="px-2 py-1 bg-gold/15 text-gold-foreground text-xs font-medium rounded-full">
-            Estimated
-          </span>
-        </div>
-        <MetaLabel className="block mb-1">
-          Potential Revenue
-        </MetaLabel>
-        <h3 className="text-3xl font-semibold text-foreground tracking-tight tabular-nums">
-          {formatPrice(stats?.totalRevenuePending ?? 0)}
-        </h3>
-      </Card>
-    </div>
+    <StatsBar>
+      <Stat
+        icon="solar:clock-circle-linear"
+        tone="warning"
+        label="Awaiting payment"
+        value={stats?.awaitingPayment ?? 0}
+        badge={
+          stats?.awaitingPayment && stats.awaitingPayment > 0
+            ? "Pending"
+            : undefined
+        }
+      />
+      <Stat
+        icon="solar:document-text-linear"
+        tone="primary"
+        label="Pending review"
+        value={stats?.pendingReview ?? 0}
+        // Was a solid `bg-primary` chip with animate-pulse. Solid green means
+        // ACTION here, so a solid status chip breaks Green-Does-Double-Duty
+        // (DESIGN.md). Urgency now comes from the danger tone, not a fill.
+        badge={
+          stats?.pendingReview && stats.pendingReview > 0
+            ? "Urgent"
+            : undefined
+        }
+        badgeTone="danger"
+      />
+      <Stat
+        icon="solar:calendar-linear"
+        tone="success"
+        label="Confirmed today"
+        value={stats?.confirmedToday ?? 0}
+      />
+      <Stat
+        icon="solar:wallet-linear"
+        tone="jewel"
+        label="Potential revenue"
+        value={formatPrice(stats?.totalRevenuePending ?? 0)}
+        badge="Estimated"
+      />
+    </StatsBar>
   );
 }

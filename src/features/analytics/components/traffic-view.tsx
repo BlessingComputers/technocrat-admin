@@ -221,10 +221,10 @@ export function TrafficView({ report, links }: { report: TrafficReport; links: P
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <AnalyticsChartCard title="Channels" subtitle="How sessions arrived" icon="solar:routing-2-linear" iconClass="bg-gold/15 text-gold-ink">
+        <AnalyticsChartCard title="Channels" subtitle="How sessions arrived" icon="solar:routing-2-linear" iconClass="bg-jewel/15 text-jewel-ink">
           <TrafficRankedList rows={report.channels} unit="sessions" />
         </AnalyticsChartCard>
-        <AnalyticsChartCard title="Referring sites" subtitle="Sessions by the site that linked here" icon="solar:link-linear" iconClass="bg-gold/15 text-gold-ink">
+        <AnalyticsChartCard title="Referring sites" subtitle="Sessions by the site that linked here" icon="solar:link-linear" iconClass="bg-jewel/15 text-jewel-ink">
           <TrafficRankedList rows={report.referrers} unit="sessions" empty="No referring sites in this period" />
         </AnalyticsChartCard>
       </div>

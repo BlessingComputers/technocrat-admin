@@ -10,6 +10,7 @@
 import {
   AiParseError,
   createClaudeCompleter,
+  PLAIN_WRITING,
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
@@ -96,9 +97,13 @@ INSTRUCTIONS:
 9. "specifications": extract specs as { "name", "value" } pairs (Material,
    Capacity, Compatibility, Connector, …). Don't duplicate the part number here.
 
-10. Write a short "description" (1-2 sentences).
+10. Write a short "description" (1-2 sentences) saying what the part is and what
+    it fits, e.g. "A 65W USB-C charger for HP EliteBook and ProBook laptops."
+    Follow the WRITING RULES at the end.
 
 Return one entry per listing in the "parts" array.
+
+${PLAIN_WRITING}
 `;
 
 /**

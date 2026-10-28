@@ -20,10 +20,7 @@ export function OrderAuditTrail({ entries }: OrderAuditTrailProps) {
   return (
     <Card className="p-8 sm:p-10">
       <h3 className="text-xl font-semibold text-foreground mb-8 flex items-center gap-3">
-        <AppIcon
-          icon="solar:clock-circle-linear"
-          className="w-6 h-6 text-primary-ink"
-        />
+        <AppIcon icon="solar:clock-circle-linear" className="w-6 h-6 text-primary-ink" />
         Audit Trail
       </h3>
 
