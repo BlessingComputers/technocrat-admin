@@ -24,22 +24,22 @@ describe("linkify", () => {
 
   it("turns a bare URL mid-sentence into one anchor", () => {
     const parts = linkify(
-      "You can order it at https://blessingcomputers.com/product/hp-840 today.",
+      "You can order it at https://technocratng.com/product/hp-840 today.",
     );
     expect(parts).toEqual([
       { type: "text", value: "You can order it at " },
       {
         type: "link",
-        value: "https://blessingcomputers.com/product/hp-840",
-        href: "https://blessingcomputers.com/product/hp-840",
+        value: "https://technocratng.com/product/hp-840",
+        href: "https://technocratng.com/product/hp-840",
       },
       { type: "text", value: " today." },
     ]);
   });
 
   it("does not swallow trailing punctuation into the href", () => {
-    expect(hrefs("See https://blessingcomputers.com/product/foo.")).toEqual([
-      "https://blessingcomputers.com/product/foo",
+    expect(hrefs("See https://technocratng.com/product/foo.")).toEqual([
+      "https://technocratng.com/product/foo",
     ]);
     expect(hrefs("Is it https://example.com/a?")).toEqual([
       "https://example.com/a",
@@ -68,11 +68,11 @@ describe("linkify", () => {
   });
 
   it("gives a www-prefixed URL an https href while showing the original text", () => {
-    const parts = linkify("Visit www.blessingcomputers.com for more");
+    const parts = linkify("Visit www.technocratng.com for more");
     expect(parts[1]).toEqual({
       type: "link",
-      value: "www.blessingcomputers.com",
-      href: "https://www.blessingcomputers.com",
+      value: "www.technocratng.com",
+      href: "https://www.technocratng.com",
     });
   });
 
@@ -80,9 +80,9 @@ describe("linkify", () => {
     // A scheme with no host, an email address, a path fragment and a bare
     // hostname all stay literal.
     expect(hrefs("the prefix https:// on its own")).toEqual([]);
-    expect(hrefs("mail sales@blessingcomputers.com please")).toEqual([]);
+    expect(hrefs("mail sales@technocratng.com please")).toEqual([]);
     expect(hrefs("open /product/hp-840 next")).toEqual([]);
-    expect(hrefs("go to blessingcomputers.com")).toEqual([]);
+    expect(hrefs("go to technocratng.com")).toEqual([]);
     expect(hrefs("read httpsnotaurl now")).toEqual([]);
   });
 

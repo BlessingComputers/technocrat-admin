@@ -55,7 +55,7 @@ export function InvoiceTable({
             {headers.map((header) => (
               <th
                 key={header}
-                className="px-6 py-3.5 text-[13px] font-medium text-muted-foreground first:pl-8"
+                className="px-6 py-3.5 text-xs font-medium text-muted-foreground first:pl-8"
               >
                 {header}
               </th>
@@ -65,7 +65,9 @@ export function InvoiceTable({
         <tbody>
           {invoices.map((inv) => (
             <tr
-              key={inv.id}
+              // `id` is absent from this undocumented payload; `invoiceId` is
+              // the row's real identity (route param + first column).
+              key={inv.invoiceId ?? inv.id}
               onClick={() => router.push(`/invoices/${inv.invoiceId}`)}
               className="cursor-pointer border-b border-border/50 transition-colors last:border-0 hover:bg-muted/40"
             >

@@ -16,6 +16,7 @@ import {
   useReorderProductImages,
 } from "../../api/products.queries";
 import type { NewProductImage, ProductImage } from "../../types/products";
+import { MetaLabel } from "@/components/shared/meta-label";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -273,9 +274,9 @@ export function ImageUploadSection({
       {sortedImages.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">
+            <MetaLabel className="block">
               Current Images
-            </p>
+            </MetaLabel>
             <span className="text-xs text-muted-foreground italic">
               Drag to reorder
             </span>

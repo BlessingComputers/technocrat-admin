@@ -107,7 +107,7 @@ export function PromotionCard({
   };
 
   return (
-    <Card className="group gap-0 overflow-hidden p-0">
+    <Card className="group overflow-hidden p-0 gap-0">
       <Link
         href={`/socials/${promotion.id}`}
         // At the template's real ratio, so a `band` card does not promise a
