@@ -14,6 +14,8 @@ import type {
 } from "../types/customers";
 
 const DEFAULT_LIMIT = 20;
+/** The backend's largest page (`limit(100, 20)` in Admin.schema.ts). */
+const EXPORT_PAGE_SIZE = 100;
 /** How many of a customer's most-recent orders to pull for the detail page. */
 const ORDER_HISTORY_LIMIT = 100;
 
@@ -21,11 +23,16 @@ const ORDER_HISTORY_LIMIT = 100;
  * Normalize whatever list envelope the backend returns into `{ data, meta }`.
  *
  * The customer list response body is undocumented in the OpenAPI spec (ADR-0006),
- * so we defend against the three plausible shapes (the exact "sibling meta drops
- * on unwrap" risk flagged in ADR-0007):
+ * so we defend against the plausible shapes (the exact "sibling meta drops on
+ * unwrap" risk flagged in ADR-0007):
  *   1. `{ success, data: Customer[], meta }`          — sibling pagination
  *   2. `{ success, data: { customers, pagination } }` — nested payload
- *   3. `Customer[]`                                    — bare array (no meta)
+ *   3. `{ status, data: { data, total, page, limit, totalPages } }` — flat
+ *      payload, what the backend actually sends (`PaginatedResponse`)
+ *   4. `Customer[]`                                    — bare array (no meta)
+ *
+ * Missing shape 3 made every list look like one page: `total` fell back to the
+ * row count, so the pager never showed past the first 20.
  */
 function normalizeList(
   raw: unknown,
@@ -53,7 +60,7 @@ function normalizeList(
       (obj.pagination as Record<string, unknown>) ??
       (obj.meta as Record<string, unknown>) ??
       (root.meta as Record<string, unknown>) ??
-      {};
+      obj;
   }
 
   const num = (v: unknown, fallback: number): number =>
@@ -154,6 +161,28 @@ export const customerService = {
       raw: true,
     });
     return normalizeList(raw, params);
+  },
+
+  /**
+   * Every customer matching the filters in `params` (its page and limit are
+   * ignored), for export. Pages through at 100, the backend's cap, one request
+   * at a time; the admin API allows 120 reads a minute per staff member.
+   */
+  getAllMatchingCustomers: async (
+    params: CustomersListParams,
+    onProgress?: (loaded: number, total: number) => void,
+  ): Promise<Customer[]> => {
+    const all: Customer[] = [];
+    for (let page = 1; ; page++) {
+      const { data, meta } = await customerService.getAllCustomers({
+        ...params,
+        page,
+        limit: EXPORT_PAGE_SIZE,
+      });
+      all.push(...data);
+      onProgress?.(all.length, meta.total);
+      if (!meta.hasNextPage || data.length === 0) return all;
+    }
   },
 
   getCustomer: (id: string): Promise<CustomerDetail> =>

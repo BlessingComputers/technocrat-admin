@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 interface CustomersTableProps {
   customers: Customer[];
   isLoading: boolean;
+  /** Rendered inside the card under the rows, e.g. the pager. */
+  footer?: React.ReactNode;
 }
 
 const TABLE_HEADERS = [
@@ -19,7 +21,11 @@ const TABLE_HEADERS = [
   "Actions",
 ];
 
-export function CustomersTable({ customers, isLoading }: CustomersTableProps) {
+export function CustomersTable({
+  customers,
+  isLoading,
+  footer,
+}: CustomersTableProps) {
   if (isLoading) {
     return <CustomersTableSkeleton />;
   }
@@ -42,7 +48,8 @@ export function CustomersTable({ customers, isLoading }: CustomersTableProps) {
   }
 
   return (
-    <Card className="gap-0 overflow-x-auto w-full py-0">
+    <Card className="gap-0 overflow-hidden w-full py-0">
+      <div className="overflow-x-auto">
       <table className="w-full text-left min-w-[900px]">
         <thead>
           <tr className="border-b border-border bg-primary/[0.04]">
@@ -62,6 +69,8 @@ export function CustomersTable({ customers, isLoading }: CustomersTableProps) {
           ))}
         </tbody>
       </table>
+      </div>
+      {footer}
     </Card>
   );
 }

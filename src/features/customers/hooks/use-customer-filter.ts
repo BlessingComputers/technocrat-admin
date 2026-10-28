@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { PAGE_SIZES } from "@/components/shared/data-pagination";
 import type {
   CustomersListParams,
   CustomerStatus,
   LoyaltyTier,
 } from "../types/customers";
 
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = PAGE_SIZES[0];
 
 function toInt(value: string | null): number | undefined {
   if (value == null || value === "") return undefined;
@@ -16,11 +17,17 @@ function toInt(value: string | null): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Only the sizes the pager offers; anything else typed into the URL falls back. */
+function toLimit(value: string | null): number {
+  const n = toInt(value);
+  return n && (PAGE_SIZES as readonly number[]).includes(n) ? n : DEFAULT_LIMIT;
+}
+
 /** Parse the URL query into resolved list params (defaults applied). */
 function parseParams(sp: URLSearchParams): CustomersListParams {
   return {
     page: toInt(sp.get("page")) ?? 1,
-    limit: DEFAULT_LIMIT,
+    limit: toLimit(sp.get("limit")),
     search: sp.get("search") || undefined,
     from: sp.get("from") || undefined,
     to: sp.get("to") || undefined,
@@ -38,6 +45,9 @@ function toQueryString(params: CustomersListParams): string {
   if (params.loyaltyTier) sp.set("loyaltyTier", params.loyaltyTier);
   if (params.status) sp.set("status", params.status);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
+  if (params.limit && params.limit !== DEFAULT_LIMIT) {
+    sp.set("limit", String(params.limit));
+  }
   return sp.toString();
 }
 
@@ -107,6 +117,12 @@ export function useCustomerFilters() {
     [commit, params],
   );
 
+  /** A new page size starts back at page 1, since the old page may not exist. */
+  const setLimit = useCallback(
+    (limit: number) => commit({ ...params, limit, page: 1 }, "push"),
+    [commit, params],
+  );
+
   const reset = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     // Let the URL change flow back through `params.search` → render-time
@@ -114,5 +130,5 @@ export function useCustomerFilters() {
     router.push(pathname, { scroll: false });
   }, [pathname, router]);
 
-  return { params, searchInput, setFilter, setSearch, setPage, reset };
+  return { params, searchInput, setFilter, setSearch, setPage, setLimit, reset };
 }
