@@ -20,7 +20,7 @@
  * - `publicEnv` — `NEXT_PUBLIC_*` only. Referenced as static
  *   `process.env.NEXT_PUBLIC_*` literals so Next inlines them into the client
  *   bundle. Safe to read in client OR server code.
- * - `serverEnv()` — server-only secrets (`GROQ_API_KEY`, `CLAUDE_API_KEY`, `POSTHOG_PERSONAL_API_KEY`) plus
+ * - `serverEnv()` — server-only secrets (`CLAUDE_API_KEY`, `POSTHOG_PERSONAL_API_KEY`) plus
  *   the derived backend base. Throws if accessed in the browser, so a server
  *   var can never leak into a client bundle. Call it lazily (it's a function)
  *   so validation fails fast at first server use rather than at module import.
@@ -96,9 +96,7 @@ interface ServerEnv {
   imageHosts: string[];
   /** Customer storefront origin used by server-side promotion link discovery. */
   storefrontUrl: string | undefined;
-  /** Groq key — primary provider for the AI smart-paste routes. Optional — the adapter validates it. */
-  groqApiKey: string | undefined;
-  /** Claude (Anthropic) key — rate-limit fallback for the smart-paste routes. Optional — the adapter validates it. */
+  /** Claude (Anthropic) key for the AI smart-paste routes. Optional — the adapter validates it. */
   claudeApiKey: string | undefined;
   /**
    * PostHog, read by the `/analytics` traffic view. `apiKey` is a personal key
@@ -119,7 +117,7 @@ export function serverEnv(): ServerEnv {
   if (typeof window !== "undefined") {
     throw new Error(
       "serverEnv() was accessed in the browser. Server-only env vars " +
-        "(GROQ_API_KEY, CLAUDE_API_KEY, POSTHOG_PERSONAL_API_KEY) must never be read in a " +
+        "(CLAUDE_API_KEY, POSTHOG_PERSONAL_API_KEY) must never be read in a " +
         "client component — use publicEnv for anything the client needs.",
     );
   }
@@ -131,7 +129,6 @@ export function serverEnv(): ServerEnv {
     apiBaseUrl: `${origin}/api`,
     imageHosts: hosts?.length ? hosts : DEFAULT_IMAGE_HOSTS,
     storefrontUrl: process.env.STOREFRONT_URL,
-    groqApiKey: process.env.GROQ_API_KEY,
     claudeApiKey: process.env.CLAUDE_API_KEY,
     posthog: {
       apiKey: process.env.POSTHOG_PERSONAL_API_KEY,

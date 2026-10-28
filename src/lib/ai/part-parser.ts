@@ -9,7 +9,8 @@
 
 import {
   AiParseError,
-  createFallbackCompleter,
+  createClaudeCompleter,
+  PLAIN_WRITING,
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
@@ -79,8 +80,6 @@ INSTRUCTIONS:
 4. "stockQuantity": "SOLD OUT" → 0; a count like "(4 units)" → that number;
    otherwise 10.
 
-5. "isActive" — ALWAYS false (uploads start as drafts).
-
 6. "partNumber" — the manufacturer/supplier part code if present, else null.
 
 7. "ownerSku" — the SKU of the product this part belongs to, if the listing
@@ -98,35 +97,19 @@ INSTRUCTIONS:
 9. "specifications": extract specs as { "name", "value" } pairs (Material,
    Capacity, Compatibility, Connector, …). Don't duplicate the part number here.
 
-10. Write a short "description" (1-2 sentences).
+10. Write a short "description" (1-2 sentences) saying what the part is and what
+    it fits, e.g. "A 65W USB-C charger for HP EliteBook and ProBook laptops."
+    Follow the WRITING RULES at the end.
 
-11. Do NOT output a slug. The system generates it from the name.
+Return one entry per listing in the "parts" array.
 
-OUTPUT FORMAT — a JSON object with a single "parts" array:
-{
-  "parts": [
-    {
-      "name": "string",
-      "partNumber": "string | null",
-      "partTypeId": "string | null",
-      "categoryId": "string | null",
-      "brandId": "string | null",
-      "ownerSku": "string | null",
-      "description": "string",
-      "price": number | null,
-      "costPrice": number | null,
-      "stockQuantity": number,
-      "isActive": false,
-      "specifications": [{ "name": "string", "value": "string" }]
-    }
-  ]
-}
+${PLAIN_WRITING}
 `;
 
 /**
  * Structured Outputs schema: constrains the reply so `parseCompletionContent`
- * never faces malformed JSON. Enforced on both providers (Anthropic via
- * `output_config`, Groq via strict `json_schema`). ID validity against the
+ * never faces malformed JSON. Anthropic enforces it via `output_config`.
+ * ID validity against the
  * provided lists is still enforced afterwards by `normalizeParts` — a schema
  * can't express it. `slug` is absent by design: it is derived from `name`.
  */
@@ -150,7 +133,6 @@ const PARTS_SCHEMA: Record<string, unknown> = {
           price: { type: ["number", "null"] },
           costPrice: { type: ["number", "null"] },
           stockQuantity: { type: "number" },
-          isActive: { type: "boolean" },
           specifications: {
             type: "array",
             items: {
@@ -175,7 +157,6 @@ const PARTS_SCHEMA: Record<string, unknown> = {
           "price",
           "costPrice",
           "stockQuantity",
-          "isActive",
           "specifications",
         ],
       },
@@ -223,10 +204,9 @@ export function parseCompletionContent(content: string): ParsePartResult {
   return { parts: parts as AiParsedPart[] };
 }
 
-/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback. */
-export const parseCompleter: ChatCompleter = createFallbackCompleter({
+/** Production ChatCompleter: Claude Haiku 4.5. */
+export const parseCompleter: ChatCompleter = createClaudeCompleter({
   schema: PARTS_SCHEMA,
-  schemaName: "parts",
 });
 
 /**
