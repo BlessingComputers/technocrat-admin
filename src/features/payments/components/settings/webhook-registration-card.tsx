@@ -55,7 +55,7 @@ export function WebhookRegistrationCard() {
         <Input
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://api.blessingcomputers.com"
+          placeholder="https://api.example.com"
           className="rounded-lg bg-muted/50 border-border font-mono text-xs"
         />
         {baseUrl && !valid && (

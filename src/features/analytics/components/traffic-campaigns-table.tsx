@@ -107,7 +107,7 @@ export function TrafficLandingTable({ pages }: { pages: TrafficReport["landingPa
       title="Paid landing pages"
       subtitle="Where visits from ads start, and what those visits did"
       icon="solar:target-linear"
-      iconClass="bg-gold/15 text-gold-ink"
+      iconClass="bg-jewel/15 text-jewel-ink"
     >
       {pages.length === 0 ? (
         <p className="py-6 text-center text-xs font-medium text-muted-foreground">No visits from ads in this period</p>
@@ -155,7 +155,7 @@ export function TrafficCampaignsTable({ campaigns }: { campaigns: TrafficReport[
         title="Campaigns"
         subtitle="Visits from tagged links, by campaign and by ad"
         icon="solar:flag-linear"
-        iconClass="bg-gold/15 text-gold-ink"
+        iconClass="bg-jewel/15 text-jewel-ink"
         headerRight={
           <TabsList>
             <TabsTrigger value="last">Last click</TabsTrigger>

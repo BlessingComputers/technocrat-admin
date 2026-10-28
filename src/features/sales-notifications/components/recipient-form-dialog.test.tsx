@@ -13,7 +13,7 @@ import type { SalesNotificationEmail } from "../types/sales-notifications";
 
 const EXISTING: SalesNotificationEmail = {
   id: "row-1",
-  email: "accounts@blessingcomputers.com",
+  email: "accounts@technocratng.com",
   label: "Accounts",
   isActive: true,
   createdByStaffId: "staff-1",
@@ -50,12 +50,12 @@ describe("RecipientFormDialog", () => {
     const { onSubmit } = renderDialog();
 
     fireEvent.change(emailInput(), {
-      target: { value: "  sales@blessingcomputers.com  " },
+      target: { value: "  sales@technocratng.com  " },
     });
     submit();
 
     expect(onSubmit).toHaveBeenCalledWith({
-      email: "sales@blessingcomputers.com",
+      email: "sales@technocratng.com",
       label: undefined,
       isActive: true,
     });
@@ -89,7 +89,7 @@ describe("RecipientFormDialog", () => {
     expect(screen.queryByRole("alert")).not.toBeNull();
 
     fireEvent.change(emailInput(), {
-      target: { value: "warehouse@blessingcomputers.com" },
+      target: { value: "warehouse@technocratng.com" },
     });
 
     expect(screen.queryByRole("alert")).toBeNull();
@@ -100,7 +100,7 @@ describe("RecipientFormDialog", () => {
     renderDialog({ initial: EXISTING, duplicateEmail: EXISTING.email });
 
     fireEvent.change(emailInput(), {
-      target: { value: "ACCOUNTS@blessingcomputers.com" },
+      target: { value: "ACCOUNTS@technocratng.com" },
     });
 
     expect(screen.queryByRole("alert")).not.toBeNull();
