@@ -253,6 +253,16 @@ export const navGroups: NavGroup[] = [
         requiredPermissions: ["products"],
       },
       {
+        // Gated on the backend's `policy` RBAC group (policy:versions:read /
+        // :write). Named Legal because that is what the page is about; the
+        // group keeps the backend's noun.
+        title: "Legal",
+        href: "/legal",
+        icon: "solar:document-text-linear",
+        iconActive: "solar:document-text-bold",
+        requiredPermissions: ["policy"],
+      },
+      {
         title: "Security",
         href: "/security",
         icon: "solar:shield-keyhole-linear",

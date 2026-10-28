@@ -325,7 +325,9 @@ export function useSyncCatalog() {
     mutationFn: () => productsService.syncCatalog(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      toast.success("Catalog re-sync started — this runs in the background");
+      toast.success(
+        "Search rebuild started for products and parts. It runs in the background.",
+      );
     },
     onError: (error) =>
       toast.error(getErrorMessage(error, "Failed to start catalog re-sync")),

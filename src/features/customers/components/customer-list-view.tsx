@@ -6,12 +6,13 @@ import { useCustomers, useCustomerAnalytics } from "../api/customer.queries";
 import { useCustomerFilters } from "../hooks/use-customer-filter";
 import { CustomersStatsBar } from "./customers-stats-bar";
 import { CustomersFilterBar } from "./customers-filter-bar";
+import { DataPagination } from "@/components/shared/data-pagination";
 import { CustomersTable } from "./customers-table";
-import { CustomersPagination } from "./customers-pagination";
+import { CustomersExportMenu } from "./customers-export-menu";
 
 /** Customers list view (route `/customers`). */
 export default function CustomersListView() {
-  const { params, searchInput, setSearch, setFilter, setPage, reset } =
+  const { params, searchInput, setSearch, setFilter, setPage, setLimit, reset } =
     useCustomerFilters();
 
   const {
@@ -36,6 +37,7 @@ export default function CustomersListView() {
         title="Customer Management"
         description="Browse, search, and inspect customer accounts"
       >
+        <CustomersExportMenu params={params} />
         <RefreshButton
           onRefresh={() => {
             refetchAnalytics();
@@ -55,16 +57,23 @@ export default function CustomersListView() {
         onReset={reset}
       />
 
-      <CustomersTable customers={customers} isLoading={isLoading} />
-
-      {meta && (
-        <CustomersPagination
-          page={meta.page}
-          totalPages={meta.totalPages}
-          hasNextPage={meta.hasNextPage}
-          onPageChange={setPage}
-        />
-      )}
+      <CustomersTable
+        customers={customers}
+        isLoading={isLoading}
+        footer={
+          meta && (
+            <DataPagination
+              page={meta.page}
+              totalPages={meta.totalPages}
+              total={meta.total}
+              limit={meta.limit}
+              onPageChange={setPage}
+              onLimitChange={setLimit}
+              noun="customers"
+            />
+          )
+        }
+      />
     </div>
   );
 }

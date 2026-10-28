@@ -606,9 +606,14 @@ export interface paths {
          *     **On success:** a raw token is generated, its SHA-256 hash is stored in Redis
          *     (15-minute TTL), and an email is queued containing:
          *
-         *     `{FRONTEND_URL}/auth/reset-password?token=<rawToken>`
+         *     `{ADMIN_URL}/reset-password?token=<rawToken>`
          *
-         *     ⚠️ **That frontend route must be public** (no auth guard). The user has no
+         *     This flow is staff-only — customers sign in via Google only and have no
+         *     password, so this is never sent to a customer. The link points at the admin
+         *     app (`ADMIN_URL`), not the customer storefront (`FRONTEND_URL`) — the
+         *     storefront has no reset-password page at all.
+         *
+         *     ⚠️ **That admin-app route must be public** (no auth guard). The user has no
          *     session — if the route redirects unauthenticated visitors to /login, this
          *     flow breaks silently. It reads `token` from the query string and posts it
          *     to POST /reset-password below.
@@ -1796,7 +1801,8 @@ export interface paths {
          *     - **parts** — same engine, filtered to parts: full-text over name, description, **partNumber**,
          *       and partType, plus `partTypeId`/`ownerSku` structured filters and the same price/availability
          *       filtering (a part's own price/stock is indexed as a single synthetic variant). Only searched
-         *       when a text query (`q`) is present; public callers see active, in-stock parts only (max 20).
+         *       when a text query (`q`) is present; first 20 only — the full paginated list is
+         *       `GET /products/search/parts`. `data.intent` says where to send the shopper (see below).
          *
          *     Response is sectioned (Option A): `data.products` is the full product search result (with facets
          *     + pagination); `data.parts` is the matching parts, in the SAME shape (each item carries
@@ -1883,9 +1889,130 @@ export interface paths {
                                         totalPages: number;
                                     };
                                 };
+                                /**
+                                 * @description Where to send the shopper after they submit the search bar:
+                                 *     - `PART_DETAIL` → `/parts/{partId}` — the query is exactly one part (its part number or full name, or the only match).
+                                 *     - `PART_LIST` → `/parts?q=<query>` (backed by `GET /products/search/parts`) — only parts match; or the best part covers more of the query's words than the best product (`PART_BETTER_MATCH`, e.g. "8gb ddr4 laptop memory hp"); or, on a tie, the query names a part type ("keyboard", "battery"…) with no device word ("laptop", "phone"…).
+                                 *     - `PRODUCT_LIST` → the normal product results page (unchanged default).
+                                 *     Additive field — clients that ignore it behave exactly as before.
+                                 */
+                                intent: {
+                                    /** @enum {string} */
+                                    target: "PART_DETAIL" | "PART_LIST" | "PRODUCT_LIST";
+                                    /** @enum {string} */
+                                    reason: "EXACT_PART_NUMBER" | "EXACT_PART_NAME" | "ONLY_ONE_PART" | "ONLY_PARTS" | "PART_BETTER_MATCH" | "PART_TYPE_KEYWORD" | "DEFAULT";
+                                    /**
+                                     * @description PRT-… id — only for PART_DETAIL
+                                     * @example PRT-1A626500
+                                     */
+                                    partId?: string;
+                                    /**
+                                     * @description The part-type word behind PART_TYPE_KEYWORD
+                                     * @example keyboard
+                                     */
+                                    matchedKeyword?: string;
+                                };
                             };
                         };
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/search/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Parts-only search (paginated) — backs the /parts?q= page
+         * @description OpenSearch-ranked search over parts only, with pagination — the endpoint behind the
+         *     storefront's `/parts?q=…` results page. Takes the same query parameters as `GET /products/search`
+         *     (`q`, `page`, `limit`, `partTypeId`, `minPrice`, `maxPrice`, `sortBy`, …); `docType` is
+         *     always forced to `PART`. Public.
+         *
+         *     Prefer this over `GET /products/parts?q=`, which is a plain database "contains this exact text"
+         *     match: `hp 14 dk ram 8gb` finds nothing there, while this ranks the right part first.
+         *     Parts-only queries require most of a multi-word query's words to match (one-word queries are
+         *     unchanged), so results stay relevant past the first few. Items are in ProductListItem shape with
+         *     `docType: 'PART'` and `partId`/`partType`/`partNumber` — link each to `/parts/{partId}`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    categoryId?: string;
+                    categorySlug?: string;
+                    brandId?: string;
+                    brandSlug?: string;
+                    condition?: "NEW" | "USED" | "REFURBISHED" | "OPEN_BOX";
+                    sourcingType?: "INHOUSE" | "OUTSOURCED";
+                    availabilityStatus?: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "PREORDER" | "DISCONTINUED";
+                    minPrice?: number | null;
+                    maxPrice?: number | null;
+                    minRating?: number;
+                    isFeatured?: string;
+                    isActive?: string;
+                    createdByStaffId?: string;
+                    createdFrom?: string;
+                    createdTo?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    attr?: {
+                        [key: string]: string;
+                    };
+                    docType?: "PRODUCT" | "PART" | "ALL";
+                    partTypeId?: string;
+                    ownerSku?: string;
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Paginated parts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                data: unknown[];
+                                meta: {
+                                    total: number;
+                                    page: number;
+                                    limit: number;
+                                    totalPages: number;
+                                    hasNextPage: boolean;
+                                    hasPrevPage: boolean;
+                                };
+                                /** @description Includes `partTypes` buckets. */
+                                facets?: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid query parameters */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -1906,13 +2033,19 @@ export interface paths {
         };
         /**
          * Autocomplete suggestions
-         * @description Returns instant suggestions from OpenSearch completion suggester.
+         * @description Instant suggestions for the search-as-you-type dropdown. Product rows come from the
+         *     OpenSearch completion suggester (unchanged).
+         *
+         *     **Parts (opt-in):** pass `includeParts=true` to also get up to 4 matching parts, appended after the
+         *     products, each with `type: 'part'` and a `partId` — route those to `/parts/{partId}`, never to
+         *     `/product/{slug}`. Without the flag the response is exactly as before. Ignored when `category` is set.
          */
         get: {
             parameters: {
                 query: {
                     q: string;
                     category?: string;
+                    includeParts?: "true" | "false";
                 };
                 header?: never;
                 path?: never;
@@ -1928,7 +2061,19 @@ export interface paths {
                     content: {
                         "application/json": {
                             success: boolean;
-                            data: string[];
+                            data: {
+                                text: string;
+                                /** @enum {string} */
+                                type: "product" | "brand" | "category" | "part";
+                                id?: string;
+                                slug?: string;
+                                /** @description Only on type "part" — route to /parts/{partId} */
+                                partId?: string;
+                                description?: string | null;
+                                primaryImage?: string | null;
+                                lowestPrice?: number | null;
+                                highestPrice?: number | null;
+                            }[];
                         };
                     };
                 };
@@ -9629,6 +9774,681 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile a paid-but-unrecorded Miden payment (SUPER_ADMIN)
+         * @description Lets an admin recover a payment the customer **really paid** on Miden but that never finalized here — for example one flagged `UNDERPAID` ("Settled ₦749.07 of ₦74907") by the old amount-conversion bug, and left `PENDING` ever since.
+         *
+         *     It re-reads the Miden record that was **stored on the payment when it settled** and runs it through the same finalize path a live webhook would: payment → `PAID`, order → `PROCESSING`, invoice marked paid, customer notified. **It makes no call to Miden.**
+         *
+         *     ---
+         *
+         *     ## How an admin uses it (two steps — review first, then apply)
+         *
+         *     **1. Review** — `GET /api/v1/payments/reconcile/preview?references=MDN-…,56cbc0…` (read-only, see its own entry). It shows the payment, **Miden's stored record** (amount, channel, status, every field), how it compares to what the underpayment guard recorded, and whether applying is allowed. If it is, the response carries a `confirm` object.
+         *
+         *     **2. Apply** — this endpoint, with an explicit `"dryRun": false` **and** the `confirm` object exactly as the preview returned it:
+         *
+         *     ```json
+         *     POST /api/v1/payments/reconcile
+         *     {
+         *       "references": ["MDN-1785681105245-F08EEA391E88E156", "56cbc0300ab1ce6ace76ded19b255f"],
+         *       "dryRun": false,
+         *       "confirm": { "paymentId": "PMT-A1B2C3D4E5F6A7B8C9D0", "settledAmount": 74907 }
+         *     }
+         *     ```
+         *
+         *     **Applying without the review is not possible.** Without `confirm` the request is rejected (`422`); with a `confirm` that doesn't match the record's current state — a different payment, or an amount that has changed since the reviewer looked — it is refused (`409 CONFIRMATION_MISMATCH`) and nothing is touched. Re-run the preview and confirm what it shows now.
+         *
+         *     `dryRun` still defaults to `true` here (a bare call reports and changes nothing, returning the same evidence as the preview), but the preview is the intended review step.
+         *
+         *     ---
+         *
+         *     ## Which IDs to give
+         *
+         *     Any identifiers for the **same** payment: our `providerReference` (`MDN-…`), our `paymentId` (`PMT-…`), or **Miden's own** reference / `transactionReference` (what support usually has from Miden's dashboard). Give **two** if you have them — they must resolve to the same single payment, which is a cheap check that they were copied from the same transaction. If they point at different payments the call fails with `REFERENCES_MISMATCH` and nothing is touched.
+         *
+         *     ---
+         *
+         *     ## What it refuses to do
+         *
+         *     It only ever moves a payment **toward `PAID`**, and only when *all* of these hold — otherwise `outcome` is `NOT_ELIGIBLE`, every failed check is listed in `reasons`, and **nothing is changed**:
+         *
+         *     | Check | Why |
+         *     |---|---|
+         *     | Payment is `PENDING` | A `FAILED` payment may already have had its order cancelled and its stock released. |
+         *     | Payment is flagged `UNDERPAID` (`errorCode`) | This tool is scoped to payments held by the underpayment guard — the only way a `PENDING` payment ends up holding a settled Miden record. A payment that is merely still `PENDING` should be re-verified normally (`GET /payments/verify/{reference}`) or looked up live on Miden. |
+         *     | Order is not `CANCELLED` | Otherwise you'd get a paid, cancelled order. |
+         *     | No other payment on the order is already `PAID` | Double-count guard. |
+         *     | Stored gateway response is a **settled Miden record** | The pre-payment launch response is not evidence of payment. |
+         *     | Record shows `Approved`/`Success` **and** `creditPosted: true` | Miden actually credited us. |
+         *     | Settled amount equals the expected amount (within ₦1) | A genuine short payment — **or an excess** — needs a finance decision, not an automatic reconcile. |
+         *     | Currency matches, and the record's narration doesn't name a different order | It's this payment's record. |
+         *
+         *     Calling it again on an already-`PAID` payment is harmless (`ALREADY_PAID`, `applied: false`). Two admins clicking at once is safe — the second gets `409 RECONCILE_IN_PROGRESS`.
+         *
+         *     ---
+         *
+         *     ## Audit trail
+         *
+         *     A real run records **who did it**: the order's status history gets an entry (with `staffId`, so it shows the staff member's name) and the payment's `lastReconcileAt` / `lastReconcileOutcome` are set. The payment's `paidAt` / `completedAt` will be the **reconcile time**, not when the customer actually paid — Miden's original transaction time is in `storedRecord.transactionTime`.
+         *
+         *     ---
+         *
+         *     ## Responses
+         *
+         *     | Status | Meaning |
+         *     |---|---|
+         *     | `200` | A dry-run report (even if not eligible — that's a report, not an error), an applied reconcile, or an already-paid no-op. |
+         *     | `409` `RECONCILE_NOT_ELIGIBLE` | A **real** run was refused. The body still carries the full `data` (`reasons` + evidence) so the UI can show why. |
+         *     | `409` `REFERENCES_MISMATCH` / `AMBIGUOUS_REFERENCE` / `RECONCILE_IN_PROGRESS` | The references don't identify exactly one payment, or another reconcile is running. |
+         *     | `404` `PAYMENT_NOT_FOUND` | A reference matched no payment. |
+         *     | `422` | Validation: 1–5 references, 8–200 chars, letters/digits/`-`/`_` only. |
+         *
+         *     Rate limited to 20 calls/hour per staff member (dry runs count).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ManualReconcileRequest"];
+                };
+            };
+            responses: {
+                /** @description A report, an applied reconcile, or an already-paid no-op — check `data.outcome`. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /** @description Echoes the request. `true` means nothing was changed. */
+                                dryRun: boolean;
+                                /** @description `true` only when THIS call actually changed the payment/order. */
+                                applied: boolean;
+                                /**
+                                 * @description `RECONCILED` = applied just now. `ELIGIBLE` = dry run, every check passed, a real run would apply it. `ALREADY_PAID` = nothing to do (safe to call again). `NOT_ELIGIBLE` = a check failed — see `reasons`; nothing was changed.
+                                 * @enum {string}
+                                 */
+                                outcome: "RECONCILED" | "ELIGIBLE" | "ALREADY_PAID" | "NOT_ELIGIBLE";
+                                /** @description Why the payment is NOT eligible — every failed check, not just the first. Empty unless `outcome` is `NOT_ELIGIBLE`. These are written for staff to read; show them as-is. */
+                                reasons: string[];
+                                matchedBy: {
+                                    reference: string;
+                                    /**
+                                     * @description Which field this reference matched. `gatewayResponse` = it was found inside Miden's stored record (Miden's own reference / transactionReference).
+                                     * @enum {string}
+                                     */
+                                    matchedOn: "providerReference" | "paymentId" | "gatewayReference" | "gatewayResponse";
+                                }[];
+                                payment: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example MDN-1785681105245-F08EEA391E88E156 */
+                                    providerReference: string | null;
+                                    /** @enum {string} */
+                                    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+                                    /** @example miden */
+                                    provider: string;
+                                    /** @example Cards */
+                                    channel: string | null;
+                                    /**
+                                     * @description What the payment was created for, in naira.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /** @example NGN */
+                                    currency: string;
+                                    /** @example UNDERPAID */
+                                    errorCode: string | null;
+                                    /** @example Settled ₦749.07 of ₦74907 */
+                                    errorMessage: string | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** @example ORD-2026-709774 */
+                                    orderNumber: string;
+                                    /** @example PENDING */
+                                    orderStatus: string;
+                                    /** @example PENDING */
+                                    orderPaymentStatus: string;
+                                };
+                                /** @description What Miden's own record, stored on the payment when it settled, says — the evidence the verdict rests on. `null` if nothing usable is stored. */
+                                storedRecord: {
+                                    /** @example Approved */
+                                    status: string | null;
+                                    creditPosted: boolean | null;
+                                    /** @description Naira, as Miden recorded it. Compare against `payment.expectedAmount` — a full payment shows the same number. */
+                                    settledAmount: number | null;
+                                    /** @description Naira. */
+                                    transactionFee: number | null;
+                                    /**
+                                     * @description The channel Miden recorded the transaction on. Compare with `payment.channel`.
+                                     * @example Cards
+                                     */
+                                    channel: string | null;
+                                    /** @example NGN */
+                                    currency: string | null;
+                                    /**
+                                     * @description Cards only.
+                                     * @example Visa
+                                     */
+                                    cardScheme: string | null;
+                                    transactionReference: string | null;
+                                    merchantReference: string | null;
+                                    /** @description When the customer actually paid, per Miden — not when it is reconciled. */
+                                    transactionTime: string | null;
+                                } | null;
+                                /** @description The review in one object: **expected** vs what **Miden actually settled** vs what the **guard recorded**. Render these three figures side by side — for the ÷100 bug they read ₦74,907 / ₦74,907 / ₦749.07. */
+                                comparison: {
+                                    /**
+                                     * @description What the payment was created for.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /**
+                                     * @description What Miden's record says it settled. `null` if there is no usable record.
+                                     * @example 74907
+                                     */
+                                    settledAmount: number | null;
+                                    /**
+                                     * @description `settledAmount − expectedAmount`. `0` for a full payment; negative for a genuine short payment.
+                                     * @example 0
+                                     */
+                                    difference: number | null;
+                                    /** @description Within ₦1 — the same tolerance the underpayment guard uses. */
+                                    amountsMatch: boolean;
+                                    /** @example Cards */
+                                    expectedChannel: string | null;
+                                    /** @example Cards */
+                                    recordChannel: string | null;
+                                    /**
+                                     * @description The payment's own `errorMessage` — why it was flagged.
+                                     * @example Settled ₦749.07 of ₦74907
+                                     */
+                                    underpaidMessage: string | null;
+                                    /**
+                                     * @description The "settled" figure the underpayment guard recorded (₦749.07 in the example). `null` if the message isn't in the guard's format.
+                                     * @example 749.07
+                                     */
+                                    guardRecordedAmount: number | null;
+                                    /** @description `true` when `guardRecordedAmount × 100` equals `expectedAmount` exactly — the signature of the old ÷100 conversion bug, i.e. the flag was a false alarm. `false` for a genuine short payment. */
+                                    divideBy100Signature: boolean;
+                                };
+                                /** @description Miden's complete stored record, verbatim — every field it returned (processor reference, masked card, timestamps, …). Show it behind an "all details" toggle. `null` if nothing is stored. Present even when not eligible. */
+                                rawRecord: {
+                                    [key: string]: unknown;
+                                } | null;
+                                /** @description Present **only when applying would be allowed**. Send it back unchanged as `confirm` in `POST /payments/reconcile` — applying is impossible without it, which is what guarantees the reviewer has seen this record. */
+                                confirm: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example 74907 */
+                                    settledAmount: number;
+                                } | null;
+                                /** @description The finalized payment (same shape as `GET /payments/verify/{reference}`). Only present when `outcome` is `RECONCILED`. */
+                                result: {
+                                    [key: string]: unknown;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Staff authentication required. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SUPER_ADMIN role required, or CSRF validation failed (cookie-auth clients — see POST /initiate for the CSRF flow). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description A reference matched no payment (`PAYMENT_NOT_FOUND`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description A real run was refused (`RECONCILE_NOT_ELIGIBLE` — body carries `data` with `reasons`), or the references are ambiguous/mismatched, or another reconcile is running. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: false;
+                            error: string;
+                            /** @enum {string} */
+                            code: "RECONCILE_NOT_ELIGIBLE" | "REFERENCES_MISMATCH" | "AMBIGUOUS_REFERENCE" | "RECONCILE_IN_PROGRESS" | "CONFIRMATION_MISMATCH";
+                            /** @description Present for `RECONCILE_NOT_ELIGIBLE`. */
+                            data?: {
+                                /** @description Echoes the request. `true` means nothing was changed. */
+                                dryRun: boolean;
+                                /** @description `true` only when THIS call actually changed the payment/order. */
+                                applied: boolean;
+                                /**
+                                 * @description `RECONCILED` = applied just now. `ELIGIBLE` = dry run, every check passed, a real run would apply it. `ALREADY_PAID` = nothing to do (safe to call again). `NOT_ELIGIBLE` = a check failed — see `reasons`; nothing was changed.
+                                 * @enum {string}
+                                 */
+                                outcome: "RECONCILED" | "ELIGIBLE" | "ALREADY_PAID" | "NOT_ELIGIBLE";
+                                /** @description Why the payment is NOT eligible — every failed check, not just the first. Empty unless `outcome` is `NOT_ELIGIBLE`. These are written for staff to read; show them as-is. */
+                                reasons: string[];
+                                matchedBy: {
+                                    reference: string;
+                                    /**
+                                     * @description Which field this reference matched. `gatewayResponse` = it was found inside Miden's stored record (Miden's own reference / transactionReference).
+                                     * @enum {string}
+                                     */
+                                    matchedOn: "providerReference" | "paymentId" | "gatewayReference" | "gatewayResponse";
+                                }[];
+                                payment: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example MDN-1785681105245-F08EEA391E88E156 */
+                                    providerReference: string | null;
+                                    /** @enum {string} */
+                                    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+                                    /** @example miden */
+                                    provider: string;
+                                    /** @example Cards */
+                                    channel: string | null;
+                                    /**
+                                     * @description What the payment was created for, in naira.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /** @example NGN */
+                                    currency: string;
+                                    /** @example UNDERPAID */
+                                    errorCode: string | null;
+                                    /** @example Settled ₦749.07 of ₦74907 */
+                                    errorMessage: string | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** @example ORD-2026-709774 */
+                                    orderNumber: string;
+                                    /** @example PENDING */
+                                    orderStatus: string;
+                                    /** @example PENDING */
+                                    orderPaymentStatus: string;
+                                };
+                                /** @description What Miden's own record, stored on the payment when it settled, says — the evidence the verdict rests on. `null` if nothing usable is stored. */
+                                storedRecord: {
+                                    /** @example Approved */
+                                    status: string | null;
+                                    creditPosted: boolean | null;
+                                    /** @description Naira, as Miden recorded it. Compare against `payment.expectedAmount` — a full payment shows the same number. */
+                                    settledAmount: number | null;
+                                    /** @description Naira. */
+                                    transactionFee: number | null;
+                                    /**
+                                     * @description The channel Miden recorded the transaction on. Compare with `payment.channel`.
+                                     * @example Cards
+                                     */
+                                    channel: string | null;
+                                    /** @example NGN */
+                                    currency: string | null;
+                                    /**
+                                     * @description Cards only.
+                                     * @example Visa
+                                     */
+                                    cardScheme: string | null;
+                                    transactionReference: string | null;
+                                    merchantReference: string | null;
+                                    /** @description When the customer actually paid, per Miden — not when it is reconciled. */
+                                    transactionTime: string | null;
+                                } | null;
+                                /** @description The review in one object: **expected** vs what **Miden actually settled** vs what the **guard recorded**. Render these three figures side by side — for the ÷100 bug they read ₦74,907 / ₦74,907 / ₦749.07. */
+                                comparison: {
+                                    /**
+                                     * @description What the payment was created for.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /**
+                                     * @description What Miden's record says it settled. `null` if there is no usable record.
+                                     * @example 74907
+                                     */
+                                    settledAmount: number | null;
+                                    /**
+                                     * @description `settledAmount − expectedAmount`. `0` for a full payment; negative for a genuine short payment.
+                                     * @example 0
+                                     */
+                                    difference: number | null;
+                                    /** @description Within ₦1 — the same tolerance the underpayment guard uses. */
+                                    amountsMatch: boolean;
+                                    /** @example Cards */
+                                    expectedChannel: string | null;
+                                    /** @example Cards */
+                                    recordChannel: string | null;
+                                    /**
+                                     * @description The payment's own `errorMessage` — why it was flagged.
+                                     * @example Settled ₦749.07 of ₦74907
+                                     */
+                                    underpaidMessage: string | null;
+                                    /**
+                                     * @description The "settled" figure the underpayment guard recorded (₦749.07 in the example). `null` if the message isn't in the guard's format.
+                                     * @example 749.07
+                                     */
+                                    guardRecordedAmount: number | null;
+                                    /** @description `true` when `guardRecordedAmount × 100` equals `expectedAmount` exactly — the signature of the old ÷100 conversion bug, i.e. the flag was a false alarm. `false` for a genuine short payment. */
+                                    divideBy100Signature: boolean;
+                                };
+                                /** @description Miden's complete stored record, verbatim — every field it returned (processor reference, masked card, timestamps, …). Show it behind an "all details" toggle. `null` if nothing is stored. Present even when not eligible. */
+                                rawRecord: {
+                                    [key: string]: unknown;
+                                } | null;
+                                /** @description Present **only when applying would be allowed**. Send it back unchanged as `confirm` in `POST /payments/reconcile` — applying is impossible without it, which is what guarantees the reviewer has seen this record. */
+                                confirm: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example 74907 */
+                                    settledAmount: number;
+                                } | null;
+                                /** @description The finalized payment (same shape as `GET /payments/verify/{reference}`). Only present when `outcome` is `RECONCILED`. */
+                                result: {
+                                    [key: string]: unknown;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Validation failed: 1–5 references (8–200 chars, letters/digits/`-`/`_` only), or `dryRun: false` sent without `confirm` — review with `GET /payments/reconcile/preview` first. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit exceeded (20/hour per staff member). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/reconcile/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review a payment before reconciling it — Miden's record vs what was flagged (SUPER_ADMIN, read-only)
+         * @description **Step 1 of reconciling.** Shows the super admin everything they need to be sure before they apply `POST /payments/reconcile`: the payment, **Miden's own stored record** (amount, channel, status — and every other field), and how it compares to what the underpayment guard recorded.
+         *
+         *     **Strictly read-only.** There is no parameter that makes this write, and it needs no CSRF token. It makes **no call to Miden** — it reads the record stored on the payment when it settled. Safe to call as often as needed.
+         *
+         *     ---
+         *
+         *     ## What to show the admin
+         *
+         *     `comparison` is the whole review in one object — render three figures side by side:
+         *
+         *     | Expected | Miden settled | Guard recorded |
+         *     |---|---|---|
+         *     | ₦74,907 | ₦74,907 | ₦749.07 |
+         *     | `comparison.expectedAmount` | `comparison.settledAmount` | `comparison.guardRecordedAmount` |
+         *
+         *     When **Miden settled = Expected** and `comparison.divideBy100Signature` is `true`, the customer paid in full and the "underpaid" flag was the old ÷100 conversion bug (₦749.07 × 100 = ₦74,907 exactly). Also show `storedRecord.channel` next to `payment.channel`, the status / `creditPosted`, and `storedRecord.transactionTime` (when the customer really paid). Put `rawRecord` — Miden's complete record — behind an "all details" toggle.
+         *
+         *     A **genuine** short payment looks different: a negative `comparison.difference`, `divideBy100Signature: false`, and `outcome: NOT_ELIGIBLE`. Do not reconcile those.
+         *
+         *     ---
+         *
+         *     ## Then decide
+         *
+         *     | `outcome` | Meaning | UI |
+         *     |---|---|---|
+         *     | `ELIGIBLE` | Every check passed; applying would succeed. `confirm` is populated. | Enable a **Reconcile** button that sends `confirm` to `POST /payments/reconcile`. |
+         *     | `NOT_ELIGIBLE` | A check failed — every failed check is in `reasons`. `confirm` is `null`. | Show the `reasons`; no button. |
+         *     | `ALREADY_PAID` | Nothing to do. | Show it as already resolved. |
+         *
+         *     The evidence (`storedRecord`, `comparison`, `rawRecord`) is returned even when not eligible, so the admin can see *why*.
+         *
+         *     ---
+         *
+         *     ## Which IDs
+         *
+         *     `?references=` takes 1–5 identifiers of the **same** payment, comma-separated (`?references=MDN-…,56cbc0…`) or repeated (`?references=a&references=b`): our `providerReference` (`MDN-…`), our `paymentId` (`PMT-…`), or Miden's own reference / `transactionReference`. Give two if you have them — they must resolve to one payment, otherwise `409 REFERENCES_MISMATCH`.
+         *
+         *     Rate limited to 60 calls/hour per staff member.
+         */
+        get: {
+            parameters: {
+                query: {
+                    references: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The review. Always 200 when the references identify exactly one payment — an ineligible payment is a finding, not an error; check `data.outcome`. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /** @description Echoes the request. `true` means nothing was changed. */
+                                dryRun: boolean;
+                                /** @description `true` only when THIS call actually changed the payment/order. */
+                                applied: boolean;
+                                /**
+                                 * @description `RECONCILED` = applied just now. `ELIGIBLE` = dry run, every check passed, a real run would apply it. `ALREADY_PAID` = nothing to do (safe to call again). `NOT_ELIGIBLE` = a check failed — see `reasons`; nothing was changed.
+                                 * @enum {string}
+                                 */
+                                outcome: "RECONCILED" | "ELIGIBLE" | "ALREADY_PAID" | "NOT_ELIGIBLE";
+                                /** @description Why the payment is NOT eligible — every failed check, not just the first. Empty unless `outcome` is `NOT_ELIGIBLE`. These are written for staff to read; show them as-is. */
+                                reasons: string[];
+                                matchedBy: {
+                                    reference: string;
+                                    /**
+                                     * @description Which field this reference matched. `gatewayResponse` = it was found inside Miden's stored record (Miden's own reference / transactionReference).
+                                     * @enum {string}
+                                     */
+                                    matchedOn: "providerReference" | "paymentId" | "gatewayReference" | "gatewayResponse";
+                                }[];
+                                payment: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example MDN-1785681105245-F08EEA391E88E156 */
+                                    providerReference: string | null;
+                                    /** @enum {string} */
+                                    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+                                    /** @example miden */
+                                    provider: string;
+                                    /** @example Cards */
+                                    channel: string | null;
+                                    /**
+                                     * @description What the payment was created for, in naira.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /** @example NGN */
+                                    currency: string;
+                                    /** @example UNDERPAID */
+                                    errorCode: string | null;
+                                    /** @example Settled ₦749.07 of ₦74907 */
+                                    errorMessage: string | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** @example ORD-2026-709774 */
+                                    orderNumber: string;
+                                    /** @example PENDING */
+                                    orderStatus: string;
+                                    /** @example PENDING */
+                                    orderPaymentStatus: string;
+                                };
+                                /** @description What Miden's own record, stored on the payment when it settled, says — the evidence the verdict rests on. `null` if nothing usable is stored. */
+                                storedRecord: {
+                                    /** @example Approved */
+                                    status: string | null;
+                                    creditPosted: boolean | null;
+                                    /** @description Naira, as Miden recorded it. Compare against `payment.expectedAmount` — a full payment shows the same number. */
+                                    settledAmount: number | null;
+                                    /** @description Naira. */
+                                    transactionFee: number | null;
+                                    /**
+                                     * @description The channel Miden recorded the transaction on. Compare with `payment.channel`.
+                                     * @example Cards
+                                     */
+                                    channel: string | null;
+                                    /** @example NGN */
+                                    currency: string | null;
+                                    /**
+                                     * @description Cards only.
+                                     * @example Visa
+                                     */
+                                    cardScheme: string | null;
+                                    transactionReference: string | null;
+                                    merchantReference: string | null;
+                                    /** @description When the customer actually paid, per Miden — not when it is reconciled. */
+                                    transactionTime: string | null;
+                                } | null;
+                                /** @description The review in one object: **expected** vs what **Miden actually settled** vs what the **guard recorded**. Render these three figures side by side — for the ÷100 bug they read ₦74,907 / ₦74,907 / ₦749.07. */
+                                comparison: {
+                                    /**
+                                     * @description What the payment was created for.
+                                     * @example 74907
+                                     */
+                                    expectedAmount: number;
+                                    /**
+                                     * @description What Miden's record says it settled. `null` if there is no usable record.
+                                     * @example 74907
+                                     */
+                                    settledAmount: number | null;
+                                    /**
+                                     * @description `settledAmount − expectedAmount`. `0` for a full payment; negative for a genuine short payment.
+                                     * @example 0
+                                     */
+                                    difference: number | null;
+                                    /** @description Within ₦1 — the same tolerance the underpayment guard uses. */
+                                    amountsMatch: boolean;
+                                    /** @example Cards */
+                                    expectedChannel: string | null;
+                                    /** @example Cards */
+                                    recordChannel: string | null;
+                                    /**
+                                     * @description The payment's own `errorMessage` — why it was flagged.
+                                     * @example Settled ₦749.07 of ₦74907
+                                     */
+                                    underpaidMessage: string | null;
+                                    /**
+                                     * @description The "settled" figure the underpayment guard recorded (₦749.07 in the example). `null` if the message isn't in the guard's format.
+                                     * @example 749.07
+                                     */
+                                    guardRecordedAmount: number | null;
+                                    /** @description `true` when `guardRecordedAmount × 100` equals `expectedAmount` exactly — the signature of the old ÷100 conversion bug, i.e. the flag was a false alarm. `false` for a genuine short payment. */
+                                    divideBy100Signature: boolean;
+                                };
+                                /** @description Miden's complete stored record, verbatim — every field it returned (processor reference, masked card, timestamps, …). Show it behind an "all details" toggle. `null` if nothing is stored. Present even when not eligible. */
+                                rawRecord: {
+                                    [key: string]: unknown;
+                                } | null;
+                                /** @description Present **only when applying would be allowed**. Send it back unchanged as `confirm` in `POST /payments/reconcile` — applying is impossible without it, which is what guarantees the reviewer has seen this record. */
+                                confirm: {
+                                    /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                                    paymentId: string;
+                                    /** @example 74907 */
+                                    settledAmount: number;
+                                } | null;
+                                /** @description The finalized payment (same shape as `GET /payments/verify/{reference}`). Only present when `outcome` is `RECONCILED`. */
+                                result: {
+                                    [key: string]: unknown;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Staff authentication required. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description SUPER_ADMIN role required. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description A reference matched no payment (`PAYMENT_NOT_FOUND`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The references belong to different payments (`REFERENCES_MISMATCH`), or one reference matches more than one payment (`AMBIGUOUS_REFERENCE`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Validation failed (1–5 references, 8–200 chars, letters/digits/`-`/`_` only). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Rate limit exceeded (60/hour per staff member). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -21115,7 +21935,7 @@ export interface paths {
         put?: never;
         /**
          * Link a part to a product
-         * @description Idempotent — linking the same part twice updates `compatNote` and `sortOrder` instead of throwing an error.
+         * @description Idempotent — linking the same part twice updates `compatNote` and `sortOrder` instead of throwing an error. Any part can be linked to any product: the part does **not** need to share the product's category or brand (e.g. a Kingston RAM stick on an HP laptop). The former `409 PART_CATEGORY_BRAND_MISMATCH` no longer exists.
          */
         post: {
             parameters: {
@@ -21189,7 +22009,7 @@ export interface paths {
         put?: never;
         /**
          * Bulk-link parts to a product
-         * @description Link up to 50 parts to a product in one call. Each link is upserted independently — partial success is returned, failed links do not roll back successful ones.
+         * @description Link up to 50 parts to a product in one call. Each link is upserted independently — failed links do not roll back successful ones. **At least one linked → 200** (partial success: failed items carry `status: "failed"` and an `error`). **None linked → 422 `NO_PARTS_LINKED`**, with the same `{ linked: 0, results }` in `data` so each part's reason can be shown — previously a total failure was also a 200, which made it look like success.
          */
         post: {
             parameters: {
@@ -21221,7 +22041,7 @@ export interface paths {
                                 results: {
                                     /** Format: uuid */
                                     partId: string;
-                                    /** Format: uuid */
+                                    /** @description UUID of the link; empty string when status is failed */
                                     linkId: string;
                                     /** @enum {string} */
                                     status: "linked" | "failed";
@@ -21251,6 +22071,33 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Validation failed, or NO part could be linked (`code: NO_PARTS_LINKED`) */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: false;
+                            /** @enum {string} */
+                            code: "NO_PARTS_LINKED";
+                            message: string;
+                            data: {
+                                /** @enum {number} */
+                                linked: 0;
+                                results: {
+                                    /** Format: uuid */
+                                    partId: string;
+                                    linkId: string;
+                                    /** @enum {string} */
+                                    status: "failed";
+                                    error: string;
+                                }[];
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -30357,6 +31204,29 @@ export interface components {
             /** @example refund-PMT-A1B2-1720000000000 */
             idempotencyKey: string;
         };
+        ManualReconcileRequest: {
+            /**
+             * @description Identifiers of the SAME payment: our `providerReference` (MDN-…) or `paymentId` (PMT-…), or Miden's own reference/transactionReference. Give two when you can — they must resolve to one payment.
+             * @example [
+             *       "MDN-1785681105245-F08EEA391E88E156",
+             *       "56cbc0300ab1ce6ace76ded19b255f"
+             *     ]
+             */
+            references: string[];
+            /**
+             * @description Defaults to `true` — report only. Send `false` explicitly to apply (which also requires `confirm`).
+             * @default true
+             * @example false
+             */
+            dryRun: boolean;
+            /** @description **Required when `dryRun` is `false`.** The `confirm` object `GET /payments/reconcile/preview` returned, unchanged. Proves the record was reviewed and hasn't changed since. */
+            confirm?: {
+                /** @example PMT-A1B2C3D4E5F6A7B8C9D0 */
+                paymentId: string;
+                /** @example 74907 */
+                settledAmount: number;
+            };
+        };
         BulkStockCheckRequest: {
             items: {
                 /** Format: uuid */
@@ -33484,7 +34354,10 @@ export interface components {
             /** Format: uuid */
             productId: string | null;
             productName: string | null;
+            /** @description The drop's target discount, stored on the hunt deal itself rather than read off the underlying Deal's markup rule — that rule doesn't exist until the drop starts. */
             markupPercentage: number;
+            /** @description Whether the underlying markup rule has actually materialized (set by startDeal at slotStart). False past slotStart means the start skipped this target — usually MARKUP_RULE_SCOPE_CONFLICT — and it ran at full price. */
+            discountApplied: boolean;
             slotStart: string;
             slotEnd: string;
             revealAt: string;

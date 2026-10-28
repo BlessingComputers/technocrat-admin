@@ -315,8 +315,15 @@ export const productsService = {
   reindexProduct: (productId: string) =>
     api.post<{ message: string }>(products.adminReindex(productId)),
 
-  /** Re-index the entire catalog in OpenSearch (async, 202). */
-  syncCatalog: () => api.post<{ message: string }>(products.adminSync),
+  /**
+   * Re-index the entire catalog in OpenSearch (async, 202 each). Products and
+   * parts share one index but have separate sync jobs, so this queues both.
+   * Sequential, not parallel: each call bootstraps the index before queuing.
+   */
+  syncCatalog: async () => {
+    await api.post<{ message: string }>(products.adminSync);
+    return api.post<{ message: string }>(products.parts.adminSync);
+  },
 
   /** Bust all product Redis cache keys (200). */
   clearProductCache: () =>

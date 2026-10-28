@@ -483,7 +483,7 @@ The API base, the emergency-unblock URL, both sockets, and the codegen scripts a
 | `NEXT_PUBLIC_BACKEND_URL` | public | **The seam.** Backend origin, no trailing slash, no `/api`. Required — a missing value throws at config load |
 | `NEXT_PUBLIC_API_BASE_URL` | public | Mount point of the same-origin proxy on *our* domain, normally `/api`. A path, not a host — not part of the seam |
 | `IMAGE_ASSET_HOSTS` | build-time | Comma-separated hostnames for `next/image` `remotePatterns`. Optional; defaults live in `config/env.ts`. Needs a rebuild, not a restart |
-| `STOREFRONT_URL` | server-only | Optional customer storefront origin used to discover promotion link targets |
+| `STOREFRONT_URL` | server-only | Technocrat storefront origin. `/legal` publishing scrapes `<origin>/policies` from it (fails without it); promotion link discovery reads its pages. Never Blessing's |
 | `NEXT_PUBLIC_SOCKET_POLLING_FALLBACK` | public | Set to `"true"` to restore Socket.IO's polling→websocket upgrade for chat + WhatsApp. Default is WebSocket-only (App Platform 504s held-open long-polls). Escape hatch only — no code change needed |
 | `CLAUDE_API_KEY` | server-only | AI smart-paste routes (products + parts), Claude Haiku 4.5. The only AI provider since Groq was retired on 2026-09-23 |
 
