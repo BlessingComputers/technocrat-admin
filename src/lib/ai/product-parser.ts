@@ -2,7 +2,7 @@
  * Product parsing from raw pasted text (AI smart-paste).
  *
  * The LLM call sits behind the `ChatCompleter` seam: production passes the
- * Groq-then-Claude adapter (see `./llm`); the prompt-building and
+ * Claude adapter (see `./llm`); the prompt-building and
  * response-parsing are pure. Lives in `lib/` because the app route imports it
  * (app -> lib is allowed); the client never imports this — it calls
  * `/api/admin/products/ai-parse`.
@@ -15,7 +15,8 @@
 
 import {
   AiParseError,
-  createFallbackCompleter,
+  createClaudeCompleter,
+  PLAIN_WRITING,
   type ChatCompleter,
   type ChatMessage,
 } from "./llm";
@@ -85,20 +86,20 @@ You are a Product Data Architect for an electronics retailer.
 Your task is to parse raw supplier listings into structured JSON for a bulk upload editor.
 
 INSTRUCTIONS:
-1. EACH LISTING IS ITS OWN PRODUCT (critical):
+1. Each listing is its own product:
    - A listing is a block of lines describing one configuration, ending with a
      price (a token starting with @, #, ₦, or N, e.g. "@1.1M" or "#970,000").
-   - Produce ONE product per listing. NEVER group or merge configurations into
-     a shared "base" product, even when the brand and model family match. A
-     different processor, RAM, storage, colour, or part number is a DIFFERENT
-     product.
+   - Produce one product per listing, even when the brand and model family
+     match: a different processor, RAM, storage, colour, or part number is a
+     different product with its own price and stock, so configurations are not
+     merged into a shared "base" product.
 
-2. Product "name" — include ALL specifications (this is the key rule):
+2. Product "name" — include every specification:
    - Format: [Brand] [Model + Part Number] - [every spec, comma-separated].
    - Include EVERYTHING in the listing EXCEPT: the price token (@1.1M, #…, ₦…,
      N…), leading decorative emoji/bullets (🎈🌱• etc.), and availability words
-     ("Sold out", "SOLD OUT", "(4unit)"). Do NOT truncate or summarise specs —
-     every spec line must be represented in the name.
+     ("Sold out", "SOLD OUT", "(4unit)"). Staff tell configurations apart by
+     name, so represent every spec line rather than summarising.
    - Example input:
        🎈Dell Pro 14 PC14250
        Intel Core Ultra 5 235u VPro
@@ -117,14 +118,9 @@ INSTRUCTIONS:
    - A count like "(4unit)" → that number.
    - Otherwise → stockQuantity 10.
 
-4b. "isActive" — ALWAYS false. Every uploaded product starts inactive (a draft).
-   Staff activate it later, once the selling price/markup has been set. Never
-   output true, regardless of stock.
-
 5. "sku" — set it to the product's PART NUMBER (the model/part code in the
-   listing, e.g. "PC14250", "BD4A6EA"). Every product MUST have a part number;
-   if a listing has none, still output the product but leave "sku" null so a
-   human can fix it (the editor blocks upload until it has one).
+   listing, e.g. "PC14250", "BD4A6EA"). If a listing has none, still output the
+   product with "sku" null; the editor blocks upload until a human adds one.
 
 5b. "sourcingType" — read it from the TOP of the input. If the first line(s)
    state the source for the whole list — "in house" / "in-house" / "inhouse" →
@@ -136,14 +132,16 @@ INSTRUCTIONS:
    "Part Number" spec — the part number belongs in "sku" (rule 5) and is shown
    as the part number automatically. Specifications must mirror the name.
 
-7. Generate a rich product description (2-3 sentences) highlighting key selling
-   points.
+7. Write a plain product description (2-3 sentences) from the name and specs
+   only. The first sentence says what it is, with the key numbers, e.g. "A
+   14-inch HP laptop with a 13th-gen Core i3, 8GB RAM and a 256GB SSD." Follow
+   the WRITING RULES at the end.
 
 8. Categorization (two steps — order matters):
    - Use the CATEGORIES list given below. Match each product to the MOST LIKELY Category ID by comparing the product type to category names.
    - Use ONLY ids that appear in that list. Never invent an id, and never put a name where an id is asked for.
    - If no category matches, return null for categoryId AND null for subcategoryId.
-   - Then pick subcategoryId ONLY from the matched category's own "subcategories" array. NEVER use a subcategory id from a different category. If none clearly fits (or the category has no subcategories), return null for subcategoryId.
+   - Then pick subcategoryId from the matched category's own "subcategories" array only. If none clearly fits (or the category has no subcategories), return null for subcategoryId.
 
 9. Branding:
    - Use the BRANDS list given below. Match each product to the correct Brand ID.
@@ -152,35 +150,17 @@ INSTRUCTIONS:
 10. Ignore section headers like "HP 15 LAPTOPS" — they are not products. Ignore
     decorative emoji/bullets (🌱 etc.) at the start of lines.
 
-11. Do NOT output a slug. The system generates it from the name.
+Return one entry per listing in the "products" array.
 
-OUTPUT FORMAT:
-Return a JSON object with a single "products" array:
-{
-  "products": [
-    {
-      "name": "string (Brand + Model + Part Number, then ALL specs)",
-      "description": "string (2-3 sentence selling description)",
-      "categoryId": "string | null",
-      "subcategoryId": "string | null (must belong to categoryId, else null)",
-      "brandId": "string | null",
-      "isActive": false,
-      "sourcingType": "INHOUSE | OUTSOURCED (default OUTSOURCED)",
-      "sku": "string (the part number) | null",
-      "price": number,
-      "stockQuantity": number,
-      "specifications": [{ "name": "string", "value": "string" }]
-    }
-  ]
-}
+${PLAIN_WRITING}
 `;
 
 /**
  * Structured Outputs schema: the model's reply is constrained to this shape, so
  * `parseCompletionContent` never faces malformed JSON or missing keys. Objects
  * set `additionalProperties: false` and list every property in `required`;
- * optional fields use nullable types. Both providers enforce it now (Anthropic
- * via `output_config`, Groq via strict `json_schema`).
+ * optional fields use nullable types. Anthropic enforces it via
+ * `output_config`.
  *
  * Referential validity — an id that exists in the provided lists, a subcategory
  * that actually belongs to its category — is still enforced afterwards by
@@ -202,7 +182,6 @@ const PRODUCTS_SCHEMA: Record<string, unknown> = {
           categoryId: { type: ["string", "null"] },
           subcategoryId: { type: ["string", "null"] },
           brandId: { type: ["string", "null"] },
-          isActive: { type: "boolean" },
           sourcingType: { type: "string", enum: ["INHOUSE", "OUTSOURCED"] },
           sku: { type: ["string", "null"] },
           price: { type: "number" },
@@ -226,7 +205,6 @@ const PRODUCTS_SCHEMA: Record<string, unknown> = {
           "categoryId",
           "subcategoryId",
           "brandId",
-          "isActive",
           "sourcingType",
           "sku",
           "price",
@@ -280,20 +258,19 @@ export function parseCompletionContent(content: string): ParseProductResult {
   return { products: products as AiParsedProduct[] };
 }
 
-/** Production ChatCompleter: Groq primary, Claude (Haiku 4.5) fallback. */
-export const parseCompleter: ChatCompleter = createFallbackCompleter({
+/** Production ChatCompleter: Claude Haiku 4.5. */
+export const parseCompleter: ChatCompleter = createClaudeCompleter({
   schema: PRODUCTS_SCHEMA,
-  schemaName: "products",
 });
 
 /**
  * Parse raw product text into structured products. The `complete` seam defaults
- * to the Groq-then-Claude fallback adapter; tests can pass an in-memory fake.
+ * to the Claude adapter; tests can pass an in-memory fake.
  *
  * Long pastes are split into chunks and sent as separate calls, then merged.
- * Chunks run sequentially on purpose: in parallel they would burn through the
- * Groq rate limit and trip the shared circuit breaker, pushing the rest of the
- * paste onto the paid fallback.
+ * Chunks run sequentially on purpose: the first call writes the cached system
+ * prompt (the reference lists) and every later chunk reads it back. In parallel
+ * they would all miss the cache and each pay full price for the lists.
  */
 export async function parseProductText(
   input: ParseProductInput,

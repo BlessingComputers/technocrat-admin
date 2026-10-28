@@ -76,9 +76,9 @@ describe("buildParseMessages", () => {
     expect(user.content).toContain(RAW);
   });
 
-  it("no longer asks the model for a slug", () => {
+  it("does not ask the model for a slug or isActive", () => {
     const [system] = buildParseMessages(input(RAW));
-    expect(system.content).toContain("Do NOT output a slug");
+    expect(system.content).not.toMatch(/slug|isActive/);
   });
 });
 
