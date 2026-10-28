@@ -1,39 +1,21 @@
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
-import { ApiError } from "@/lib/api/error";
-import { getErrorMessage } from "@/lib/api/error-message";
+import { hardNavigate } from "@/lib/auth/hard-navigate";
+import { logoutAction } from "@/lib/auth/logout-action";
 import { settingsService } from "./settings.service";
-import type { ResetPasswordInput } from "../types/settings";
+import type { ChangePasswordInput } from "../types/settings";
 
-export function useRequestPasswordToken() {
+/**
+ * On success the backend has revoked every session, this one included. Clear
+ * the admin's own cookies too (it sets its own names, which the backend's
+ * clearStaffCookies may not match), then do a full load of /login so no stale
+ * client state or socket survives. Errors render inline in the form.
+ */
+export function useChangePassword() {
   return useMutation({
-    mutationFn: (email: string) => settingsService.requestPasswordToken(email),
-    onSuccess: (res) =>
-      toast.success(res.message || "Reset token sent to your email"),
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to send reset token")),
-  });
-}
-
-export function useResetPassword() {
-  return useMutation({
-    mutationFn: (data: ResetPasswordInput) =>
-      settingsService.resetPassword(data),
-    onSuccess: (res) =>
-      toast.success(res.message || "Password reset successfully"),
-    onError: (error) => {
-      // Surface per-field validation errors if the backend returned them.
-      if (error instanceof ApiError) {
-        const data = error.data as {
-          errors?: Record<string, string[]>;
-        } | null;
-        const validation = data?.errors ? Object.values(data.errors).flat() : [];
-        if (validation.length) {
-          validation.forEach((msg) => toast.error(msg));
-          return;
-        }
-      }
-      toast.error(getErrorMessage(error, "Failed to reset password"));
+    mutationFn: (data: ChangePasswordInput) => settingsService.changePassword(data),
+    onSuccess: async () => {
+      await logoutAction().catch(() => null);
+      hardNavigate("/login?notice=password-changed");
     },
   });
 }

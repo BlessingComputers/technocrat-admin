@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { StaffSession } from "@/lib/auth/permissions";
+import { hardNavigate } from "@/lib/auth/hard-navigate";
+import { logoutAction } from "@/lib/auth/logout-action";
 import { authService } from "./auth.service";
+import type { ResetPasswordDto } from "../types/auth";
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -22,5 +25,27 @@ export function useStaffProfileQuery(options?: {
     staleTime: 1000 * 60 * 5,
     retry: false,
     ...options,
+  });
+}
+
+/** Email a reset link. The backend answers 200 whether or not the email exists. */
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) => authService.forgotPassword(email),
+  });
+}
+
+/**
+ * Set a new password from an emailed token. The backend revokes every session
+ * for that staff member. If this browser still holds one, the proxy would
+ * bounce /login to /, so clear the local cookies first, then full-load /login.
+ */
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (data: ResetPasswordDto) => authService.resetPassword(data),
+    onSuccess: async () => {
+      await logoutAction().catch(() => null);
+      hardNavigate("/login?notice=password-reset");
+    },
   });
 }
