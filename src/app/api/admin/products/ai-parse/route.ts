@@ -7,8 +7,8 @@ import {
 
 /**
  * AI smart-paste: turn raw pasted product text into structured products.
- * Provider routing lives in `lib/ai/llm.ts` — Claude Haiku 4.5 primary
- * (CLAUDE_API_KEY), Groq fallback (GROQ_API_KEY), both server-only.
+ * The model call lives in `lib/ai/llm.ts` — Claude Haiku 4.5
+ * (CLAUDE_API_KEY, server-only).
  * Called by the bulk-upload view and the single-product create/edit form.
  */
 export async function POST(req: Request) {

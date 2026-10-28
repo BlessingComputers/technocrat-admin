@@ -7,8 +7,8 @@ import {
 
 /**
  * AI smart-paste for parts: turn raw pasted supplier text into structured parts.
- * Provider routing lives in `lib/ai/llm.ts` — Claude Haiku 4.5 primary
- * (CLAUDE_API_KEY), Groq fallback (GROQ_API_KEY), both server-only.
+ * The model call lives in `lib/ai/llm.ts` — Claude Haiku 4.5
+ * (CLAUDE_API_KEY, server-only).
  * Called by the parts bulk-upload view.
  */
 export async function POST(req: Request) {

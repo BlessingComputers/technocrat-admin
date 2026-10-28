@@ -28,7 +28,7 @@ The customer site lives in a separate repo.
 7. **No `localStorage`/`sessionStorage` calls in shared code.** The fetch
    client uses them for refresh locks; other code must not. State goes in
    Zustand stores under `features/<x>/store/`.
-8. **Server-only env vars (`GROQ_API_KEY`, `CLAUDE_API_KEY`) must NOT be
+8. **Server-only env vars (`CLAUDE_API_KEY`) must NOT be
    referenced in client components.** Only `NEXT_PUBLIC_*` is safe in client code.
    All env access goes through `src/config/env.ts`; the backend address is a
    single derived seam (ADR-0015) — never introduce a second host variable.
@@ -483,12 +483,11 @@ The API base, the emergency-unblock URL, both sockets, and the codegen scripts a
 | `NEXT_PUBLIC_BACKEND_URL` | public | **The seam.** Backend origin, no trailing slash, no `/api`. Required — a missing value throws at config load |
 | `NEXT_PUBLIC_API_BASE_URL` | public | Mount point of the same-origin proxy on *our* domain, normally `/api`. A path, not a host — not part of the seam |
 | `IMAGE_ASSET_HOSTS` | build-time | Comma-separated hostnames for `next/image` `remotePatterns`. Optional; defaults live in `config/env.ts`. Needs a rebuild, not a restart |
-| `STOREFRONT_URL` | server-only | Optional customer storefront origin used to discover promotion link targets |
+| `STOREFRONT_URL` | server-only | Technocrat storefront origin. `/legal` publishing scrapes `<origin>/policies` from it (fails without it); promotion link discovery reads its pages. Never Blessing's |
 | `NEXT_PUBLIC_SOCKET_POLLING_FALLBACK` | public | Set to `"true"` to restore Socket.IO's polling→websocket upgrade for chat + WhatsApp. Default is WebSocket-only (App Platform 504s held-open long-polls). Escape hatch only — no code change needed |
 | `CLAUDE_API_KEY` | server-only | AI smart-paste routes (products + parts), primary provider — Claude Haiku 4.5 |
-| `GROQ_API_KEY` | server-only | AI smart-paste routes, Groq fallback. Demoted 2026-08-19: the free `on_demand` tier caps at 8k tokens/minute and one parse runs ~22k, so Groq rejected every request with a 413. Raising the tier re-enables it with no code change |
 
-**Never reference `GROQ_API_KEY` or `CLAUDE_API_KEY` in client components** — read them
+**Never reference `CLAUDE_API_KEY` in client components** — read them
 through `serverEnv()`, which throws if touched in the browser. If a client component
 needs to call the backend, it goes through the relative `/api/...` path that the
 Next.js rewrite forwards.

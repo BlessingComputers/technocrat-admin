@@ -60,14 +60,19 @@ const START_GRACE_MS = 60_000;
 /**
  * True when a drop's slot has opened but its discount never became a rule.
  *
- * The campaign response reads the percentage off the Deal's markup rule. That
- * rule is written when the Deal starts and kept (switched off) when it ends,
- * so a 0 a minute after `slotStart` means the start skipped this target, most
- * often on `MARKUP_RULE_SCOPE_CONFLICT` with a standing rule on the product.
- * The item was then on offer at full price.
+ * `discountApplied` says whether the Deal's markup rule exists. The start
+ * writes it at `slotStart`, so false a minute later means the start skipped
+ * this target, most often on `MARKUP_RULE_SCOPE_CONFLICT` with a standing rule
+ * on the product. The item was then on offer at full price.
+ *
+ * Since backend `e6999ee`, `markupPercentage` is the stored target and stays
+ * negative whether or not the rule exists, so it no longer carries this signal.
+ * A backend from before that commit sends no `discountApplied` and reports 0
+ * for a missing rule, hence the fallback.
  */
 export function discountNeverApplied(deal: HuntDeal, now: number): boolean {
-  return !(deal.markupPercentage < 0) && now >= ms(deal.slotStart) + START_GRACE_MS;
+  const applied = deal.discountApplied ?? deal.markupPercentage < 0;
+  return !applied && now >= ms(deal.slotStart) + START_GRACE_MS;
 }
 
 /** When an unpaid hold goes back to OPEN: `heldAt` plus 15 minutes. */

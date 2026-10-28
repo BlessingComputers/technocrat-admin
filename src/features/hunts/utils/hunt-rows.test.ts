@@ -25,6 +25,7 @@ function huntDeal(overrides: Partial<HuntDeal> = {}): HuntDeal {
     productId: "prod-1",
     productName: "iPhone 15",
     markupPercentage: -99,
+    discountApplied: true,
     revealAt: "2026-09-12T12:30:00.000Z",
     slotStart: "2026-09-12T12:40:00.000Z",
     slotEnd: "2026-09-12T12:45:00.000Z",
@@ -230,7 +231,7 @@ describe("drops in time", () => {
 });
 
 describe("discountNeverApplied", () => {
-  const unapplied = huntDeal({ markupPercentage: 0 });
+  const unapplied = huntDeal({ discountApplied: false });
 
   it("stays quiet before the slot, and for a minute after it opens", () => {
     expect(discountNeverApplied(unapplied, at("2026-09-12T12:30:00.000Z"))).toBe(false);

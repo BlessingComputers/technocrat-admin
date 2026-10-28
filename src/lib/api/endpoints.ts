@@ -93,6 +93,9 @@ export const API_ENDPOINTS = {
       // updateMany). Bodies take DB `id` UUIDs (`partIds`), not human partId.
       bulkEdit: endpoint("/v1/products/parts/bulk-edit"),
       bulkDelete: endpoint("/v1/products/parts/bulk-delete"),
+      // Backfills every active part into the shared products+parts search
+      // index. products.adminSync walks products only and never reaches these.
+      adminSync: endpoint("/v1/products/parts/admin/sync"),
       // Markup-rules engine (scope by category/brand/partType).
       markup: {
         rules: endpoint("/v1/products/parts/markup-rules"),
@@ -329,6 +332,15 @@ export const API_ENDPOINTS = {
   // Store tax: the global setting (master switch + fallback rate) plus scoped
   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),
   // not the human `TAX-XXXXXXXX`. All writes require `tax:manage`.
+  // Checkout policy registry. `current` is public; the other two are staff and
+  // need `policy:versions:read` / `policy:versions:write`. Publishing a version
+  // supersedes the previous one atomically — there is no update or delete, by
+  // design, because an archived version is what a past order's consent points
+  // at.
+  policy: {
+    current: endpoint("/v1/policy/current"),
+    versions: endpoint("/v1/policy/versions"),
+  },
   tax: {
     setting: endpoint("/v1/tax"),
     rules: endpoint("/v1/tax/rules"),

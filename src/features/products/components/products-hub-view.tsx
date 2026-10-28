@@ -332,7 +332,7 @@ export function ProductsHubView({
         }
         description={
           maintenanceAction === "sync"
-            ? "Re-indexes the entire catalog in OpenSearch so search reflects the latest products. This runs in the background and may take a few minutes."
+            ? "Re-indexes every active product and part in OpenSearch so search reflects the latest catalog. This runs in the background and may take a few minutes."
             : "Clears all cached product data so the storefront reloads fresh from the database."
         }
         confirmText={maintenanceAction === "sync" ? "Rebuild" : "Clear cache"}

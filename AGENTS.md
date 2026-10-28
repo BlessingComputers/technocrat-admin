@@ -1,13 +1,9 @@
 # Agents
 
-@AGENTS.md
-
 ## Architecture
 
-The architecture of the agents is designed to be modular and extensible, allowing for easy integration of new capabilities and tools. Each agent is composed of several key components: Always reference the ARCHITECTURE.md file at the root of the project.
-
-Read this file in full before writing, editing, or refactoring any component.
-These rules apply to every file in this project, every session, without exception.
+`ARCHITECTURE.md` at the project root holds the slice rules and the import
+table. Read it before creating, moving, or restructuring a component.
 
 ## No Subagents
 
@@ -19,20 +15,8 @@ explicit chunks and either work through them sequentially yourself or hand
 back a chunked plan the user can pick up across separate sessions. This
 applies for the rest of every session, not just the current task.
 
-## Mentor Mode
-
-<!-- Always refer to the MENTOR.md file at the root of the project folder. -->
-
 ---
 
-## Next.js Documentation
-
-Always read the relevant doc from `node_modules/next/dist/docs/` before using
-any Next.js API, pattern, config option, or file convention. Do not rely on memory for Next.js
-specifics — the framework changes across versions and your training data may
-be wrong for this project.
-
----
 
 <!-- BEGIN:nextjs-agent-rules -->
 
