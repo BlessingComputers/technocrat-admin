@@ -6,7 +6,8 @@ import { AppIcon } from "@/components/shared/app-icon";
 /**
  * A compact action bar shown above a table when one or more rows are selected.
  * Presentational only — the parent owns the selection set and the handlers.
- * Shared across the products and parts lists (same bulk edit/delete shape).
+ * Shared across the products and parts lists (same bulk edit/deactivate shape;
+ * products can also delete permanently).
  */
 interface BulkSelectionBarProps {
   count: number;
@@ -14,6 +15,8 @@ interface BulkSelectionBarProps {
   noun: string;
   onEdit: () => void;
   onDelete: () => void;
+  /** Permanent delete. Lists that pass it get a second, destructive button. */
+  onDeletePermanently?: () => void;
   onClear: () => void;
   disabled?: boolean;
 }
@@ -23,6 +26,7 @@ export function BulkSelectionBar({
   noun,
   onEdit,
   onDelete,
+  onDeletePermanently,
   onClear,
   disabled = false,
 }: BulkSelectionBarProps) {
@@ -63,11 +67,23 @@ export function BulkSelectionBar({
           size="sm"
           onClick={onDelete}
           disabled={disabled}
-          className="h-9 rounded-md border-destructive/30 font-medium text-destructive-ink hover:bg-destructive/10 hover:text-destructive-ink"
+          className="h-9 rounded-md font-medium"
         >
-          <AppIcon icon="solar:trash-bin-trash-linear" className="mr-1.5 size-4" />
-          Delete
+          <AppIcon icon="solar:eye-closed-linear" className="mr-1.5 size-4" />
+          Deactivate
         </Button>
+        {onDeletePermanently ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDeletePermanently}
+            disabled={disabled}
+            className="h-9 rounded-md border-destructive/30 font-medium text-destructive-ink hover:bg-destructive/10 hover:text-destructive-ink"
+          >
+            <AppIcon icon="solar:trash-bin-trash-linear" className="mr-1.5 size-4" />
+            Delete permanently
+          </Button>
+        ) : null}
       </div>
     </div>
   );
