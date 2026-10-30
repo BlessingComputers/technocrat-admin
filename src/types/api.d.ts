@@ -22,6 +22,7 @@ export interface paths {
                 query?: {
                     redirectTo?: string;
                     returnOrigin?: string;
+                    useExchangeToken?: "true";
                 };
                 header?: never;
                 path?: never;
@@ -148,6 +149,7 @@ export interface paths {
          *     | 400 | `MISSING_CREDENTIAL` | `credential` missing/not a string |
          *     | 400 | `MISSING_NONCE` | `nonce` missing/not a string |
          *     | 400 | `GOOGLE_EMAIL_UNVERIFIED` | Google account's email isn't verified |
+         *     | 401 | `GOOGLE_INVALID_CREDENTIAL` | `credential` is malformed, expired, for another client ID, or badly signed |
          *     | 401 | `GOOGLE_PROFILE_ERROR` | Token verified but Google returned no email |
          *     | 401 | `GOOGLE_NONCE_MISMATCH` | Token's signed nonce doesn't match the `nonce` sent — see above |
          *     | 403 | `EMAIL_IS_STAFF` | This email belongs to a staff account — customer login blocked |
@@ -186,7 +188,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Invalid Google profile or nonce mismatch — see error codes table */
+                /** @description Invalid credential, invalid Google profile, or nonce mismatch — see error codes table */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1836,6 +1838,7 @@ export interface paths {
                     minRating?: number;
                     isFeatured?: string;
                     isActive?: string;
+                    hasCompatibleParts?: string;
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
@@ -1962,6 +1965,7 @@ export interface paths {
                     minRating?: number;
                     isFeatured?: string;
                     isActive?: string;
+                    hasCompatibleParts?: string;
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
@@ -2114,6 +2118,7 @@ export interface paths {
                     minRating?: number;
                     isFeatured?: string;
                     isActive?: string;
+                    hasCompatibleParts?: string;
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
@@ -2308,6 +2313,7 @@ export interface paths {
          *     | maxPrice | number | — | Maximum variant price (inclusive). Must be ≥ minPrice if both provided. |
          *     | minRating | number (1-5) | — | Minimum average rating |
          *     | isFeatured | string | — | `"true"` or `"false"` — filter featured products |
+         *     | hasCompatibleParts | string | — | `"true"` — only products with at least one ACTIVE linked part; `"false"` — only products with none |
          *     | isActive | string | `"true"` | `"true"` or `"false"` — defaults to true (only active products). Staff can pass `"false"` to see deactivated products. |
          *     | createdByStaffId | uuid | — | Filter to products uploaded by a specific staff member (DB UUID). Combine with the analytics endpoint to drill into an uploader's work. |
          *     | createdFrom | ISO 8601 datetime | — | Return products created at or after this timestamp (e.g. `2026-07-08T00:00:00Z`). Combine with `createdByStaffId` to get one uploader's items for a specific day or week. |
@@ -2332,6 +2338,7 @@ export interface paths {
                     minRating?: number;
                     isFeatured?: string;
                     isActive?: string;
+                    hasCompatibleParts?: string;
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
@@ -2383,6 +2390,8 @@ export interface paths {
                                 totalSales: number;
                                 isActive: boolean;
                                 isFeatured: boolean;
+                                /** @description True when at least one ACTIVE part is linked to this product */
+                                hasCompatibleParts: boolean;
                                 category: {
                                     /** @example Laptops */
                                     name: string;
@@ -3883,6 +3892,78 @@ export interface paths {
                 };
                 /** @description Insufficient permissions — requires products:delete */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/bulk-delete/permanent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Multi-select PERMANENT delete — hard-delete many products at once
+         * @description Permanently deletes every product in `productIds` that passes the same guards as
+         *     `DELETE /products/{productId}/permanent`. Variants, specs, images, cart/wishlist items, reviews and
+         *     part links go with it, and image files are removed from storage. **This cannot be undone.**
+         *
+         *     A product is **skipped, not deleted**, when it:
+         *     - has order history (`PRODUCT_HAS_ORDERS`)
+         *     - appears in a manual order (`PRODUCT_HAS_MANUAL_ORDERS`)
+         *     - has reserved stock — a purchase in progress (`PRODUCT_IN_CHECKOUT`)
+         *     - doesn't exist (`PRODUCT_NOT_FOUND`)
+         *     - became one of the above while the request ran (`PRODUCT_BLOCKED`)
+         *
+         *     Skipped products don't fail the request: it answers 200 with `deleted`, `deletedIds` and
+         *     `skipped` (each with the reason). Deactivate skipped products with `POST /products/bulk-delete`
+         *     instead. Requires `products:delete`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        productIds: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Deletable products removed; the rest listed in `skipped` */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkHardDeleteProductsResponse"];
+                    };
+                };
+                /** @description Insufficient permissions — requires products:delete */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description productIds missing, empty, over 200, or not UUIDs */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -16657,7 +16738,7 @@ export interface paths {
          *
          *     ### Rendering an AI message
          *
-         *     An AI-authored reply arrives as an ordinary `chat:message:received` event with `senderType: "SYSTEM"`, `senderId: "ai-assistant"`, and `senderName`/`senderAvatar` from the backend's `AI_SENDER_NAME`/`AI_SENDER_AVATAR` config (default sender name: `"Blessing Assistant"`). Render it distinctly from a `STAFF` message if you like (a bot icon, a label) — nothing on the wire requires special handling beyond recognizing the `SYSTEM` sender type, which the schema has always allowed.
+         *     An AI-authored reply arrives as an ordinary `chat:message:received` event with `senderType: "SYSTEM"`, `senderId: "ai-assistant"`, and `senderName`/`senderAvatar` from the backend's `AI_SENDER_NAME`/`AI_SENDER_AVATAR` config (default: `"<STORE_NAME> Assistant"`, i.e. `"Technocrat Assistant"` when `STORE_NAME` is unset). Render it distinctly from a `STAFF` message if you like (a bot icon, a label) — nothing on the wire requires special handling beyond recognizing the `SYSTEM` sender type, which the schema has always allowed.
          *
          *     **Product answers come both as a plain-text link AND as structured cards.** When a customer asks about a product, the AI looks it up in the live catalogue and replies with the name, price, availability, and a URL (e.g. `https://www.blessingcomputers.com/product/dell-xps-13`) in `body` — auto-linkify bare URLs in your renderer (or at minimum make sure a long URL doesn't break the bubble layout). **The same message also carries a `products` array** (see `ChatProductCard`) with everything needed to render an inline card — image, price, description, availability, link — with zero extra fetches. Every entry has already passed the AI's anti-hallucination checks (a fabricated product can never appear here), so it's safe to render directly. Field names mirror the storefront's own product-listing card shape, so an existing card component should need little to no mapping. `products` is absent/`[]` on every CUSTOMER/STAFF message and on any AI message that didn't reference a product; historical messages from the REST history endpoints carry the same field, so reloading a conversation shows the same cards it showed live.
          *
@@ -16669,7 +16750,7 @@ export interface paths {
          *
          *     ### Typing indicator
          *
-         *     `chat:typing:start` for an AI-originated reply carries `senderName` (e.g. `"Blessing Assistant"`) instead of `userId`/`audience` — a synthetic indicator reusing the same event rather than a parallel one. Don't assume `userId`/`audience` are always present on this event.
+         *     `chat:typing:start` for an AI-originated reply carries `senderName` (e.g. `"Technocrat Assistant"`) instead of `userId`/`audience` — a synthetic indicator reusing the same event rather than a parallel one. Don't assume `userId`/`audience` are always present on this event.
          *
          *     *This endpoint is documentation only — there is nothing to call.*
          */
@@ -17736,7 +17817,7 @@ export interface paths {
          *       "conversationId": "uuid",
          *       "senderId": "ai-assistant",
          *       "senderType": "SYSTEM",
-         *       "senderName": "Blessing Assistant",
+         *       "senderName": "Technocrat Assistant",
          *       "senderAvatar": null,
          *       "body": "The HP Pavilion 15 is ₦450,000 and in stock: https://www.blessingcomputers.com/product/hp-pavilion-15-eg3054",
          *       "isInternal": false,
@@ -17786,7 +17867,7 @@ export interface paths {
          *       "conversationId": "uuid",
          *       "userId": "uuid",
          *       "audience": "customer" | "staff",   // only on typing:start
-         *       "senderName": "Blessing Assistant"  // AI-originated only — see below
+         *       "senderName": "Technocrat Assistant"  // AI-originated only — see below
          *     }
          *     ```
          *
@@ -19430,7 +19511,7 @@ export interface paths {
                     page?: string;
                     limit?: string;
                     staffId?: string;
-                    action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "LOGOUT" | "PASSWORD_CHANGED" | "STAFF_ONBOARDED" | "STAFF_DEACTIVATED" | "ROLE_UPDATED" | "SETTINGS_UPDATED" | "TWO_FA_ENABLED" | "TWO_FA_DISABLED" | "OAUTH_LINKED" | "STAFF_REACTIVATED";
+                    action?: "LOGIN_SUCCESS" | "LOGIN_FAILED" | "LOGOUT" | "PASSWORD_CHANGED" | "STAFF_ONBOARDED" | "STAFF_DEACTIVATED" | "ROLE_UPDATED" | "SETTINGS_UPDATED" | "TWO_FA_ENABLED" | "TWO_FA_DISABLED" | "OAUTH_LINKED" | "STAFF_REACTIVATED" | "PASSWORD_RESET";
                     from?: string;
                     to?: string;
                 };
@@ -25659,6 +25740,345 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/ad-spend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List ad spend entries overlapping a date range
+         * @description Returns every entry whose `[startDate, endDate]` overlaps `[from, to]`, newest first. Not paginated (tens of rows a month).
+         *
+         *     An entry may run past either end of the range — spreading it over the days inside your period is up to the caller.
+         *
+         *     **Permission required:** `analytics:read`
+         */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entries returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["AdSpend"][];
+                        };
+                    };
+                };
+                /** @description to is before from (AD_SPEND_INVALID_DATE_RANGE). */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller lacks analytics:read. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description from/to missing or not YYYY-MM-DD. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Record ad spend for a campaign
+         * @description **Permission required:** `analytics:write`
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @example meta
+                         * @enum {string}
+                         */
+                        platform: "meta" | "google" | "tiktok" | "other";
+                        /**
+                         * @description utm_campaign. Trimmed and lowercased on save. Empty → 400 AD_SPEND_CAMPAIGN_REQUIRED.
+                         * @example Black_Friday_2026
+                         */
+                        campaign: string;
+                        /** @example carousel_a */
+                        adContent?: string | null;
+                        /**
+                         * @description YYYY-MM-DD
+                         * @example 2026-10-01
+                         */
+                        startDate: string;
+                        /**
+                         * @description YYYY-MM-DD. Before startDate → 400 AD_SPEND_INVALID_DATE_RANGE.
+                         * @example 2026-10-31
+                         */
+                        endDate: string;
+                        /**
+                         * @description <= 0 → 400 AD_SPEND_INVALID_AMOUNT.
+                         * @example 250000
+                         */
+                        amount: number;
+                        /**
+                         * @description ISO code, default NGN.
+                         * @example NGN
+                         */
+                        currency?: string;
+                        /** @example null */
+                        note?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Entry created. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["AdSpend"];
+                        };
+                    };
+                };
+                /** @description AD_SPEND_CAMPAIGN_REQUIRED, AD_SPEND_INVALID_AMOUNT or AD_SPEND_INVALID_DATE_RANGE. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller lacks analytics:write. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Body failed validation (wrong type, unknown platform, malformed date). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/ad-spend/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an ad spend entry
+         * @description Returns **204 No Content** on success.
+         *
+         *     **Permission required:** `analytics:write`
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entry deleted. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller lacks analytics:write. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No entry with this id (AD_SPEND_NOT_FOUND). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit an ad spend entry
+         * @description Send only the fields to change. The date range is checked against the stored dates when only one end is sent.
+         *
+         *     **Permission required:** `analytics:write`
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @example meta
+                         * @enum {string}
+                         */
+                        platform?: "meta" | "google" | "tiktok" | "other";
+                        /**
+                         * @description utm_campaign. Trimmed and lowercased on save. Empty → 400 AD_SPEND_CAMPAIGN_REQUIRED.
+                         * @example Black_Friday_2026
+                         */
+                        campaign?: string;
+                        /** @example carousel_a */
+                        adContent?: string | null;
+                        /**
+                         * @description YYYY-MM-DD
+                         * @example 2026-10-01
+                         */
+                        startDate?: string;
+                        /**
+                         * @description YYYY-MM-DD. Before startDate → 400 AD_SPEND_INVALID_DATE_RANGE.
+                         * @example 2026-10-31
+                         */
+                        endDate?: string;
+                        /**
+                         * @description <= 0 → 400 AD_SPEND_INVALID_AMOUNT.
+                         * @example 250000
+                         */
+                        amount?: number;
+                        /**
+                         * @description ISO code, default NGN.
+                         * @example NGN
+                         */
+                        currency?: string;
+                        /** @example null */
+                        note?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Entry updated. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["AdSpend"];
+                        };
+                    };
+                };
+                /** @description AD_SPEND_CAMPAIGN_REQUIRED, AD_SPEND_INVALID_AMOUNT or AD_SPEND_INVALID_DATE_RANGE. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller lacks analytics:write. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No entry with this id (AD_SPEND_NOT_FOUND). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Body failed validation (wrong type, unknown platform, malformed date). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/all-orders": {
         parameters: {
             query?: never;
@@ -29833,6 +30253,8 @@ export interface components {
             totalSales: number;
             isActive: boolean;
             isFeatured: boolean;
+            /** @description On search results: true when at least one ACTIVE part is linked. Absent until the product has been reindexed once after this field shipped. */
+            hasCompatibleParts?: boolean;
             /** Format: date-time */
             publishedAt: string | null;
             category: {
@@ -30068,6 +30490,24 @@ export interface components {
         };
         BulkDeleteProductsRequest: {
             productIds: string[];
+        };
+        BulkHardDeleteProductsResponse: {
+            success: boolean;
+            data: {
+                /** @example 2 */
+                deleted: number;
+                deletedIds: string[];
+                skipped: {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @example HP EliteBook 840 G5 */
+                    name: string | null;
+                    /** @enum {string} */
+                    code: "PRODUCT_NOT_FOUND" | "PRODUCT_HAS_ORDERS" | "PRODUCT_HAS_MANUAL_ORDERS" | "PRODUCT_IN_CHECKOUT" | "PRODUCT_BLOCKED";
+                    /** @example Has order history. Deactivate it instead (soft delete). */
+                    message: string;
+                }[];
+            };
         };
         ReorderImagesRequest: {
             order: {
@@ -31768,6 +32208,11 @@ export interface components {
              * @example null
              */
             avatarUrl: string | null;
+            /**
+             * @description customers.phone, else the phone on the customer's default delivery address, else another default address, else the most recently updated address with a phone. null if none. Staff-only endpoints.
+             * @example 08012345678
+             */
+            phone: string | null;
         };
         ConversationListItem: {
             /**
@@ -33110,6 +33555,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Active parts of this type (matched by partTypeId, or by type name for legacy rows with no partTypeId). Returned by GET /parts/part-types only (backend-asks item 16). */
+            partCount?: number;
         };
         Address: {
             /** Format: uuid */
@@ -33702,6 +34149,63 @@ export interface components {
                 /** @example Admin User */
                 name: string;
             };
+        };
+        AdSpend: {
+            /**
+             * Format: uuid
+             * @example c3d4e5f6-...
+             */
+            id: string;
+            /**
+             * @example meta
+             * @enum {string}
+             */
+            platform: "meta" | "google" | "tiktok" | "other";
+            /**
+             * @description The utm_campaign value, stored trimmed and lowercased.
+             * @example black_friday_2026
+             */
+            campaign: string;
+            /**
+             * @description utm_content, when spend is entered per ad.
+             * @example carousel_a
+             */
+            adContent: string | null;
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-10-01
+             */
+            startDate: string;
+            /**
+             * @description YYYY-MM-DD, inclusive. Equal to startDate for one day.
+             * @example 2026-10-31
+             */
+            endDate: string;
+            /** @example 250000 */
+            amount: number;
+            /** @example NGN */
+            currency: string;
+            /** @example null */
+            note: string | null;
+            createdBy: {
+                /**
+                 * Format: uuid
+                 * @example b2c3d4e5-...
+                 */
+                id: string;
+                /** @example Ada Marketer */
+                name: string;
+            };
+            /**
+             * Format: date-time
+             * @example 2026-10-29T09:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-10-29T09:00:00.000Z
+             */
+            updatedAt: string;
         };
         AdminOrderRow: {
             /**
