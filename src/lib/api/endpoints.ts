@@ -329,6 +329,8 @@ export const API_ENDPOINTS = {
     uploaders: endpoint("/v1/analytics/uploaders"),
     targets: endpoint("/v1/analytics/targets"),
     target: (staffId: string) => endpoint(`/v1/analytics/targets/${staffId}`),
+    adSpend: endpoint("/v1/analytics/ad-spend"),
+    adSpendEntry: (id: string) => endpoint(`/v1/analytics/ad-spend/${id}`),
   },
   // Store tax: the global setting (master switch + fallback rate) plus scoped
   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),

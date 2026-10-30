@@ -90,6 +90,12 @@ export function TrafficView({ report, links }: { report: TrafficReport; links: P
             Campaign links
           </Link>
         </Button>
+        <Button asChild variant="outline" size="sm" className="h-9 gap-2 rounded-lg text-xs font-medium">
+          <Link href={`/analytics/spend?period=${report.period}`}>
+            <AppIcon icon="solar:wallet-money-linear" className="size-4" />
+            Ad spend
+          </Link>
+        </Button>
         <TrafficRefreshButton />
         <TrafficPeriodSelect value={report.period} />
       </PageHeader>
@@ -229,7 +235,7 @@ export function TrafficView({ report, links }: { report: TrafficReport; links: P
         </AnalyticsChartCard>
       </div>
 
-      <TrafficCampaignsTable campaigns={report.campaigns} />
+      <TrafficCampaignsTable campaigns={report.campaigns} period={report.period} />
       <TrafficLandingTable pages={report.landingPages} />
 
       <AnalyticsChartCard title="Top pages" subtitle="Page views by page" icon="solar:document-text-linear">
