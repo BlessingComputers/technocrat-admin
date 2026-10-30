@@ -18,6 +18,7 @@ import {
   useBulkUploadImages,
 } from "../api/products.queries";
 import { ApiError } from "@/lib/api/client";
+import { isUnreadableImage } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 import type { UploadedImageMeta } from "../types/products";
 import { bulkDraftStore, type LoadedDraft } from "../utils/bulk-draft-store";
@@ -261,6 +262,9 @@ export function BulkUploadView() {
       // Vercel's function limit (batching several blew it → 504) and lets the
       // progress bar advance per image. Still size-capped as a backstop.
       const chunks = chunkBySize(pending, (p) => p.file.size, undefined, 1);
+      const unreadable: string[] = [];
+      const rowsMissingImages = (rows: BulkRow[]) =>
+        new Set(rows.filter((r) => r.images.some((img) => img.file && !img.uploaded)).map((r) => r.id));
       for (const chunk of chunks) {
         try {
           const res = await imageUpload.mutateAsync(chunk);
@@ -277,6 +281,11 @@ export function BulkUploadView() {
             { id: toastId },
           );
         } catch (err) {
+          if (isUnreadableImage(err)) {
+            // One bad file. Its product is created without it; the rest keep uploading.
+            unreadable.push(...chunk.map((p) => p.file.name));
+            continue;
+          }
           toast.dismiss(toastId);
           setImageUploadProgress(null);
           if (err instanceof ApiError && err.status === 429) {
@@ -302,20 +311,20 @@ export function BulkUploadView() {
             });
             // Mark the affected rows so their cards show an "images not
             // uploaded" badge (kept if the user imports without them).
-            setMissingImageRowIds(
-              new Set(
-                workingRows
-                  .filter((r) =>
-                    r.images.some((img) => img.file && !img.uploaded),
-                  )
-                  .map((r) => r.id),
-              ),
-            );
+            setMissingImageRowIds(rowsMissingImages(workingRows));
           }
           return;
         }
       }
-      toast.success(`${uploadedCount} image(s) uploaded`, { id: toastId });
+      if (unreadable.length > 0) {
+        setMissingImageRowIds(rowsMissingImages(workingRows));
+        toast.error(
+          `${unreadable.length} photo(s) couldn't be read and were left out: ${unreadable.join(", ")}. Re-save them as JPEG, PNG or WebP and add them after import.`,
+          { id: toastId, duration: 10_000 },
+        );
+      } else {
+        toast.success(`${uploadedCount} image(s) uploaded`, { id: toastId });
+      }
       setImageUploadProgress(null);
     }
 

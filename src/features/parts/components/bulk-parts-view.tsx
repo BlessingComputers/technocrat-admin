@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "react-hot-toast";
 
 import { getErrorMessage } from "@/lib/api/error-message";
+import { isUnreadableImage } from "@/lib/api/error";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,6 +199,8 @@ export function BulkPartsView() {
       let uploaded = 0;
       setImageProgress({ completed: 0, total: pending.length });
       const chunks = chunkBySize(pending, (p) => p.file.size, undefined, 1);
+      const unreadable: string[] = [];
+      let stopped = false;
       for (const chunk of chunks) {
         try {
           const res = await imageUpload.mutateAsync(chunk);
@@ -210,18 +213,28 @@ export function BulkPartsView() {
             id: toastId,
           });
         } catch (err) {
-          // Surface the real reason (rate limit, network, 5xx) instead of a
-          // generic line, then fall through to create the parts without the
-          // still-pending images.
+          if (isUnreadableImage(err)) {
+            unreadable.push(...chunk.map((p) => p.file.name));
+            continue;
+          }
+          // Rate limit, network or 5xx: create the parts without the
+          // still-pending images, and say why.
           toast.error(
             `${getErrorMessage(err, "Some images failed to upload")} — creating parts without them`,
             { id: toastId },
           );
-          setImageProgress(null);
+          stopped = true;
           break;
         }
       }
-      toast.dismiss(toastId);
+      if (unreadable.length > 0) {
+        toast.error(
+          `${unreadable.length} photo(s) couldn't be read and were left out: ${unreadable.join(", ")}. Re-save them as JPEG, PNG or WebP and add them after import.`,
+          { ...(stopped ? {} : { id: toastId }), duration: 10_000 },
+        );
+      } else if (!stopped) {
+        toast.dismiss(toastId);
+      }
       setImageProgress(null);
     }
     await submitBatch(workingRows);
