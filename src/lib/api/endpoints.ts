@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     // updateMany). Bodies take DB `id` UUIDs (`productIds`), not human productId.
     bulkEdit: endpoint("/v1/products/bulk-edit"),
     bulkDelete: endpoint("/v1/products/bulk-delete"),
+    bulkDeletePermanent: endpoint("/v1/products/bulk-delete/permanent"),
     featured: endpoint("/v1/products/featured"),
     bySlug: endpoint("/v1/products/slug"),
     categories: endpoint("/v1/products/categories"),

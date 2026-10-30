@@ -4,6 +4,8 @@
 // TODO(codegen, ADR-0006): once the OpenAPI types land, alias the response
 // shapes here to the generated schemas (Zod owns request/form inputs).
 
+import type { components } from "@/types/api";
+
 // ── Taxonomy ──────────────────────────────────────────────────────────
 
 /**
@@ -291,6 +293,15 @@ export interface BulkEditProductsResult {
 export interface BulkDeleteProductsResult {
   deactivated: number;
 }
+
+/**
+ * `POST /products/bulk-delete/permanent` result (backend `1d51313`). A 200
+ * can still skip products: order history, manual orders or reserved stock.
+ */
+export type BulkHardDeleteProductsResult =
+  components["schemas"]["BulkHardDeleteProductsResponse"]["data"];
+
+export type HardDeleteSkip = BulkHardDeleteProductsResult["skipped"][number];
 
 // ── Mutations / DTOs ──────────────────────────────────────────────────
 
