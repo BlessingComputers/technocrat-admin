@@ -6,6 +6,7 @@ import {
 import type {
   BulkCreatePartsDto,
   CreatePartDto,
+  PartBulkBatchStatusRow,
   UploadedImageMeta,
 } from "../../types/parts";
 
@@ -161,6 +162,23 @@ export function buildBulkPartsPayload(rows: BulkPartRow[]): BulkCreatePartsDto {
     uploadedImages,
     parts: rows.map(rowToCreatePart),
   };
+}
+
+/** Max parts per POST /products/:id/parts/bulk (bulkLinkPartsSchema). */
+export const BULK_LINK_LIMIT = 50;
+
+/** Ids of the parts a finished batch created, in groups the bulk-link endpoint accepts. */
+export function createdPartIdChunks(
+  results: PartBulkBatchStatusRow[] | undefined,
+): string[][] {
+  const ids = (results ?? [])
+    .filter((r) => r.success && r.partId)
+    .map((r) => r.partId!);
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += BULK_LINK_LIMIT) {
+    chunks.push(ids.slice(i, i + BULK_LINK_LIMIT));
+  }
+  return chunks;
 }
 
 export { formatNaira };

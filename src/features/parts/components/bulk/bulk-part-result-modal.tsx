@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,8 @@ interface BulkPartResultModalProps {
   batch?: PartBulkBatchStatus;
   onUploadMore: () => void;
   onClose: () => void;
+  /** Product-scoped upload: where "Back to product" goes. */
+  backHref?: string;
 }
 
 export function BulkPartResultModal({
@@ -24,6 +27,7 @@ export function BulkPartResultModal({
   batch,
   onUploadMore,
   onClose,
+  backHref,
 }: BulkPartResultModalProps) {
   const results = batch?.results ?? [];
   const succeeded = results.filter((r) => r.success).length;
@@ -63,9 +67,18 @@ export function BulkPartResultModal({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={onUploadMore} className="font-semibold">
+          <Button
+            onClick={onUploadMore}
+            variant={backHref ? "outline" : "default"}
+            className="font-semibold"
+          >
             Upload more
           </Button>
+          {backHref && (
+            <Button asChild className="font-semibold">
+              <Link href={backHref}>Back to product</Link>
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

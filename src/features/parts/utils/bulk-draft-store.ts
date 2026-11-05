@@ -11,6 +11,13 @@ const DRAFT_KEY = "bl_parts_bulk_draft";
 const DRAFT_VERSION = 1;
 const TTL_MS = 48 * 60 * 60 * 1000; // 48h
 
+/**
+ * `scope` is the product id on `/catalogues/[id]/parts/bulk`; "standalone" on
+ * `/catalogues/parts/bulk`, which keeps the original key so existing drafts load.
+ */
+const keyFor = (scope: string) =>
+  scope === "standalone" ? DRAFT_KEY : `${DRAFT_KEY}_${scope}`;
+
 /** File objects / blob URLs don't survive JSON — keep only uploaded images. */
 function persistableRow(row: BulkPartRow): BulkPartRow {
   return {
@@ -41,7 +48,7 @@ export interface LoadedPartsDraft {
 }
 
 export const partsBulkDraftStore = {
-  save(rows: BulkPartRow[]): void {
+  save(scope: string, rows: BulkPartRow[]): void {
     if (typeof window === "undefined") return;
     try {
       const blob: DraftBlob = {
@@ -49,38 +56,38 @@ export const partsBulkDraftStore = {
         savedAt: Date.now(),
         rows: rows.map(persistableRow),
       };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(blob));
+      localStorage.setItem(keyFor(scope), JSON.stringify(blob));
     } catch (err) {
       console.error("Failed to save parts bulk draft:", err);
     }
   },
 
-  load(): LoadedPartsDraft | null {
+  load(scope: string): LoadedPartsDraft | null {
     if (typeof window === "undefined") return null;
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = localStorage.getItem(keyFor(scope));
       if (!raw) return null;
       const blob = JSON.parse(raw) as DraftBlob;
       if (blob.version !== DRAFT_VERSION) {
-        partsBulkDraftStore.clear();
+        partsBulkDraftStore.clear(scope);
         return null;
       }
       if (Date.now() - blob.savedAt > TTL_MS) {
-        partsBulkDraftStore.clear();
+        partsBulkDraftStore.clear(scope);
         return null;
       }
       if (!Array.isArray(blob.rows) || blob.rows.length === 0) return null;
       return { rows: blob.rows, savedAt: blob.savedAt };
     } catch {
-      partsBulkDraftStore.clear();
+      partsBulkDraftStore.clear(scope);
       return null;
     }
   },
 
-  clear(): void {
+  clear(scope: string): void {
     if (typeof window === "undefined") return;
     try {
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(keyFor(scope));
     } catch {
       /* ignore */
     }

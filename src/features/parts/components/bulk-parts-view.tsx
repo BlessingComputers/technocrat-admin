@@ -19,6 +19,7 @@ import {
   useBulkCreateParts,
   useBulkUploadPartImages,
   usePartBulkBatchStatus,
+  useBulkLinkParts,
 } from "../api/parts.queries";
 import type { UploadedImageMeta } from "../types/parts";
 import { chunkBySize } from "../utils/image-chunks";
@@ -33,6 +34,7 @@ import { PartRestoreModal } from "./bulk/part-restore-modal";
 import {
   applySellMarkup,
   buildBulkPartsPayload,
+  createdPartIdChunks,
   findDuplicatePartNumbers,
   formatNaira,
   newBulkPartRow,
@@ -42,6 +44,7 @@ import {
 } from "./bulk/bulk-part-helpers";
 import { parseNairaNullable } from "../schemas/part-form";
 import { Card } from "@/components/ui/card";
+import type { PartProductContext } from "./form/part-form";
 
 const DEFAULT_MARKUP_PCT = 0;
 
@@ -64,13 +67,24 @@ function mergeUploaded(
   }));
 }
 
-/** Parts bulk upload + AI smart paste (route `/catalogues/parts/bulk`). */
-export function BulkPartsView() {
+interface BulkPartsViewProps {
+  /** Scopes the batch to a product: rows inherit its SKU + taxonomy, and the
+   *  created parts are linked to it when the batch finishes. */
+  productContext?: PartProductContext;
+}
+
+/**
+ * Parts bulk upload + AI smart paste (routes `/catalogues/parts/bulk` and,
+ * product-scoped, `/catalogues/[id]/parts/bulk`).
+ */
+export function BulkPartsView({ productContext }: BulkPartsViewProps = {}) {
   const { data: categories = [] } = usePartCategories();
   const { data: brands = [] } = usePartBrands();
   const { data: partTypes = [] } = usePartTypes();
   const bulkCreate = useBulkCreateParts();
   const imageUpload = useBulkUploadPartImages();
+  const { mutateAsync: linkParts } = useBulkLinkParts();
+  const draftScope = productContext?.productId ?? "standalone";
 
   const [rows, setRows] = useState<BulkPartRow[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -89,19 +103,19 @@ export function BulkPartsView() {
   }>({ pending: null, ready: false });
 
   useEffect(() => {
-    const loaded = partsBulkDraftStore.load();
+    const loaded = partsBulkDraftStore.load(draftScope);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft({ pending: loaded, ready: loaded === null });
-  }, []);
+  }, [draftScope]);
 
   useEffect(() => {
     if (!draft.ready) return;
     const t = setTimeout(() => {
-      if (rows.length > 0) partsBulkDraftStore.save(rows);
-      else partsBulkDraftStore.clear();
+      if (rows.length > 0) partsBulkDraftStore.save(draftScope, rows);
+      else partsBulkDraftStore.clear(draftScope);
     }, 400);
     return () => clearTimeout(t);
-  }, [rows, draft.ready]);
+  }, [rows, draft.ready, draftScope]);
 
   const rowsRef = useRef<BulkPartRow[]>([]);
   useEffect(() => {
@@ -130,6 +144,39 @@ export function BulkPartsView() {
     setRows((prev) => prev.filter((r) => !succeededIds.has(r.id)));
   }, [batch]);
 
+  // Product-scoped: link the parts the batch created to the product, once per
+  // batch. If a link call fails the parts still exist — point staff at
+  // "Attach existing" rather than losing the work.
+  const linkedBatchRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!productContext || !batchId || !batch?.results) return;
+    if (batch.status !== "completed" && batch.status !== "failed") return;
+    if (linkedBatchRef.current === batchId) return;
+    linkedBatchRef.current = batchId;
+    const chunks = createdPartIdChunks(batch.results);
+    if (chunks.length === 0) return;
+    const count = chunks.flat().length;
+    const promise = (async () => {
+      for (const ids of chunks) {
+        await linkParts({
+          productId: productContext.productId,
+          data: { parts: ids.map((partId) => ({ partId, sortOrder: 0 })) },
+        });
+      }
+    })();
+    toast.promise(promise, {
+      loading: `Linking ${count} part(s) to the product…`,
+      success: `${count} part(s) linked to the product`,
+      error:
+        "Parts created, but some weren't linked to the product. Attach them from the product's Parts tab.",
+    });
+    promise.catch(() => {});
+  }, [batch, batchId, productContext, linkParts]);
+
+  const backHref = productContext
+    ? `/catalogues/${productContext.productId}`
+    : "/catalogues/parts";
+
   const duplicatePartNumbers = findDuplicatePartNumbers(rows);
   const validCount = rows.filter(
     (r) => validateBulkPartRow(r, duplicatePartNumbers).length === 0,
@@ -139,8 +186,18 @@ export function BulkPartsView() {
   const processing = batchId !== null && !batchTerminal;
   const importBusy = imageUpload.isPending || bulkCreate.isPending || processing;
 
+  // Product-scoped rows inherit the product's SKU + taxonomy where the row has none.
+  const withProductDefaults = (r: BulkPartRow): BulkPartRow =>
+    productContext
+      ? {
+          ...r,
+          ownerSku: r.ownerSku || productContext.ownerSku,
+          categoryId: r.categoryId || (productContext.categoryId ?? ""),
+          brandId: r.brandId || (productContext.brandId ?? ""),
+        }
+      : r;
   const addRows = (newRows: BulkPartRow[]) =>
-    setRows((prev) => [...prev, ...newRows]);
+    setRows((prev) => [...prev, ...newRows.map(withProductDefaults)]);
   const updateRow = (id: string, patch: Partial<BulkPartRow>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const removeRow = (id: string) => {
@@ -166,7 +223,7 @@ export function BulkPartsView() {
     setDraft({ pending: null, ready: true });
   };
   const discardDraft = () => {
-    partsBulkDraftStore.clear();
+    partsBulkDraftStore.clear(draftScope);
     setDraft({ pending: null, ready: true });
   };
 
@@ -258,16 +315,24 @@ export function BulkPartsView() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <Link
-        href="/catalogues/parts"
+        href={backHref}
         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary-ink"
       >
         <AppIcon icon="solar:alt-arrow-left-linear" className="size-4" />
-        Parts
+        {productContext ? "Product" : "Parts"}
       </Link>
 
       <PageHeader
-        title="Bulk Upload Parts"
-        description="Paste a supplier list for AI to structure, review the rows, then upload — also the quickest way to add a single part."
+        title={
+          productContext
+            ? `Bulk Upload Parts for ${productContext.ownerSku || "this product"}`
+            : "Bulk Upload Parts"
+        }
+        description={
+          productContext
+            ? "Paste a supplier list for AI to structure, review the rows, then upload — every part created is linked to this product."
+            : "Paste a supplier list for AI to structure, review the rows, then upload — also the quickest way to add a single part."
+        }
       />
 
       <PartRestoreModal
@@ -404,6 +469,7 @@ export function BulkPartsView() {
           setBatchId(null);
         }}
         onClose={() => setResultDismissed(true)}
+        backHref={productContext ? backHref : undefined}
       />
     </div>
   );
