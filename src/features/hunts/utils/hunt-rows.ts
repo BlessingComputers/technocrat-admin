@@ -14,9 +14,11 @@ import { formatHuntClock } from "./hunt-time";
  */
 export const HOLD_TIMEOUT_MS = 15 * 60_000;
 
-/** The two `releaseReason` codes the backend writes itself. */
+/** The `releaseReason` codes the backend writes itself. */
 export const RELEASE_PAYMENT_FAILED = "PAYMENT_FAILED";
 export const RELEASE_HOLD_TIMEOUT = "HOLD_TIMEOUT";
+/** Written on a customer cancel and on a staff status change to CANCELLED (backend `0b4f440`). */
+export const RELEASE_ORDER_CANCELLED = "ORDER_CANCELLED";
 
 const ms = (iso: string) => new Date(iso).getTime();
 
@@ -58,21 +60,26 @@ export function nextDrop(deals: HuntDeal[], now: number): HuntDeal | undefined {
 const START_GRACE_MS = 60_000;
 
 /**
- * True when a drop's slot has opened but its discount never became a rule.
+ * True when an open, unclaimed slot is not at its hunt price.
  *
- * `discountApplied` says whether the Deal's markup rule exists. The start
- * writes it at `slotStart`, so false a minute later means the start skipped
- * this target, most often on `MARKUP_RULE_SCOPE_CONFLICT` with a standing rule
- * on the product. The item was then on offer at full price.
+ * Since backend `0b4f440`, `discountApplied` says whether the hunt price is on
+ * the product right now. It is false before `slotStart`, and again once the
+ * slot ends or the item is held or claimed, so only an OPEN drop inside its
+ * slot can be checked. False a minute after `slotStart` means the start
+ * skipped this target, most often on `MARKUP_RULE_SCOPE_CONFLICT` with a
+ * standing rule on the product. The item is then on offer at the wrong price.
  *
- * Since backend `e6999ee`, `markupPercentage` is the stored target and stays
- * negative whether or not the rule exists, so it no longer carries this signal.
- * A backend from before that commit sends no `discountApplied` and reports 0
+ * A backend from before `e6999ee` sends no `discountApplied` and reports 0
  * for a missing rule, hence the fallback.
  */
 export function discountNeverApplied(deal: HuntDeal, now: number): boolean {
   const applied = deal.discountApplied ?? deal.markupPercentage < 0;
-  return !applied && now >= ms(deal.slotStart) + START_GRACE_MS;
+  return (
+    !applied &&
+    deal.claimStatus === "OPEN" &&
+    now >= ms(deal.slotStart) + START_GRACE_MS &&
+    now < ms(deal.slotEnd)
+  );
 }
 
 /** When an unpaid hold goes back to OPEN: `heldAt` plus 15 minutes. */
@@ -144,9 +151,9 @@ export interface ReleaseNote {
  * Why this drop was last released, or null if it never was.
  *
  * Kept even when the drop is HELD again: a release clears the holder but not
- * `releasedAt`, so the history survives a second claim. The two system codes
- * get plain words; anything else is a staff member's own reason, quoted. There
- * is no field naming which staff member it was.
+ * `releasedAt`, so the history survives a second claim. The system codes get
+ * plain words; anything else is a staff member's own reason, quoted. There is
+ * no field naming which staff member it was.
  */
 export function releaseNote(deal: HuntDeal): ReleaseNote | null {
   if (!deal.releasedAt) return null;
@@ -156,9 +163,11 @@ export function releaseNote(deal: HuntDeal): ReleaseNote | null {
       ? "Released automatically: payment failed"
       : reason === RELEASE_HOLD_TIMEOUT
         ? "Released automatically: the winner did not finish in time"
-        : reason
-          ? `Released by staff: “${reason}”`
-          : "Released";
+        : reason === RELEASE_ORDER_CANCELLED
+          ? "Released automatically: the order was cancelled"
+          : reason
+            ? `Released by staff: “${reason}”`
+            : "Released";
   return { text, at: deal.releasedAt };
 }
 
