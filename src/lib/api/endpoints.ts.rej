@@ -1,0 +1,18 @@
+--- technocrat/admin/src/lib/api/endpoints.ts	2026-09-11 09:06:51.712456700 +0100
++++ blessing/admin/src/lib/api/endpoints.ts	2026-09-21 16:39:54.650302200 +0100
+@@ -329,6 +329,15 @@
+   // Store tax: the global setting (master switch + fallback rate) plus scoped
+   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),
+   // not the human `TAX-XXXXXXXX`. All writes require `tax:manage`.
++  // Checkout policy registry. `current` is public; the other two are staff and
++  // need `policy:versions:read` / `policy:versions:write`. Publishing a version
++  // supersedes the previous one atomically — there is no update or delete, by
++  // design, because an archived version is what a past order's consent points
++  // at.
++  policy: {
++    current: endpoint("/v1/policy/current"),
++    versions: endpoint("/v1/policy/versions"),
++  },
+   tax: {
+     setting: endpoint("/v1/tax"),
+     rules: endpoint("/v1/tax/rules"),
