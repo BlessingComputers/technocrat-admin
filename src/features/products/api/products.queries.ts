@@ -207,6 +207,17 @@ export function useBulkDeleteProducts() {
   });
 }
 
+export function useBulkPermanentlyDeleteProducts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (productIds: string[]) =>
+      productsService.bulkPermanentlyDeleteProducts(productIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+  });
+}
+
 export function useBulkCreateProducts() {
   const queryClient = useQueryClient();
   return useMutation({

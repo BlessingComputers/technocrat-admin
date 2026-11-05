@@ -27,8 +27,9 @@ interface ProductPartsPanelProps {
 
 /**
  * A product's parts (route content of the product detail "Parts" tab). Lists the
- * product's parts grouped by category, with Add Part (inherits the product's SKU
- * + taxonomy), Attach existing, and inline edit/remove. Lives in the parts
+ * product's parts grouped by category, with Add Part and Bulk upload (both
+ * inherit the product's SKU + taxonomy and link on save), Attach existing, and
+ * inline edit/remove. Lives in the parts
  * feature and is injected into the product page at the app layer (no cross-feature
  * import).
  */
@@ -53,6 +54,7 @@ export function ProductPartsPanel({
   if (subcategoryId) addParams.set("subcategoryId", subcategoryId);
   if (brandId) addParams.set("brandId", brandId);
   const addHref = `/catalogues/${productId}/parts/new?${addParams.toString()}`;
+  const bulkHref = `/catalogues/${productId}/parts/bulk?${addParams.toString()}`;
 
   const confirmRemove = () => {
     if (!toRemove) return;
@@ -73,10 +75,10 @@ export function ProductPartsPanel({
             Parts
           </h3>
           <p className="text-xs text-muted-foreground">
-            Components for this product — added or attached individually
+            Components for this product — added one at a time, in bulk, or attached
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -85,6 +87,12 @@ export function ProductPartsPanel({
           >
             <AppIcon icon="solar:link-linear" className="mr-1.5 size-4" />
             Attach existing
+          </Button>
+          <Button asChild variant="outline" size="sm" className="h-9 rounded-lg font-medium">
+            <Link href={bulkHref}>
+              <AppIcon icon="solar:cloud-upload-linear" className="mr-1.5 size-4" />
+              Bulk upload
+            </Link>
           </Button>
           <Button
             asChild
@@ -118,18 +126,27 @@ export function ProductPartsPanel({
             No parts yet
           </h4>
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-            Add a part specific to this product, or attach one that already exists.
+            Add a part specific to this product, upload a supplier list in bulk, or
+            attach one that already exists.
           </p>
-          <Button
-            asChild
-            size="sm"
-            className="mt-4 h-9 rounded-lg bg-primary px-4 font-semibold text-primary-foreground"
-          >
-            <Link href={addHref}>
-              <AppIcon icon="solar:add-circle-linear" className="mr-1.5 size-4" />
-              Add the first part
-            </Link>
-          </Button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Button
+              asChild
+              size="sm"
+              className="h-9 rounded-lg bg-primary px-4 font-semibold text-primary-foreground"
+            >
+              <Link href={addHref}>
+                <AppIcon icon="solar:add-circle-linear" className="mr-1.5 size-4" />
+                Add the first part
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-lg font-medium">
+              <Link href={bulkHref}>
+                <AppIcon icon="solar:cloud-upload-linear" className="mr-1.5 size-4" />
+                Bulk upload
+              </Link>
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-5">

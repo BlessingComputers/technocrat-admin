@@ -18,3 +18,16 @@ export class ApiError extends Error {
     this.response = { status, data };
   }
 }
+
+/**
+ * The backend's 400 for a bulk-upload file that passed the MIME filter but
+ * can't be decoded (backend 2395bf7). A retry sends the same bytes, so the
+ * bulk views skip that file and keep going.
+ */
+export function isUnreadableImage(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    err.status === 400 &&
+    (err.data as { code?: string } | null)?.code === "INVALID_IMAGE"
+  );
+}

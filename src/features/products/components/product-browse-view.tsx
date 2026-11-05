@@ -27,8 +27,11 @@ import {
   useUpdateProductStatus,
   usePermanentlyDeleteProduct,
   useBulkDeleteProducts,
+  useBulkPermanentlyDeleteProducts,
 } from "../api/products.queries";
-import type { ProductSummary } from "../types/products";
+import type { BulkHardDeleteProductsResult, ProductSummary } from "../types/products";
+import { deactivatableIds, hardDeleteSummary } from "../utils/bulk-hard-delete";
+import { BulkHardDeleteResultModal } from "./bulk-hard-delete-result-modal";
 import { useProductFilters } from "../hooks/use-product-filters";
 import { useCatalogProductStats } from "../hooks/use-catalog-product-stats";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
@@ -71,6 +74,9 @@ export function ProductBrowseView() {
   const [deleteTarget, setDeleteTarget] = useState<ProductSummary | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkHardDeleteOpen, setBulkHardDeleteOpen] = useState(false);
+  const [hardDeleteResult, setHardDeleteResult] =
+    useState<BulkHardDeleteProductsResult | null>(null);
   const selection = useRowSelection();
 
   const {
@@ -86,6 +92,7 @@ export function ProductBrowseView() {
   const updateStatus = useUpdateProductStatus();
   const permanentlyDelete = usePermanentlyDeleteProduct();
   const bulkDelete = useBulkDeleteProducts();
+  const bulkHardDelete = useBulkPermanentlyDeleteProducts();
 
   const products = productsResponse?.data ?? [];
   const meta = productsResponse?.meta ?? {
@@ -141,6 +148,37 @@ export function ProductBrowseView() {
         setBulkDeleteOpen(false);
       })
       .catch(() => {});
+  };
+
+  const confirmBulkHardDelete = () => {
+    if (selection.count === 0) return;
+    const promise = bulkHardDelete.mutateAsync(selection.ids);
+    toast.promise(promise, {
+      loading: `Permanently deleting ${selection.count} product${selection.count === 1 ? "" : "s"}…`,
+      // A 200 can still skip products (orders, reserved stock), so the line
+      // counts what went; the result modal lists the rest.
+      success: (res) => hardDeleteSummary(res),
+      error: (err) => getErrorMessage(err, "Failed to delete products"),
+    });
+    promise
+      .then((res) => {
+        selection.clear();
+        setBulkHardDeleteOpen(false);
+        setHardDeleteResult(res);
+      })
+      .catch(() => {});
+  };
+
+  const deactivateSkipped = () => {
+    const ids = deactivatableIds(hardDeleteResult?.skipped ?? []);
+    setHardDeleteResult(null);
+    if (ids.length === 0) return;
+    toast.promise(bulkDelete.mutateAsync(ids), {
+      loading: `Deactivating ${ids.length} product${ids.length === 1 ? "" : "s"}…`,
+      success: (res) =>
+        `Deactivated ${res.deactivated} product${res.deactivated === 1 ? "" : "s"}`,
+      error: (err) => getErrorMessage(err, "Failed to deactivate products"),
+    });
   };
 
   return (
@@ -204,8 +242,9 @@ export function ProductBrowseView() {
         noun="product"
         onEdit={() => setBulkEditOpen(true)}
         onDelete={() => setBulkDeleteOpen(true)}
+        onDeletePermanently={() => setBulkHardDeleteOpen(true)}
         onClear={selection.clear}
-        disabled={bulkDelete.isPending}
+        disabled={bulkDelete.isPending || bulkHardDelete.isPending}
       />
 
       <Card className="gap-0 overflow-hidden p-0">
@@ -253,6 +292,23 @@ export function ProductBrowseView() {
         confirmText="Deactivate"
         variant="destructive"
         isPending={bulkDelete.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={bulkHardDeleteOpen}
+        onClose={() => setBulkHardDeleteOpen(false)}
+        onConfirm={confirmBulkHardDelete}
+        title={`Permanently delete ${selection.count} product${selection.count === 1 ? "" : "s"}?`}
+        description="This permanently removes the selected products with their variants, images, specs, reviews and part links. It cannot be undone. Products with past orders, manual orders or a purchase in progress are skipped, and you can deactivate those instead."
+        confirmText="Delete permanently"
+        variant="destructive"
+        isPending={bulkHardDelete.isPending}
+      />
+
+      <BulkHardDeleteResultModal
+        result={hardDeleteResult}
+        onDeactivate={deactivateSkipped}
+        onClose={() => setHardDeleteResult(null)}
       />
 
       <ConfirmModal

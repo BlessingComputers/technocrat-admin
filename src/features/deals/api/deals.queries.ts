@@ -1,4 +1,5 @@
 import {
+  skipToken,
   keepPreviousData,
   useMutation,
   useQuery,
@@ -74,14 +75,14 @@ export function useDeal(id?: string) {
 /**
  * The per-target outcome of the last start, if it happened in this session.
  *
- * Cache-only: no `queryFn`, so this never fetches and never errors. After a
+ * Cache-only: `skipToken`, so this never fetches and never errors. After a
  * reload it is empty and the detail page falls back to the rule-count
  * shortfall, which is durable.
  */
 export function useDealStartResult(id?: string) {
   return useQuery<DealStartResponse | undefined>({
     queryKey: dealKeys.startResult(id ?? ""),
-    enabled: false,
+    queryFn: skipToken,
     staleTime: Infinity,
     gcTime: Infinity,
   }).data;

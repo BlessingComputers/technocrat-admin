@@ -139,12 +139,15 @@ describe("releaseNote", () => {
     expect(releaseNote(huntDeal())).toBeNull();
   });
 
-  it("puts the two system codes into words", () => {
+  it("puts the system codes into words", () => {
     expect(releaseNote(huntDeal({ ...released, releaseReason: "PAYMENT_FAILED" }))?.text).toBe(
       "Released automatically: payment failed",
     );
     expect(releaseNote(huntDeal({ ...released, releaseReason: "HOLD_TIMEOUT" }))?.text).toBe(
       "Released automatically: the winner did not finish in time",
+    );
+    expect(releaseNote(huntDeal({ ...released, releaseReason: "ORDER_CANCELLED" }))?.text).toBe(
+      "Released automatically: the order was cancelled",
     );
   });
 
@@ -243,7 +246,15 @@ describe("discountNeverApplied", () => {
   });
 
   it("never flags a drop whose rule carries the discount", () => {
-    expect(discountNeverApplied(huntDeal(), at("2026-09-12T13:30:00.000Z"))).toBe(false);
+    expect(discountNeverApplied(huntDeal(), at("2026-09-12T12:42:00.000Z"))).toBe(false);
+  });
+
+  it("stays quiet once the slot ends, or the item is held or claimed", () => {
+    expect(discountNeverApplied(unapplied, at("2026-09-12T12:45:00.000Z"))).toBe(false);
+    const held = huntDeal({ discountApplied: false, claimStatus: "HELD" });
+    expect(discountNeverApplied(held, at("2026-09-12T12:42:00.000Z"))).toBe(false);
+    const claimed = huntDeal({ discountApplied: false, claimStatus: "CLAIMED" });
+    expect(discountNeverApplied(claimed, at("2026-09-12T12:42:00.000Z"))).toBe(false);
   });
 });
 

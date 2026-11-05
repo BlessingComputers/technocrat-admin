@@ -21,6 +21,7 @@ import type {
   ProductAnalytics,
   RevenueAnalytics,
 } from "../types/chart-analytics";
+import type { AdSpend, AdSpendBody, DateWindow } from "../types/ad-spend";
 
 /** Build the shared item-list query: uploader + inclusive day-bounded window. */
 function uploaderItemsQuery(params: UploaderItemsParams) {
@@ -93,6 +94,20 @@ export const analyticsService = {
   /** Remove a staff member's custom target — reverts to the global default. */
   deleteUploadTarget: (staffId: string) =>
     api.delete<{ message?: string }>(API_ENDPOINTS.analytics.target(staffId)),
+
+  /** Entries overlapping [from, to], newest first. Unpaginated (tens a month). */
+  listAdSpend: (range: DateWindow) =>
+    api.get<AdSpend[]>(API_ENDPOINTS.analytics.adSpend, { params: { ...range } }),
+
+  /** Needs `analytics:write`. */
+  createAdSpend: (body: AdSpendBody) => api.post<AdSpend>(API_ENDPOINTS.analytics.adSpend, body),
+
+  /** Send only what changed. Needs `analytics:write`. */
+  updateAdSpend: (id: string, body: Partial<AdSpendBody>) =>
+    api.patch<AdSpend>(API_ENDPOINTS.analytics.adSpendEntry(id), body),
+
+  /** 204, no body. Needs `analytics:write`. */
+  deleteAdSpend: (id: string) => api.delete<void>(API_ENDPOINTS.analytics.adSpendEntry(id)),
 
   /**
    * One uploader's products in a date window. Reads the products list directly

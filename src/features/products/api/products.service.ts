@@ -5,6 +5,7 @@ import type {
   BrandInput,
   BulkBatchStatus,
   BulkDeleteProductsResult,
+  BulkHardDeleteProductsResult,
   BulkEditProductsInput,
   BulkEditProductsResult,
   BulkUploadResult,
@@ -309,6 +310,14 @@ export const productsService = {
   /** Multi-select soft-delete (deactivate) — mirrors DELETE /:id, not /permanent. */
   bulkDeleteProducts: (productIds: string[]) =>
     api.post<BulkDeleteProductsResult>(products.bulkDelete, { productIds }),
+
+  /**
+   * Multi-select hard delete. Same per-product guards as /:id/permanent, but
+   * a blocked product is skipped and listed in `skipped` instead of failing
+   * the request. Needs `products:delete`.
+   */
+  bulkPermanentlyDeleteProducts: (productIds: string[]) =>
+    api.post<BulkHardDeleteProductsResult>(products.bulkDeletePermanent, { productIds }),
 
   // ── Search / cache maintenance (require search:admin) ───────────────
   /** Force an OpenSearch re-index of a single product (async, 202). */
