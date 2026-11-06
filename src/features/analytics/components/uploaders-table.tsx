@@ -27,6 +27,7 @@ export function UploadersTable({ uploaders, onEdit }: UploadersTableProps) {
             <TableHead className={HEAD}>Today vs Target</TableHead>
             <TableHead className={`${HEAD} text-right`}>Products</TableHead>
             <TableHead className={`${HEAD} text-right`}>Parts</TableHead>
+            <TableHead className={`${HEAD} text-right`}>Updates</TableHead>
             <TableHead className={`${HEAD} text-right`}>Total</TableHead>
             <TableHead className={`${HEAD} pr-6 text-right`}>Daily Avg</TableHead>
             {onEdit && (

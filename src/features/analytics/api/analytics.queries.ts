@@ -13,6 +13,7 @@ import type { AdminKpiParams } from "../types/analytics";
 import type {
   UploaderAnalyticsParams,
   UploaderItemsParams,
+  UploaderUpdatesParams,
 } from "../types/upload-analytics";
 import type { AnalyticsPeriodParams } from "../types/chart-analytics";
 
@@ -29,6 +30,8 @@ export const analyticsKeys = {
     [...analyticsKeys.all, "uploader-products", params] as const,
   uploaderParts: (params: UploaderItemsParams) =>
     [...analyticsKeys.all, "uploader-parts", params] as const,
+  uploaderUpdates: (params: UploaderUpdatesParams) =>
+    [...analyticsKeys.all, "uploader-updates", params] as const,
   revenue: (params?: AnalyticsPeriodParams) =>
     [...analyticsKeys.all, "revenue", params] as const,
   orders: (params?: AnalyticsPeriodParams) =>
@@ -171,6 +174,22 @@ export function useUploaderParts(params: UploaderItemsParams, enabled = true) {
   return useQuery({
     queryKey: analyticsKeys.uploaderParts(params),
     queryFn: () => analyticsService.getUploaderParts(params),
+    enabled: !!staffSession && enabled && !!params.staffId,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One uploader's credited updates within a date window (drill-down). */
+export function useUploaderUpdates(
+  params: UploaderUpdatesParams,
+  enabled = true,
+) {
+  const { staffSession } = useStaffSession();
+
+  return useQuery({
+    queryKey: analyticsKeys.uploaderUpdates(params),
+    queryFn: () => analyticsService.getUploaderUpdates(params),
     enabled: !!staffSession && enabled && !!params.staffId,
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,

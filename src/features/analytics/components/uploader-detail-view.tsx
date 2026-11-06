@@ -9,17 +9,19 @@ import {
   useUploaderAnalytics,
   useUploaderProducts,
   useUploaderParts,
+  useUploaderUpdates,
 } from "../api/analytics.queries";
 import { useUploaderDetailFilters } from "../hooks/use-uploader-detail-filters";
 import { UploaderDateRange } from "./uploader-date-range";
 import { UploaderDetailHeader } from "./uploader-detail-header";
 import { UploaderItemsTabs } from "./uploader-items-tabs";
 import { UploaderItemsList } from "./uploader-items-list";
+import { UploaderUpdatesList } from "./uploader-updates-list";
 import type { UploaderItem } from "../types/upload-analytics";
 import { Card } from "@/components/ui/card";
 
 /** Per-uploader drill-down (route `/uploads/[staffId]`): header stats plus
- * the actual products and parts they created in the selected window. */
+ * the actual products and parts they created or updated in the selected window. */
 export function UploaderDetailView({ staffId }: { staffId: string }) {
   const { range, tab, page, setRange, setTab, setPage } =
     useUploaderDetailFilters();
@@ -39,6 +41,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
   };
   const productsQuery = useUploaderProducts(itemsParams, tab === "products");
   const partsQuery = useUploaderParts(itemsParams, tab === "parts");
+  const updatesQuery = useUploaderUpdates(itemsParams, tab === "updates");
 
   const productItems: UploaderItem[] = (productsQuery.data?.data ?? []).map(
     (p) => ({
@@ -69,7 +72,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
     <PageContainer>
       <PageHeader
         title={uploader?.staff.name ?? "Uploader"}
-        description="Everything this staff member created in the selected period."
+        description="Everything this staff member created or updated in the selected period."
       >
         <Button asChild variant="ghost" size="sm" className="font-medium">
           <Link href="/uploads">
@@ -92,20 +95,31 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
             onTabChange={setTab}
             productCount={uploader?.totals.products ?? 0}
             partCount={uploader?.totals.parts ?? 0}
+            updateCount={uploader?.totals.updates ?? 0}
           />
-          <UploaderItemsList
-            items={items}
-            isLoading={active.isLoading}
-            isError={active.isError}
-            meta={active.data?.meta}
-            page={page}
-            onPageChange={setPage}
-            emptyLabel={
-              tab === "products"
-                ? "No products created in this period."
-                : "No parts created in this period."
-            }
-          />
+          {tab === "updates" ? (
+            <UploaderUpdatesList
+              data={updatesQuery.data}
+              isLoading={updatesQuery.isLoading}
+              isError={updatesQuery.isError}
+              page={page}
+              onPageChange={setPage}
+            />
+          ) : (
+            <UploaderItemsList
+              items={items}
+              isLoading={active.isLoading}
+              isError={active.isError}
+              meta={active.data?.meta}
+              page={page}
+              onPageChange={setPage}
+              emptyLabel={
+                tab === "products"
+                  ? "No products created in this period."
+                  : "No parts created in this period."
+              }
+            />
+          )}
         </div>
       </div>
     </PageContainer>

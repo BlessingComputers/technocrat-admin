@@ -328,6 +328,8 @@ export const API_ENDPOINTS = {
   // Upload analytics + per-staff daily upload targets.
   analytics: {
     uploaders: endpoint("/v1/analytics/uploaders"),
+    uploaderUpdates: (staffId: string) =>
+      endpoint(`/v1/analytics/uploaders/${staffId}/updates`),
     targets: endpoint("/v1/analytics/targets"),
     target: (staffId: string) => endpoint(`/v1/analytics/targets/${staffId}`),
     adSpend: endpoint("/v1/analytics/ad-spend"),

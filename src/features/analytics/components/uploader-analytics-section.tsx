@@ -20,7 +20,7 @@ interface UploaderAnalyticsSectionProps {
 }
 
 /**
- * Super-admin dashboard section: per-uploader product/part counts vs each
+ * Super-admin dashboard section: per-uploader uploads and updates vs each
  * staff member's daily target. Reacts to the dashboard's existing period
  * filter rather than owning its own date control.
  */
@@ -47,7 +47,7 @@ export function UploaderAnalyticsSection({
             Upload Performance
           </h2>
           <p className="text-xs font-medium text-muted-foreground">
-            Products &amp; parts uploaded per staff member vs their daily target.
+            Products and parts uploaded or updated per staff member, against the daily target.
           </p>
         </div>
         {data && (
