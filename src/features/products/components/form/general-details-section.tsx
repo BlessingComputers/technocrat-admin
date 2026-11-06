@@ -123,7 +123,14 @@ export function GeneralDetailsSection({
             <FormItem>
               <FormLabel>Subcategory</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                // Radix calls this with "" when the value has no matching item,
+                // which is every edit load (the list is still fetching). Taking
+                // that "" wiped the saved subcategory, and the next save moved
+                // the product up to its parent. No item has an empty value, so
+                // a real pick is never "": clearing happens on category change.
+                onValueChange={(v) => {
+                  if (v) field.onChange(v);
+                }}
                 value={field.value || undefined}
                 disabled={!categoryId || subsLoading || subcategories.length === 0}
               >

@@ -18,6 +18,7 @@ import type { UploaderSummary } from "../types/upload-analytics";
 const chartConfig = {
   products: { label: "Products", color: "var(--chart-1)" },
   parts: { label: "Parts", color: "var(--chart-2)" },
+  updates: { label: "Updates", color: "var(--chart-3)" },
 } satisfies ChartConfig;
 
 /** UTC `YYYY-MM-DD` for a Date (breakdown dates are bucketed in UTC). */
@@ -52,7 +53,7 @@ function lastWeekDays(start: string, end: string): string[] {
 
 /**
  * Team upload volume over the last (up to) 7 days of the queried window as a
- * stacked bar chart — products (green) + parts (jewel) per day, aggregated
+ * stacked bar chart: products (green) + parts (jewel) + updates per day, aggregated
  * across every uploader's `dailyBreakdown`. The day axis is zero-filled from the
  * period so sparse activity shows empty slots instead of a single stretched bar.
  */
@@ -64,12 +65,16 @@ export function UploadPerformanceChart({
   period: { start: string; end: string };
 }) {
   const rows = useMemo(() => {
-    const byDate = new Map<string, { products: number; parts: number }>();
+    const byDate = new Map<
+      string,
+      { products: number; parts: number; updates: number }
+    >();
     for (const uploader of uploaders) {
       for (const day of uploader.dailyBreakdown ?? []) {
-        const cur = byDate.get(day.date) ?? { products: 0, parts: 0 };
+        const cur = byDate.get(day.date) ?? { products: 0, parts: 0, updates: 0 };
         cur.products += day.products ?? 0;
         cur.parts += day.parts ?? 0;
+        cur.updates += day.updates ?? 0;
         byDate.set(day.date, cur);
       }
     }
@@ -77,19 +82,20 @@ export function UploadPerformanceChart({
       date,
       products: byDate.get(date)?.products ?? 0,
       parts: byDate.get(date)?.parts ?? 0,
+      updates: byDate.get(date)?.updates ?? 0,
     }));
   }, [uploaders, period.start, period.end]);
 
   if (rows.length === 0) return null;
 
-  const total = rows.reduce((sum, r) => sum + r.products + r.parts, 0);
+  const total = rows.reduce((sum, r) => sum + r.products + r.parts + r.updates, 0);
 
   return (
     <div className="border-b border-border px-6 py-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
           <AppIcon icon="solar:chart-square-bold" className="size-4 text-primary-ink" />
-          Team Uploads · Last {rows.length} {rows.length === 1 ? "day" : "days"}
+          Team Work · Last {rows.length} {rows.length === 1 ? "day" : "days"}
         </h3>
         <span className="text-xs font-medium text-muted-foreground tabular-nums">
           {total.toLocaleString()} items
@@ -97,7 +103,7 @@ export function UploadPerformanceChart({
       </div>
       {total === 0 ? (
         <ChartEmpty
-          message="No uploads for this period"
+          message="No uploads or updates for this period"
           className="h-[200px]"
         />
       ) : (
@@ -138,6 +144,13 @@ export function UploadPerformanceChart({
             dataKey="parts"
             stackId="uploads"
             fill="var(--color-parts)"
+            radius={[0, 0, 0, 0]}
+            maxBarSize={40}
+          />
+          <Bar
+            dataKey="updates"
+            stackId="uploads"
+            fill="var(--color-updates)"
             radius={[4, 4, 0, 0]}
             maxBarSize={40}
           />
