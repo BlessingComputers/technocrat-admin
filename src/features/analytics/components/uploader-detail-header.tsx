@@ -15,7 +15,7 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-/** Identity + period totals + today-vs-target for a single uploader. */
+/** Identity + period totals (uploads and updates) + today-vs-target for a single uploader. */
 export function UploaderDetailHeader({
   uploader,
   isLoading,
@@ -58,6 +58,7 @@ export function UploaderDetailHeader({
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
           <Stat label="Products" value={totals.products} />
           <Stat label="Parts" value={totals.parts} />
+          <Stat label="Updates" value={totals.updates} />
           <Stat label="Total" value={totals.total} />
           <Stat label="Daily avg" value={dailyAverage.toFixed(1)} />
           <div className="min-w-40">
@@ -69,6 +70,10 @@ export function UploaderDetailHeader({
               target={dailyTarget}
               percent={percentOfDailyTarget}
               isCustom={targetIsCustom}
+              split={{
+                uploads: todayStat.products + todayStat.parts,
+                updates: todayStat.updates,
+              }}
             />
           </div>
         </div>

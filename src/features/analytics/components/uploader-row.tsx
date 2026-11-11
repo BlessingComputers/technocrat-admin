@@ -22,7 +22,7 @@ interface UploaderRowProps {
   onEdit?: (uploader: UploaderSummary) => void;
 }
 
-/** One uploader's row: identity, today-vs-target, period totals, target action. */
+/** One uploader's row: identity, today-vs-target, period totals (uploads and updates), target action. */
 export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
   const {
     staff,
@@ -63,6 +63,10 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
           target={dailyTarget}
           percent={percentOfDailyTarget}
           isCustom={targetIsCustom}
+          split={{
+            uploads: todayStat.products + todayStat.parts,
+            updates: todayStat.updates,
+          }}
         />
       </TableCell>
       <TableCell className="text-right font-semibold tabular-nums">
@@ -70,6 +74,9 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
       </TableCell>
       <TableCell className="text-right font-semibold tabular-nums">
         {totals.parts}
+      </TableCell>
+      <TableCell className="text-right font-semibold tabular-nums">
+        {totals.updates}
       </TableCell>
       <TableCell className="text-right font-semibold tabular-nums">
         {totals.total}

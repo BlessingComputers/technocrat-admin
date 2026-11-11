@@ -61,3 +61,22 @@ export interface UploaderItem {
   createdAt: string;
   price: number | null;
 }
+
+// ── Drill-down: items an uploader was credited for updating ─────────
+
+/** One product or part the staff member earned an update for in the window. */
+export type UpdatedCatalogItem = components["schemas"]["UpdatedCatalogItem"];
+
+type UploaderUpdatesOk =
+  paths["/api/v1/analytics/uploaders/{staffId}/updates"]["get"]["responses"][200]["content"]["application/json"];
+
+/** Inner payload of the updates list (client unwraps the envelope): `{ data, meta }`. */
+export type UploaderUpdatesResponse = UploaderUpdatesOk["data"];
+
+/** One uploader's updated items within a date window. Dates are `YYYY-MM-DD`. */
+export interface UploaderUpdatesParams {
+  staffId: string;
+  startDate: string;
+  endDate: string;
+  page?: number;
+}

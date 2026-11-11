@@ -1,0 +1,19 @@
+--- technocrat/admin/src/config/nav.ts	2026-09-16 13:36:41.351799400 +0100
++++ blessing/admin/src/config/nav.ts	2026-09-21 16:44:08.185192500 +0100
+@@ -245,6 +245,16 @@
+         requiredPermissions: ["products"],
+       },
+       {
++        // Gated on the backend's `policy` RBAC group (policy:versions:read /
++        // :write). Named Legal because that is what the page is about; the
++        // group keeps the backend's noun.
++        title: "Legal",
++        href: "/legal",
++        icon: "solar:document-text-linear",
++        iconActive: "solar:document-text-bold",
++        requiredPermissions: ["policy"],
++      },
++      {
+         title: "Security",
+         href: "/security",
+         icon: "solar:shield-keyhole-linear",

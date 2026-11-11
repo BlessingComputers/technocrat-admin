@@ -10,6 +10,7 @@ export type { ProductPartsSlotArgs } from "./components/detail/product-detail-vi
 export { ProductFormView } from "./components/product-form-view";
 export { ProductTaxonomyView } from "./components/product-taxonomy-view";
 export { BulkUploadView } from "./components/bulk-upload-view";
+export { CategoryCleanupView } from "./components/category-cleanup-view";
 export { MarkupRulesView } from "./components/pricing/markup-rules-view";
 
 // Loading skeletons shared with route-level loading.tsx files.

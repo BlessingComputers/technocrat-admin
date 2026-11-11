@@ -1,20 +1,24 @@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { MetaLabel } from "@/components/shared/meta-label";
+import { workSplitLabel } from "../model/uploader-work";
 
 interface UploadTargetProgressProps {
   today: number;
   target: number;
   percent: number;
   isCustom: boolean;
+  /** Today's total split into new items and credited updates. */
+  split?: { uploads: number; updates: number };
 }
 
-/** Today's uploads as a progress bar against the staff member's daily target. */
+/** Today's work (uploads + updates) as a progress bar against the daily target. */
 export function UploadTargetProgress({
   today,
   target,
   percent,
   isCustom,
+  split,
 }: UploadTargetProgressProps) {
   const met = percent >= 100;
 
@@ -33,6 +37,11 @@ export function UploadTargetProgress({
         </Badge>
       </div>
       <Progress value={Math.min(percent, 100)} className="h-1.5" />
+      {split && (
+        <p className="text-xs font-medium tabular-nums text-muted-foreground">
+          {workSplitLabel(split.uploads, split.updates)}
+        </p>
+      )}
       {isCustom && (
         <MetaLabel>
           Custom target

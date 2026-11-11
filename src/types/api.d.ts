@@ -8285,6 +8285,7 @@ export interface paths {
                  *     | `POLICY_VERSION_UNSUPPORTED` | `policyConsent.policyVersion` does not match the currently published version — see `GET /api/v1/policy/current` |
                  *     | `HUNT_ITEM_REQUIRES_PICKUP` | Cart contains a live treasure-hunt item and `deliveryMethod` is not `SELF_PICKUP` (backend-asks item 29, 2026-09-07) |
                  *     | `HUNT_ITEM_REQUIRES_IDEMPOTENCY_KEY` | Cart contains a live treasure-hunt item and `idempotencyKey` was not sent |
+                 *     | `HUNT_ITEM_QUANTITY_LIMIT` | Cart holds more than one unit of a live treasure-hunt item (backend-asks item 39) |
                  */
                 400: {
                     headers: {
@@ -25263,7 +25264,19 @@ export interface paths {
         };
         /**
          * Upload analytics — per-staff breakdown vs daily target
-         * @description Returns a per-uploader breakdown of how many products and parts each staff member uploaded over a given date range, measured against their individual daily target.
+         * @description Returns a per-uploader breakdown of how many products and parts each staff member uploaded, and how many existing items they updated, over a given date range, measured against their individual daily target. `total`, `dailyAverage` and `percentOfDailyTarget` all count uploads plus updates. Staff who only made updates are listed too.
+         *
+         *     ---
+         *
+         *     ### Updates
+         *
+         *     Every staff save to an existing product or part is logged with the fields it changed. A logged edit earns one update when all of these hold:
+         *     - it was a single-item edit, not `POST /products/bulk-edit`, `POST /products/variants/pricing/bulk` or `POST /products/parts/bulk-edit`;
+         *     - it changed something other than `isActive` / `isFeatured`;
+         *     - the product is not hidden;
+         *     - the same staff member did not create that item on the same day.
+         *
+         *     One staff member, one item, one UTC day counts once, however many saves. Days use UTC, like uploads. Counting starts when this shipped; there is no back-fill. The items behind the count: `GET /analytics/uploaders/{staffId}/updates`.
          *
          *     ---
          *
@@ -25358,6 +25371,96 @@ export interface paths {
                 };
                 /** @description Caller does not have the `products:read` permission. */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/uploaders/{staffId}/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Items a staff member was credited for updating
+         * @description One entry per product or part the staff member earned an update for in the window, newest edit first. Uses exactly the rules behind `updates` on `GET /analytics/uploaders`, so the list and the count agree.
+         *
+         *     **Permission required:** `products:read`
+         */
+        get: {
+            parameters: {
+                query: {
+                    startDate: string;
+                    endDate: string;
+                    type?: "product" | "part";
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    staffId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated items returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                data: components["schemas"]["UpdatedCatalogItem"][];
+                                meta: {
+                                    /** @example 3 */
+                                    total: number;
+                                    /** @example 1 */
+                                    page: number;
+                                    /** @example 20 */
+                                    limit: number;
+                                    /** @example 1 */
+                                    totalPages: number;
+                                    /** @example false */
+                                    hasNextPage: boolean;
+                                    /** @example false */
+                                    hasPrevPage: boolean;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller does not have the `products:read` permission. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid staffId, dates, type, page or limit. */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -34056,7 +34159,12 @@ export interface components {
                 products: number;
                 /** @example 35 */
                 parts: number;
-                /** @example 47 */
+                /** @example 9 */
+                updates: number;
+                /**
+                 * @description products + parts + updates
+                 * @example 56
+                 */
                 total: number;
             };
             /**
@@ -34089,7 +34197,15 @@ export interface components {
                 products: number;
                 /** @example 5 */
                 parts: number;
-                /** @example 8 */
+                /**
+                 * @description Credited edits to existing products and parts. See "Updates" in the route description for what counts.
+                 * @example 2
+                 */
+                updates: number;
+                /**
+                 * @description products + parts + updates
+                 * @example 10
+                 */
                 total: number;
             };
             /** @description One entry per day that had at least one upload. Sorted oldest → newest. Use for charting. */
@@ -34103,9 +34219,50 @@ export interface components {
                 products: number;
                 /** @example 5 */
                 parts: number;
-                /** @example 8 */
+                /**
+                 * @description Credited edits to existing products and parts. See "Updates" in the route description for what counts.
+                 * @example 2
+                 */
+                updates: number;
+                /**
+                 * @description products + parts + updates
+                 * @example 10
+                 */
                 total: number;
             }[];
+        };
+        UpdatedCatalogItem: {
+            /** @enum {string} */
+            type: "product" | "part";
+            /** Format: uuid */
+            id: string;
+            /** @example HP EliteBook 840 G5 */
+            name: string;
+            /**
+             * @description Products: the first active variant's SKU. Parts: the part number, else the owner SKU.
+             * @example HP-840G5-I5
+             */
+            code: string | null;
+            /** @example https://cdn.example.com/products/840g5.webp */
+            imageUrl: string | null;
+            /**
+             * Format: date-time
+             * @example 2026-11-04T10:21:00.000Z
+             */
+            lastEditedAt: string;
+            /**
+             * @description Distinct UTC days in the window with a credited edit to this item.
+             * @example 2
+             */
+            editDays: number;
+            /**
+             * @description Every field changed across the window, in request-body field names.
+             * @example [
+             *       "description",
+             *       "price"
+             *     ]
+             */
+            changedFields: string[];
         };
         UploadTarget: {
             /**
@@ -34860,7 +35017,7 @@ export interface components {
             productName: string | null;
             /** @description The drop's target discount, stored on the hunt deal itself rather than read off the underlying Deal's markup rule — that rule doesn't exist until the drop starts. */
             markupPercentage: number;
-            /** @description Whether the underlying markup rule has actually materialized (set by startDeal at slotStart). False past slotStart means the start skipped this target — usually MARKUP_RULE_SCOPE_CONFLICT — and it ran at full price. */
+            /** @description Whether the hunt price is on the product right now. False before slotStart and after the drop ends or is claimed. False during an open slot means the start skipped this target, usually MARKUP_RULE_SCOPE_CONFLICT, and the drop is running at the wrong price. */
             discountApplied: boolean;
             slotStart: string;
             slotEnd: string;

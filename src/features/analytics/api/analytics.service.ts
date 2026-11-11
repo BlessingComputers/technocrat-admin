@@ -12,6 +12,8 @@ import type {
   UploaderItemsParams,
   UploaderPartsResponse,
   UploaderProductsResponse,
+  UploaderUpdatesParams,
+  UploaderUpdatesResponse,
   UploadTarget,
 } from "../types/upload-analytics";
 import type {
@@ -124,5 +126,11 @@ export const analyticsService = {
   getUploaderParts: (params: UploaderItemsParams) =>
     api.get<UploaderPartsResponse>(API_ENDPOINTS.products.parts.list, {
       params: uploaderItemsQuery(params),
+    }),
+
+  /** Items one uploader was credited for updating (the rows behind `updates`). */
+  getUploaderUpdates: ({ staffId, startDate, endDate, page }: UploaderUpdatesParams) =>
+    api.get<UploaderUpdatesResponse>(API_ENDPOINTS.analytics.uploaderUpdates(staffId), {
+      params: { startDate, endDate, page },
     }),
 };

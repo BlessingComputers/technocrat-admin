@@ -9,6 +9,7 @@ export function UploaderSummaryStrip({
 }) {
   const products = uploaders.reduce((sum, u) => sum + u.totals.products, 0);
   const parts = uploaders.reduce((sum, u) => sum + u.totals.parts, 0);
+  const updates = uploaders.reduce((sum, u) => sum + u.totals.updates, 0);
   const onTarget = uploaders.filter(
     (u) => u.percentOfDailyTarget >= 100,
   ).length;
@@ -20,13 +21,14 @@ export function UploaderSummaryStrip({
     tone: StatTone;
   }[] = [
     {
-      label: "Total uploads",
-      value: products + parts,
+      label: "Total work",
+      value: products + parts + updates,
       icon: "solar:cloud-upload-linear",
       tone: "primary",
     },
     { label: "Products", value: products, icon: "solar:box-linear", tone: "info" },
     { label: "Parts", value: parts, icon: "solar:cpu-linear", tone: "jewel" },
+    { label: "Updates", value: updates, icon: "solar:pen-2-linear", tone: "muted" },
     {
       label: "On target today",
       value: `${onTarget}/${uploaders.length}`,
@@ -36,7 +38,7 @@ export function UploaderSummaryStrip({
   ];
 
   return (
-    <StatsBar>
+    <StatsBar columns={5}>
       {stats.map((stat) => (
         <Stat
           key={stat.label}

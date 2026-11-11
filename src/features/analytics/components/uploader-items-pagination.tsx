@@ -7,7 +7,7 @@ export function UploaderItemsPagination({
   page,
   onPageChange,
 }: {
-  meta: ItemsMeta;
+  meta: Pick<ItemsMeta, "total" | "page" | "totalPages" | "hasNextPage" | "hasPrevPage">;
   page: number;
   onPageChange: (page: number) => void;
 }) {

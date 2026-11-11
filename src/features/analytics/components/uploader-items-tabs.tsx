@@ -8,18 +8,21 @@ interface UploaderItemsTabsProps {
   onTabChange: (tab: UploaderTab) => void;
   productCount: number;
   partCount: number;
+  updateCount: number;
 }
 
-/** Products / Parts switcher with counts (from the report totals). */
+/** Products / Parts / Updated switcher with counts (from the report totals). */
 export function UploaderItemsTabs({
   tab,
   onTabChange,
   productCount,
   partCount,
+  updateCount,
 }: UploaderItemsTabsProps) {
   const tabs: { id: UploaderTab; label: string; count: number }[] = [
     { id: "products", label: "Products", count: productCount },
     { id: "parts", label: "Parts", count: partCount },
+    { id: "updates", label: "Updated", count: updateCount },
   ];
 
   return (

@@ -3,13 +3,14 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { periodToDateRange } from "../utils/period-to-range";
+import { parseUploaderTab, type UploaderTab } from "../model/uploader-work";
 
 /**
  * URL-state for the uploader detail page: date range, active tab, and page.
  * Same ADR-0005/0010 approach as the management list, minus the debounced search
  * (there is none here), so it's a plain History-API commit.
  */
-export type UploaderTab = "products" | "parts";
+export type { UploaderTab } from "../model/uploader-work";
 
 interface DateRange {
   startDate: string;
@@ -30,7 +31,7 @@ function parseParams(sp: URLSearchParams): DetailFilters {
       startDate: sp.get("from") || fallback.startDate,
       endDate: sp.get("to") || fallback.endDate,
     },
-    tab: sp.get("tab") === "parts" ? "parts" : "products",
+    tab: parseUploaderTab(sp.get("tab")),
     page: Number.isFinite(page) && page > 1 ? page : 1,
   };
 }
