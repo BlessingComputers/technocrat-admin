@@ -47,7 +47,7 @@ export function MarkupWorkspace() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6">
       <KindToggle kind={kind} onChange={setKind} />
       {kind === "products" ? <MarkupRulesView /> : <PartsPricingView />}
     </div>

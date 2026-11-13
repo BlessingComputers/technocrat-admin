@@ -36,7 +36,6 @@ import {
   HATCH,
   HATCH_DENSE,
   PANEL,
-  SCROLL_COLUMN,
   TONE,
   familyTone,
   pct,
@@ -182,7 +181,7 @@ export function CoverageMap(props: CoverageMapProps) {
   return (
     <section
       aria-labelledby={`${id}-map`}
-      className={cn("min-w-0 rounded-[14px] border border-border/60 bg-card shadow-soft", SCROLL_COLUMN)}
+      className="min-w-0 rounded-[14px] border border-border/60 bg-card shadow-soft"
     >
       <div className="px-5 pt-4 pb-3 max-sm:px-3.5">
         <h3 id={`${id}-map`} className="text-base font-semibold">

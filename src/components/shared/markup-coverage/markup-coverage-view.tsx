@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,12 @@ import {
 
 import type { CellQuery } from "./cell-items";
 import { CoverageMap, type MapFocus } from "./coverage-map";
-import { RuleLanes, type RuleAction, type TierInfo } from "./rule-lanes";
+import {
+  RuleLanes,
+  SelectedRulePanel,
+  type RuleAction,
+  type TierInfo,
+} from "./rule-lanes";
 import { SCROLL_COLUMN, pct } from "./tone";
 
 export type { RuleAction } from "./rule-lanes";
@@ -104,6 +109,13 @@ export function MarkupCoverageView(props: MarkupCoverageViewProps) {
         : null,
     [selected, model, now, withDeals],
   );
+
+  // Bring the selected rule's panel into view: the right column may be
+  // scrolled down to the map, and on a phone the panel sits below the list.
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (selectedId) panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedId]);
 
   if (props.isLoading) return <MarkupCoverageSkeleton />;
   if (props.isError) {
@@ -255,16 +267,27 @@ export function MarkupCoverageView(props: MarkupCoverageViewProps) {
             hasFallback={!!model.fallback}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            analysis={analysis}
-            typeName={typeName}
-            itemRuleCount={itemRuleCount}
             now={now}
-            renderItems={props.renderItems}
-            onAction={props.onAction}
             onCreate={props.onCreate}
           />
         </section>
 
+        <div className={cn("grid min-w-0 content-start gap-5", SCROLL_COLUMN)}>
+        {selected && (
+          <SelectedRulePanel
+            ref={panelRef}
+            kind={kind}
+            tiers={tiers}
+            rule={selected}
+            now={now}
+            analysis={analysis}
+            typeName={typeName}
+            itemRuleCount={itemRuleCount}
+            renderItems={props.renderItems}
+            onAction={props.onAction}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
         <CoverageMap
           id={id}
           kind={kind}
@@ -285,6 +308,7 @@ export function MarkupCoverageView(props: MarkupCoverageViewProps) {
           formatExpiry={props.formatExpiry}
           renderCellItems={props.renderCellItems}
         />
+        </div>
       </div>
     </div>
   );

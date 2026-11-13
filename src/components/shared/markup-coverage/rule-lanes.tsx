@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { forwardRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 
 import { AppIcon } from "@/components/shared/app-icon";
@@ -67,14 +67,7 @@ export interface RuleLanesProps {
   hasFallback: boolean;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  analysis: RuleAnalysis | null;
-  /** "Battery", or null for other types (parts only). */
-  typeName: string | null;
-  /** Live one-item rules, which can also beat the selected rule. */
-  itemRuleCount: number;
   now: number;
-  renderItems: (rule: CoverageRule) => ReactNode;
-  onAction: (action: RuleAction, rule: CoverageRule) => void;
   onCreate: () => void;
 }
 
@@ -194,10 +187,8 @@ function RuleRow({
   selected,
   onSelect,
   now,
-  ...rest
+  kind,
 }: RuleLanesProps & { rule: CoverageRule; selected: boolean }) {
-  const off = !isLive(rule, now);
-  const tone = TONE[familyOf(rule)];
   return (
     <div
       className={cn(
@@ -207,55 +198,115 @@ function RuleRow({
           : "hover:bg-accent",
       )}
     >
+      {/* Selecting opens the rule's detail at the top of the right column. */}
       <button
         type="button"
-        aria-expanded={selected}
+        aria-pressed={selected}
         onClick={() => onSelect(selected ? null : rule.id)}
-        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 rounded-[11px] px-2.5 py-2 text-left"
+        className="w-full rounded-[11px] px-2.5 py-2 text-left"
       >
-        {/* Each part of the scope named, so "which is the brand, which is the
-            category" never has to be guessed from "Apple · Phones". */}
-        <span className={cn("flex min-w-0 flex-wrap gap-1", off && "opacity-70")}>
-          {scopeChips(rule, rest.kind).map((c) => (
-            <span
-              key={`${c.key}:${c.value}`}
-              className="inline-flex max-w-full min-w-0 items-baseline gap-1 rounded-md border border-border bg-background/60 px-1.5 py-0.5 text-xs"
-            >
-              {c.key && <span className="shrink-0 text-muted-foreground">{c.key}:</span>}
-              <span className="truncate font-medium text-foreground">{c.value}</span>
-            </span>
-          ))}
-        </span>
-        <span
-          className={cn(
-            "row-span-2 pt-0.5 text-base font-semibold tabular-nums",
-            off ? "font-normal text-muted-foreground" : tone.ink,
-          )}
-        >
-          {pct(rule.pct)}
-        </span>
-        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-          {rule.isActive ? (
-            <span className="font-medium text-foreground">On</span>
-          ) : (
-            <Badge variant="muted" className="rounded-full">
-              Off
-            </Badge>
-          )}
-          {rule.isDeal && (
-            <Badge variant="info" className="rounded-full">
-              <AppIcon icon="solar:tag-price-linear" className="size-3" />
-              {rule.expiresAt ? `Deal · ends ${shortDate(rule.expiresAt)}` : "Deal"}
-            </Badge>
-          )}
-          {rule.meta && <span className="truncate">· {rule.meta}</span>}
-          {rule.ruleId && <span className="font-mono">· {rule.ruleId}</span>}
-        </span>
+        <RuleSummary rule={rule} kind={kind} now={now} />
       </button>
-      {selected && <RuleDetail rule={rule} off={off} now={now} onSelect={onSelect} {...rest} />}
     </div>
   );
 }
+
+/** Scope chips, the %, and the status line: a lane row and the panel header. */
+function RuleSummary({ rule, kind, now }: { rule: CoverageRule; kind: CoverageKind; now: number }) {
+  const off = !isLive(rule, now);
+  const tone = TONE[familyOf(rule)];
+  return (
+    <span className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5">
+      {/* Each part of the scope named, so "which is the brand, which is the
+          category" never has to be guessed from "Apple · Phones". */}
+      <span className={cn("flex min-w-0 flex-wrap gap-1", off && "opacity-70")}>
+        {scopeChips(rule, kind).map((c) => (
+          <span
+            key={`${c.key}:${c.value}`}
+            className="inline-flex max-w-full min-w-0 items-baseline gap-1 rounded-md border border-border bg-background/60 px-1.5 py-0.5 text-xs"
+          >
+            {c.key && <span className="shrink-0 text-muted-foreground">{c.key}:</span>}
+            <span className="truncate font-medium text-foreground">{c.value}</span>
+          </span>
+        ))}
+      </span>
+      <span
+        className={cn(
+          "row-span-2 pt-0.5 text-base font-semibold tabular-nums",
+          off ? "font-normal text-muted-foreground" : tone.ink,
+        )}
+      >
+        {pct(rule.pct)}
+      </span>
+      <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+        {rule.isActive ? (
+          <span className="font-medium text-foreground">On</span>
+        ) : (
+          <Badge variant="muted" className="rounded-full">
+            Off
+          </Badge>
+        )}
+        {rule.isDeal && (
+          <Badge variant="info" className="rounded-full">
+            <AppIcon icon="solar:tag-price-linear" className="size-3" />
+            {rule.expiresAt ? `Deal · ends ${shortDate(rule.expiresAt)}` : "Deal"}
+          </Badge>
+        )}
+        {rule.meta && <span className="truncate">· {rule.meta}</span>}
+        {rule.ruleId && <span className="font-mono">· {rule.ruleId}</span>}
+      </span>
+    </span>
+  );
+}
+
+export interface SelectedRulePanelProps {
+  kind: CoverageKind;
+  tiers: readonly TierInfo[];
+  rule: CoverageRule;
+  now: number;
+  analysis: RuleAnalysis | null;
+  /** "Battery", or null for other types (parts only). */
+  typeName: string | null;
+  /** Live one-item rules, which can also beat the selected rule. */
+  itemRuleCount: number;
+  renderItems: (rule: CoverageRule) => ReactNode;
+  onAction: (action: RuleAction, rule: CoverageRule) => void;
+  onClose: () => void;
+}
+
+/**
+ * The selected rule's detail, at the top of the right column above the map:
+ * where it wins and loses, its items, what it beats and what beats it, and
+ * its actions. Green line: it is the selection.
+ */
+export const SelectedRulePanel = forwardRef<HTMLElement, SelectedRulePanelProps>(
+  function SelectedRulePanel(props, ref) {
+    return (
+      <section
+        ref={ref}
+        aria-label="Selected rule"
+        className="scroll-mt-4 rounded-[14px] border border-success bg-card shadow-soft"
+      >
+        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 max-sm:px-3.5">
+          <h3 className="text-base font-semibold">Selected rule</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-mt-1 -mr-2 size-8"
+            aria-label="Close the selected rule"
+            onClick={props.onClose}
+          >
+            <AppIcon icon="solar:close-circle-linear" className="size-[18px]" />
+          </Button>
+        </div>
+        <div className="px-5 max-sm:px-3.5">
+          <RuleSummary rule={props.rule} kind={props.kind} now={props.now} />
+        </div>
+        <RuleDetail {...props} off={!isLive(props.rule, props.now)} />
+      </section>
+    );
+  },
+);
 
 function RuleDetail({
   rule,
@@ -267,10 +318,10 @@ function RuleDetail({
   itemRuleCount,
   renderItems,
   onAction,
-}: RuleLanesProps & { rule: CoverageRule; off: boolean }) {
+}: SelectedRulePanelProps & { off: boolean }) {
   const noun = kind === "parts" ? "part" : "product";
   const actions = <RuleActions rule={rule} onAction={onAction} />;
-  const shell = "mx-2.5 mb-3 grid gap-3 border-t border-dashed border-border pt-3";
+  const shell = "mx-5 mt-3 mb-5 grid gap-3 border-t border-border pt-3 max-sm:mx-3.5";
 
   if (off) {
     return (
@@ -341,11 +392,12 @@ function RuleDetail({
         {kind === "parts" ? ` for ${typeName ? `${typeName} parts` : "parts of other types"}` : ""}.
       </p>
       {renderItems(rule)}
-      <div>
+      <div className="grid gap-3 md:grid-cols-2 md:gap-6">
+      <div className="min-w-0">
         <h5 className="mb-1 text-xs font-medium text-muted-foreground">Beats</h5>
         {list(a?.beats ?? [], "Nothing below it here.")}
       </div>
-      <div>
+      <div className="min-w-0">
         <h5 className="mb-1 text-xs font-medium text-muted-foreground">Beaten by</h5>
         {list(a?.beatenBy ?? [], "Nothing on the map.")}
         {itemRuleCount > 0 && (
@@ -353,6 +405,7 @@ function RuleDetail({
             {plural(itemRuleCount, `one-${noun} rule`)} may also beat it, each for its own {noun}.
           </p>
         )}
+      </div>
       </div>
       {actions}
     </div>
