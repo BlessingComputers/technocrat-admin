@@ -225,6 +225,24 @@ deliberate reversal of Blessing's brand-only ramp: a five-slice categorical
 donut cannot be read in tints of a single green. Categorical encoding needs
 distinct hues; everything else in the app does not.
 
+### Markup tiers (`/pricing/markup`)
+The markup coverage map is categorical data viz, so its tier colours live here.
+Each tier has one colour everywhere on that page (lane dots, rule %, "beats /
+beaten by" dots, the "Who wins the map" chart, map cells, the "Why this price"
+ladder): **teal = category** (`--scope-category`, h 205), **orange-red = brand**
+(`--scope-brand`, the ramp's chart-3 family; there is no gold), **violet =
+category & brand** (`--scope-combo`, h 295), **blue = running deal** (`--info`),
+**navy = part type** (`--type-tone`, because `--secondary` is pinned navy and its
+tint vanishes on a dark card), **grey = fallback**, hatched = no rule. None sits
+near the brand green (h 145). Each has an `-ink` twin for text; tints use alpha
+(`bg-scope-category/14`). **Selection is green (`--success`)** and nothing else on
+that page is: the selected rule's row and winning cells get a green line, a light
+green tint and a check, cells where it loses a dashed green line with its % struck,
+the rest fade to 40%. That is the status form of green (line + tint), never a
+solid fill, so the Green-Does-Double-Duty Rule below holds; the one solid green on
+the page is the "New rule" button. Source: `components/shared/markup-coverage/`;
+the comp is in the Blessing admin (`docs/design/markup-page-comp.html`, v8).
+
 ### Named rules
 
 **The Green-Owns-Action Rule.** Technocrat Green marks the one real action per

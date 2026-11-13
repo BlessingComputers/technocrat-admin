@@ -3,12 +3,14 @@ import {
   type LadderRow,
   type LadderTier,
 } from "@/lib/utils/markup-impact";
-import type {
-  MarkupApplyResult,
-  MarkupCancelResult,
-  MarkupResetResult,
-  MarkupRule,
-  ReplacedProductMarkups,
+import type { CoverageRule } from "@/lib/utils/markup-coverage";
+import {
+  ruleTypeOf,
+  type MarkupApplyResult,
+  type MarkupCancelResult,
+  type MarkupResetResult,
+  type MarkupRule,
+  type ReplacedProductMarkups,
 } from "../../types/pricing";
 
 /**
@@ -106,6 +108,36 @@ export function productLadder(
       percentage: r.markupPercentage,
     }));
   return ladderRows(PRODUCT_TIERS, selfTier, others, replace);
+}
+
+const APPLY_TO_LABEL: Record<string, string> = { PRICE: "Selling price" };
+
+/**
+ * A rule in the coverage map's shape. Deals (negative rules) keep their deal
+ * name in `notes` (the backend writes it there), so it becomes the meta line.
+ */
+export function toCoverageRule(rule: MarkupRule): CoverageRule {
+  const isDeal = ruleTypeOf(rule) === "DISCOUNT";
+  return {
+    id: rule.id,
+    ruleId: rule.ruleId,
+    label: ladderScopeLabel(rule),
+    tier: tierOf(rule),
+    categoryId: rule.categoryId,
+    categoryName: rule.category?.name ?? null,
+    brandId: rule.brandId,
+    brandName: rule.brand?.name ?? null,
+    typeId: null,
+    typeName: null,
+    itemId: rule.productId,
+    pct: rule.markupPercentage,
+    isDeal,
+    dealId: rule.dealId ?? null,
+    meta: isDeal ? (rule.notes ?? "Deal") : (APPLY_TO_LABEL[rule.applyTo] ?? rule.applyTo),
+    expiresAt: rule.expiresAt,
+    isActive: rule.isActive,
+    createdAt: rule.createdAt,
+  };
 }
 
 /** One row of the "Turned off" list after a replace save. */

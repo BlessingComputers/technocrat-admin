@@ -3,12 +3,14 @@ import {
   type LadderRow,
   type LadderTier,
 } from "@/lib/utils/markup-impact";
-import type {
-  PartMarkupApplyResult,
-  PartMarkupApplyTo,
-  PartMarkupCancelResult,
-  PartMarkupRule,
-  ReplacedPartMarkups,
+import type { CoverageRule } from "@/lib/utils/markup-coverage";
+import {
+  partRuleTypeOf,
+  type PartMarkupApplyResult,
+  type PartMarkupApplyTo,
+  type PartMarkupCancelResult,
+  type PartMarkupRule,
+  type ReplacedPartMarkups,
 } from "../../types/pricing";
 
 /**
@@ -170,6 +172,34 @@ export const APPLY_TO_LABEL: Record<PartMarkupApplyTo, string> = {
   COMPARE_AT_PRICE: "Compare-at",
   BOTH: "Both",
 };
+
+/**
+ * A rule in the coverage map's shape. Deals (negative rules) keep their deal
+ * name in `notes` (the backend writes it there), so it becomes the meta line.
+ */
+export function toCoverageRule(rule: PartMarkupRule): CoverageRule {
+  const isDeal = partRuleTypeOf(rule) === "DISCOUNT";
+  return {
+    id: rule.id,
+    ruleId: rule.ruleId ?? "",
+    label: ruleScopeLabel(rule),
+    tier: tierOf(rule),
+    categoryId: rule.categoryId,
+    categoryName: rule.category?.name ?? null,
+    brandId: rule.brandId,
+    brandName: rule.brand?.name ?? null,
+    typeId: rule.partTypeId,
+    typeName: rule.partType?.name ?? null,
+    itemId: rule.partId,
+    pct: rule.markupPercentage,
+    isDeal,
+    dealId: rule.dealId ?? null,
+    meta: isDeal ? (rule.notes ?? "Deal") : (APPLY_TO_LABEL[rule.applyTo] ?? rule.applyTo),
+    expiresAt: rule.expiresAt ?? null,
+    isActive: rule.isActive,
+    createdAt: rule.createdAt ?? null,
+  };
+}
 
 const parts = (n: number) => `${n} part${n === 1 ? "" : "s"}`;
 

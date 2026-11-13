@@ -79,6 +79,13 @@
   --color-info-foreground: var(--info-foreground);
   --color-info-ink: var(--info-ink);
   --color-info: var(--info);
+  --color-scope-category: var(--scope-category);
+  --color-scope-category-ink: var(--scope-category-ink);
+  --color-scope-brand: var(--scope-brand);
+  --color-scope-brand-ink: var(--scope-brand-ink);
+  --color-scope-combo: var(--scope-combo);
+  --color-scope-combo-ink: var(--scope-combo-ink);
+  --color-type-tone: var(--type-tone);
   --color-secondary-ink: var(--secondary-ink);
   --color-primary-ink: var(--primary-ink);
   --color-muted-foreground: var(--muted-foreground);
@@ -259,6 +266,23 @@
   --info-foreground: oklch(0.985 0 0);
   --info-ink: oklch(0.48 0.122 245); /* 4.65:1 */
 
+  /* Markup tier colours (/pricing/markup coverage map, DESIGN.md "Markup
+     tiers"). Data viz, so they sit with the chart ramp: the map is the
+     categorical case that region sanctions. No tier may sit near the brand
+     green (h 145), which on that page also stays clear of the green
+     selection (--success). Category = teal (h 205), category & brand =
+     violet (h 295), brand = the ramp's orange-red (chart-3, h 35; there is no
+     gold here), deal = info blue, type = --type-tone (--secondary is pinned
+     navy and its tint vanishes on a dark card). Tint with alpha
+     (`bg-scope-category/14`). The -ink values are not measured yet. */
+  --scope-category: oklch(0.62 0.11 205);
+  --scope-category-ink: oklch(0.46 0.09 205);
+  --scope-brand: oklch(0.64 0.17 35);
+  --scope-brand-ink: oklch(0.49 0.15 35);
+  --scope-combo: oklch(0.55 0.17 295);
+  --scope-combo-ink: oklch(0.47 0.16 295);
+  --type-tone: oklch(0.2795 0.0296 264);
+
   /* Chrome (sidebar + topbar) = the card surface. White against the canvas.
      Nav label ink is the frame's warm `stone` #343330, NOT the cool page ink —
      a deliberate softening of the chrome against the harder content text.
@@ -379,6 +403,15 @@
   --info: oklch(0.68 0.13 245);
   --info-foreground: oklch(0.16 0.03 245);
   --info-ink: oklch(0.77 0.119 245); /* 4.61:1 */
+
+  /* Markup tier colours (see :root). */
+  --scope-category: oklch(0.72 0.11 205);
+  --scope-category-ink: oklch(0.8 0.1 205);
+  --scope-brand: oklch(0.72 0.16 35);
+  --scope-brand-ink: oklch(0.8 0.12 35);
+  --scope-combo: oklch(0.7 0.15 295);
+  --scope-combo-ink: oklch(0.8 0.12 295);
+  --type-tone: oklch(0.78 0.04 264);
 
   /* Chrome = the card surface, same rule as light. Active = solid green fill
      (sidebar-primary), hover = neutral lift (sidebar-accent) — the same

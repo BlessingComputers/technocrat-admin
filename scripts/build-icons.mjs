@@ -193,6 +193,9 @@ const BASES = [
   "pause", // sales-notifications: recipients-table
   "play", // sales-notifications: recipients-table
   "pause-circle", // tax: tax-setting-panel
+  "arrow-up", // markup coverage map: "From <parent>" cell line
+  "cursor", // markup coverage map: "Click a cell" hint
+  "list-check", // markup coverage map: facts line
 ];
 
 /**

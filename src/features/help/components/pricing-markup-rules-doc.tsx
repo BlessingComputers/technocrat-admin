@@ -39,8 +39,9 @@ export function PricingMarkupRulesDoc() {
         <Path items={["Pricing", "Markup"]} />
         <Callout tone="note" title="A sale is not a markup rule">
           Temporary price drops live on their own screen, under{" "}
-          <b>Pricing &rsaquo; Deals</b>, and they do not appear in the table here.
-          Everything on this page stays until you change it.
+          <b>Pricing &rsaquo; Deals</b>. This page shows running deals in their tier and
+          on the coverage map, because a deal competes with the markups, but you
+          change a deal on the Deals screen. Every markup stays until you change it.
         </Callout>
       </Section>
 
@@ -121,12 +122,12 @@ export function PricingMarkupRulesDoc() {
         title="Creating a rule"
         subtitle="Scope it, set the percentage, preview, save."
       >
-        <Path items={["Pricing", "Markup", "New Rule"]} />
+        <Path items={["Pricing", "Markup", "New rule"]} />
         <Steps
           steps={[
             {
-              title: 'Click "New Rule"',
-              body: "On Pricing › Markup, with Products selected, click New Rule.",
+              title: 'Click "New rule"',
+              body: "On Pricing › Markup, with Products selected, click New rule.",
             },
             {
               title: "Choose what it covers",
@@ -207,7 +208,7 @@ export function PricingMarkupRulesDoc() {
             ],
             [
               "5. All products",
-              "The fallback. It prices every product no other rule covers, so it always loses to a more specific rule. The table pins it to the top with a “Fallback” tag.",
+              "The fallback. It prices every product no other rule covers, so it always loses to a more specific rule. It sits in the last lane, and the facts line names it.",
             ],
           ]}
         />
@@ -234,7 +235,7 @@ export function PricingMarkupRulesDoc() {
           steps={[
             {
               title: "Open Preview & apply",
-              body: "Find the rule in the table and choose Preview & apply. A dry-run runs automatically.",
+              body: "Click the rule under Rules by strength, then choose Preview & apply. A dry-run runs automatically.",
             },
             {
               title: "Review the projected prices",

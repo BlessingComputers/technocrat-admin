@@ -194,7 +194,7 @@ export function UploadingPartsDoc() {
           steps={[
             {
               title: 'Create a rule',
-              body: "Click New Rule. Choose what it applies to — all parts, one part, or a category, a brand, a part type, or a mix — set the percentage, and save. The Impact panel on the right updates by itself as you type: it shows how many parts go up or down, and tags any part that keeps another rule with “Other rule”.",
+              body: "Click New rule. Choose what it applies to — all parts, one part, or a category, a brand, a part type, or a mix — set the percentage, and save. The Impact panel on the right updates by itself as you type: it shows how many parts go up or down, and tags any part that keeps another rule with “Other rule”.",
             },
             {
               title: "Preview before applying",

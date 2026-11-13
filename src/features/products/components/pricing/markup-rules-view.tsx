@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
@@ -9,9 +9,14 @@ import { RefreshButton } from "@/components/shared/refresh-button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
+import { flattenCategoryTree } from "@/lib/utils/markup-coverage";
+import {
+  MarkupCoverageView,
+  RuleItemsLine,
+  type RuleAction,
+} from "@/components/shared/markup-coverage/markup-coverage-view";
 
 import { useCategories, useBrands } from "../../api/products.queries";
 import {
@@ -22,19 +27,22 @@ import {
   useCancelMarkupRule,
   useResetMarkupRule,
   useResetCategory,
+  useMarkupImpact,
 } from "../../api/pricing.queries";
-import type { MarkupRule, ResetCategoryInput } from "../../types/pricing";
+import { ruleTypeOf, type MarkupRule, type ResetCategoryInput } from "../../types/pricing";
 import type { MarkupRuleFormValues } from "../../schemas/markup-rule-form";
-import { MarkupRulesTable } from "./markup-rules-table";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
 import { CategoryResetDialog } from "./category-reset-dialog";
 import {
+  PRODUCT_TIERS,
   cancelSummary,
   replaceSummary,
   resetSummary,
   ruleScopeLabel,
+  toCoverageRule,
 } from "./markup-rule-utils";
+import { formatExpiry } from "./sale-timing";
 
 /**
  * Why a create failed, when the server will not say.
@@ -67,16 +75,29 @@ function createErrorMessage(err: unknown): string {
 
 /** Markup rules management (Products half of `/pricing/markup`). */
 export function MarkupRulesView() {
-  // MARKUP only. Deals are the same rows with a negative percentage and they
-  // live on /pricing/deals; an existing one does not appear here any more.
+  // Every rule, deals included: deals are negative rules in the same tiers,
+  // so the coverage map must see them (a deal can lose to a stronger markup).
+  // Deals are still managed on /pricing/deals; their rows link there.
   const {
-    data: rules = [],
+    data: allRules,
     isLoading,
     isError,
     isFetching,
     refetch,
-  } = useMarkupRules("MARKUP");
+  } = useMarkupRules();
   const { data: categories = [] } = useCategories();
+  // The form dialog's ladder and replace list keep the MARKUP-only list.
+  const rules = useMemo(
+    () => (allRules ?? []).filter((r) => ruleTypeOf(r) === "MARKUP"),
+    [allRules],
+  );
+  const byId = useMemo(() => new Map((allRules ?? []).map((r) => [r.id, r])), [allRules]);
+  const coverageRules = useMemo(() => (allRules ?? []).map(toCoverageRule), [allRules]);
+  const rows = useMemo(
+    () =>
+      flattenCategoryTree(categories, (c) => c.subtreeProductCount ?? c.productCount ?? 0),
+    [categories],
+  );
   const { data: brands = [] } = useBrands();
 
   const createRule = useCreateMarkupRule();
@@ -202,6 +223,16 @@ export function MarkupRulesView() {
     promise.then(() => setResetTarget(null)).catch(() => {});
   };
 
+  const onAction = (action: RuleAction, { id }: { id: string }) => {
+    const rule = byId.get(id);
+    if (!rule) return;
+    if (action === "apply") setApplyTarget(rule);
+    else if (action === "edit") openEdit(rule);
+    else if (action === "reset") setResetTarget(rule);
+    else if (action === "cancel") setCancelTarget(rule);
+    else setDeleteTarget(rule);
+  };
+
   const handleCategoryReset = (input: ResetCategoryInput) => {
     const promise = resetCategory.mutateAsync(input);
     toast.promise(promise, {
@@ -213,13 +244,13 @@ export function MarkupRulesView() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
-        title="Products Markup"
-        description="Standing markup rules, scoped by product, category and brand. Sales live under Deals."
+        title="Products markup"
+        description="Standing markup rules, strongest first, and what each product sells at. Sales live under Deals."
       >
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
-        <Button asChild variant="outline" className="rounded-lg font-medium h-10">
+        <Button asChild variant="outline" className="rounded-lg font-medium h-10 max-sm:hidden">
           <Link href="/catalogues?page=1">
             <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />
             Products
@@ -228,33 +259,33 @@ export function MarkupRulesView() {
         <Button
           variant="outline"
           onClick={() => setCategoryResetOpen(true)}
-          className="rounded-lg font-medium h-10"
+          className="rounded-lg font-medium h-10 max-sm:hidden"
         >
           <AppIcon icon="solar:rewind-back-linear" className="mr-2 size-4" />
           Reset category prices
         </Button>
         <Button
           onClick={openCreate}
-          className="rounded-lg bg-primary text-primary-foreground font-semibold px-5 h-10"
+          className="rounded-lg bg-primary text-primary-foreground font-semibold px-5 h-10 max-sm:flex-1"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 size-5" />
-          New Rule
+          New rule
         </Button>
       </PageHeader>
 
-      <Card className="overflow-hidden p-0 gap-0">
-        <MarkupRulesTable
-          rules={rules}
-          isLoading={isLoading}
-          isError={isError}
-          onRetry={() => refetch()}
-          onEdit={openEdit}
-          onApply={setApplyTarget}
-          onResetKeepActive={setResetTarget}
-          onCancel={setCancelTarget}
-          onDelete={setDeleteTarget}
-        />
-      </Card>
+      <MarkupCoverageView
+        kind="products"
+        rules={coverageRules}
+        rows={rows}
+        tiers={PRODUCT_TIERS}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        renderItems={(r) => <RuleItems ruleId={r.id} />}
+        onAction={onAction}
+        onCreate={openCreate}
+        formatExpiry={formatExpiry}
+      />
 
       <MarkupRuleFormDialog
         key={formKey}
@@ -313,5 +344,19 @@ export function MarkupRulesView() {
         isSubmitting={resetCategory.isPending}
       />
     </div>
+  );
+}
+
+/** "Prices N variants now", loaded when the rule opens. */
+function RuleItems({ ruleId }: { ruleId: string }) {
+  const { data, isLoading, isError } = useMarkupImpact({ ruleId });
+  if (isError) return null;
+  return (
+    <RuleItemsLine
+      loading={isLoading}
+      count={data?.totalVariants}
+      other={data?.coveredByOtherRuleCount}
+      noun="variant"
+    />
   );
 }

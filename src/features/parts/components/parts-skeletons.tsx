@@ -43,15 +43,6 @@ export function PartFormSkeleton() {
   );
 }
 
-/** Rows shown while the parts markup-rules query loads (used by parts `MarkupRulesTable`). */
-export function PartsMarkupTableSkeleton() {
-  return (
-    <div className="p-4">
-      <SkeletonRows rows={5} rowHeight="h-14" />
-    </div>
-  );
-}
-
 /** Card grid shown while the part-types query loads (used by `PartTypesPanel`). */
 export function PartTypesGridSkeleton() {
   return (

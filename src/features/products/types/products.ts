@@ -35,6 +35,8 @@ export interface ProductCategory {
   imageUrl?: string;
   count?: number;
   productCount?: number;
+  /** `productCount` plus every descendant's. Sent on the category tree. */
+  subtreeProductCount?: number;
   isActive: boolean;
   sortOrder?: number;
   parentId?: string;

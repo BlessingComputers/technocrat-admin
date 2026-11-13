@@ -1,0 +1,426 @@
+"use client";
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+
+import { AppIcon } from "@/components/shared/app-icon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils/cn";
+import {
+  familyOf,
+  isLive,
+  laneOrder,
+  tierFamily,
+  type CoverageKind,
+  type CoverageRule,
+  type RuleAnalysis,
+} from "@/lib/utils/markup-coverage";
+
+import { TONE, pct, plural, shortDate } from "./tone";
+
+export type RuleAction = "apply" | "edit" | "reset" | "cancel" | "delete";
+
+export interface TierInfo {
+  key: string;
+  label: string;
+}
+
+const TIER_HELP: Record<string, string> = {
+  product: "One exact product. Beats every other rule.",
+  part: "One exact part. Beats every other rule.",
+  categoryBrandType: "For example Dell laptop batteries.",
+  categoryBrand: "For example Apple phones.",
+  brandType: "For example HP batteries.",
+  categoryType: "For example laptop screens.",
+  brand: "Every item from one brand.",
+  category: "Every item in a category and its subcategories.",
+  type: "Every part of one type.",
+  all: "The fallback when no other rule fits.",
+};
+
+export interface RuleLanesProps {
+  kind: CoverageKind;
+  tiers: readonly TierInfo[];
+  /** Every rule, before filters: an empty list is the empty store. */
+  allRules: readonly CoverageRule[];
+  /** The rules left after search and filters. */
+  shown: readonly CoverageRule[];
+  query: string;
+  hasFallback: boolean;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  analysis: RuleAnalysis | null;
+  /** "Battery", or null for other types (parts only). */
+  typeName: string | null;
+  /** Live one-item rules, which can also beat the selected rule. */
+  itemRuleCount: number;
+  now: number;
+  renderItems: (rule: CoverageRule) => ReactNode;
+  onAction: (action: RuleAction, rule: CoverageRule) => void;
+  onCreate: () => void;
+}
+
+export function RuleLanes(props: RuleLanesProps) {
+  const { kind, tiers, allRules, shown, query, hasFallback, selectedId } = props;
+  const noun = kind === "parts" ? "part" : "product";
+  const allLabel = kind === "parts" ? "All parts" : "All products";
+
+  if (!allRules.length) {
+    return (
+      <div className="grid gap-3.5 px-5 pt-2 pb-5">
+        <p className="text-sm text-muted-foreground">
+          No markup rules yet. Every {noun} sells at its base price.
+        </p>
+        <ol className="relative grid gap-0.5 before:absolute before:top-3.5 before:bottom-3.5 before:left-[11px] before:w-[1.5px] before:bg-border">
+          {tiers.map((t) => (
+            <li key={t.key} className="relative grid grid-cols-[24px_1fr] gap-2.5 py-1">
+              <span aria-hidden className="z-10 grid size-6 place-items-center">
+                <span
+                  className={cn(
+                    "size-[9px] rounded-full border-[1.5px] border-dashed bg-card",
+                    TONE[tierFamily(t.key)].line,
+                  )}
+                />
+              </span>
+              <span>
+                <b className="block text-sm font-medium">{t.label}</b>
+                <small className="text-xs text-muted-foreground">{TIER_HELP[t.key]}</small>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div>
+          <Button variant="outline" size="sm" onClick={props.onCreate}>
+            <AppIcon icon="solar:add-circle-linear" className="size-4" />
+            Start with {allLabel}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          A rule higher up beats every rule below it. &ldquo;{allLabel}&rdquo; is the fallback,
+          so it is a good first rule.
+        </p>
+      </div>
+    );
+  }
+
+  const empty: string[] = [];
+  const lanes = tiers.flatMap((t) => {
+    const inTier = shown.filter((r) => r.tier === t.key);
+    if (!inTier.length) {
+      if (!query) empty.push(t.label);
+      return [];
+    }
+    return [{ tier: t, rules: laneOrder(inTier) }];
+  });
+
+  return (
+    <>
+      {lanes.length > 0 && (
+        <div className="relative grid gap-1 px-3 pb-3.5 before:absolute before:top-3.5 before:bottom-6 before:left-[23px] before:w-[1.5px] before:bg-border">
+          {lanes.map(({ tier, rules }) => {
+            const tone = TONE[tierFamily(tier.key)];
+            const hasSel = rules.some((r) => r.id === selectedId);
+            return (
+              <section key={tier.key} aria-label={tier.label} className="grid gap-0.5">
+                <div className="relative grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2.5 pt-1.5 pr-1 pb-0.5">
+                  <span aria-hidden className="z-10 grid size-6 place-items-center">
+                    <span
+                      className={cn(
+                        "rounded-full",
+                        tone.dot,
+                        hasSel ? cn("size-[11px] ring-4", tone.halo) : "size-[9px]",
+                      )}
+                    />
+                  </span>
+                  <b className="font-semibold">{tier.label}</b>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {plural(rules.length, "rule")}
+                  </span>
+                </div>
+                {rules.map((r) => (
+                  <RuleRow key={r.id} rule={r} selected={r.id === selectedId} {...props} />
+                ))}
+              </section>
+            );
+          })}
+        </div>
+      )}
+      {lanes.length === 0 && (
+        <p className="px-5 pb-4 text-sm text-muted-foreground">No rules match the filters.</p>
+      )}
+      {empty.length > 0 && (
+        <p className="mx-4 mb-3.5 ml-[46px] text-xs text-muted-foreground">
+          No rules: <b className="font-medium text-foreground">{empty.join(" · ")}</b>
+          {!hasFallback && empty.includes(allLabel)
+            ? ". With no fallback, items no rule covers sell at base price."
+            : "."}
+        </p>
+      )}
+    </>
+  );
+}
+
+function RuleRow({
+  rule,
+  selected,
+  onSelect,
+  now,
+  ...rest
+}: RuleLanesProps & { rule: CoverageRule; selected: boolean }) {
+  const off = !isLive(rule, now);
+  const tone = TONE[familyOf(rule)];
+  return (
+    <div
+      className={cn(
+        "ml-[34px] rounded-[11px] border border-transparent max-sm:ml-[30px]",
+        selected
+          ? "border-success bg-success/5 shadow-[0_8px_20px_-8px_rgb(0_0_0/0.14)] dark:shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]"
+          : "hover:bg-accent",
+      )}
+    >
+      <button
+        type="button"
+        aria-expanded={selected}
+        onClick={() => onSelect(selected ? null : rule.id)}
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-[11px] px-2.5 py-2 text-left"
+      >
+        <span className={cn("truncate font-medium", off && "font-normal text-muted-foreground")}>
+          {rule.label}
+        </span>
+        <span className="row-span-2 flex items-center gap-2 tabular-nums">
+          {!rule.isActive && (
+            <Badge variant="muted" className="rounded-full">
+              Off
+            </Badge>
+          )}
+          {rule.isDeal && (
+            <Badge variant="info" className="rounded-full">
+              <AppIcon icon="solar:tag-price-linear" className="size-3" />
+              {rule.expiresAt ? `Deal · ends ${shortDate(rule.expiresAt)}` : "Deal"}
+            </Badge>
+          )}
+          <span
+            className={cn(
+              "text-base font-semibold",
+              off ? "font-normal text-muted-foreground" : tone.ink,
+            )}
+          >
+            {pct(rule.pct)}
+          </span>
+        </span>
+        <span className="truncate font-mono text-xs text-muted-foreground">
+          {rule.ruleId}
+          {rule.meta ? ` · ${rule.meta}` : ""}
+        </span>
+      </button>
+      {selected && <RuleDetail rule={rule} off={off} now={now} onSelect={onSelect} {...rest} />}
+    </div>
+  );
+}
+
+function RuleDetail({
+  rule,
+  off,
+  kind,
+  tiers,
+  analysis,
+  typeName,
+  itemRuleCount,
+  renderItems,
+  onAction,
+}: RuleLanesProps & { rule: CoverageRule; off: boolean }) {
+  const noun = kind === "parts" ? "part" : "product";
+  const actions = <RuleActions rule={rule} onAction={onAction} />;
+  const shell = "mx-2.5 mb-3 grid gap-3 border-t border-dashed border-border pt-3";
+
+  if (off) {
+    return (
+      <div className={shell}>
+        <p className="text-base leading-snug">
+          This rule is off, so it prices nothing and has no cells on the map.
+        </p>
+        {actions}
+      </div>
+    );
+  }
+  if (rule.itemId) {
+    return (
+      <div className={shell}>
+        <p className="text-base leading-snug">
+          Beats every other rule for <b className="font-semibold">{rule.label}</b>.
+        </p>
+        {renderItems(rule)}
+        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+          <AppIcon icon="solar:info-circle-linear" className="mt-0.5 size-4 shrink-0" />
+          <span>No cell on the map: a one-{noun} rule has no category or brand in the API.</span>
+        </p>
+        {actions}
+      </div>
+    );
+  }
+
+  const tierLabel = Object.fromEntries(tiers.map((t) => [t.key, t.label]));
+  const list = (rows: [CoverageRule, number][], none: string) =>
+    rows.length ? (
+      <ul className="grid gap-0.5">
+        {rows.map(([o, n]) => (
+          <li
+            key={o.id}
+            className="grid grid-cols-[8px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 border-b border-border/60 py-1 last:border-b-0"
+          >
+            <i aria-hidden className={cn("size-2 -translate-y-px rounded-full", TONE[familyOf(o)].dot)} />
+            <span className="truncate">
+              {o.label}
+              <small className="block text-xs text-muted-foreground">
+                {tierLabel[o.tier]}
+                {o.isDeal && o.expiresAt ? ` · deal, ends ${shortDate(o.expiresAt)}` : ""}
+              </small>
+            </span>
+            <span className={cn("font-semibold tabular-nums", TONE[familyOf(o)].ink)}>
+              {pct(o.pct)}
+            </span>
+            <span className="min-w-[52px] text-right text-xs text-muted-foreground tabular-nums">
+              {plural(n, "cell")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-xs text-muted-foreground">{none}</p>
+    );
+
+  const a = analysis;
+  return (
+    <div className={shell}>
+      <p className="text-base leading-snug tabular-nums">
+        Wins <b className="font-semibold">{plural(a?.wins.size ?? 0, "cell")}</b>
+        {a?.lost.size ? (
+          <>
+            , beaten in <b className="font-semibold">{a.lost.size}</b>
+          </>
+        ) : null}
+        {kind === "parts" ? ` for ${typeName ? `${typeName} parts` : "parts of other types"}` : ""}.
+      </p>
+      {renderItems(rule)}
+      <div>
+        <h5 className="mb-1 text-xs font-medium text-muted-foreground">Beats</h5>
+        {list(a?.beats ?? [], "Nothing below it here.")}
+      </div>
+      <div>
+        <h5 className="mb-1 text-xs font-medium text-muted-foreground">Beaten by</h5>
+        {list(a?.beatenBy ?? [], "Nothing on the map.")}
+        {itemRuleCount > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {plural(itemRuleCount, `one-${noun} rule`)} may also beat it, each for its own {noun}.
+          </p>
+        )}
+      </div>
+      {actions}
+    </div>
+  );
+}
+
+/** Every action the old rules table had. A deal is managed on /pricing/deals. */
+function RuleActions({
+  rule,
+  onAction,
+}: {
+  rule: CoverageRule;
+  onAction: (action: RuleAction, rule: CoverageRule) => void;
+}) {
+  if (rule.isDeal) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <Button asChild variant="outline" size="sm">
+          <Link href={rule.dealId ? `/pricing/deals/${rule.dealId}` : "/pricing/deals"}>
+            <AppIcon icon="solar:arrow-right-up-linear" className="size-4" />
+            Open in Deals
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <Button variant="outline" size="sm" onClick={() => onAction("apply", rule)}>
+        <AppIcon icon="solar:play-circle-linear" className="size-4" />
+        Preview &amp; apply
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onAction("edit", rule)}>
+        <AppIcon icon="solar:pen-2-linear" className="size-4" />
+        Edit
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-8" aria-label="More actions">
+            <AppIcon icon="solar:menu-dots-bold" className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onClick={() => onAction("reset", rule)}>
+            <AppIcon icon="solar:rewind-back-linear" className="mr-2 size-4" />
+            Reset prices (keep active)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onAction("cancel", rule)}>
+            <AppIcon icon="solar:undo-left-round-linear" className="mr-2 size-4" />
+            Cancel rule
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => onAction("delete", rule)}
+            disabled={rule.isActive}
+            title={rule.isActive ? "Cancel the rule first — an active rule cannot be deleted" : undefined}
+            className="font-medium text-destructive-ink focus:bg-destructive/10 focus:text-destructive-ink"
+          >
+            <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+/** The selected rule's item count, from the slice's impact query. */
+export function RuleItemsLine({
+  loading,
+  count,
+  other,
+  noun,
+}: {
+  loading: boolean;
+  count: number | undefined;
+  other: number | undefined;
+  /** "variant" or "part". */
+  noun: string;
+}) {
+  if (loading) {
+    return (
+      <p className="flex items-start gap-2 text-sm text-muted-foreground">
+        <span
+          aria-hidden
+          className="mt-[3px] size-3.5 shrink-0 animate-spin rounded-full border-2 border-border border-t-muted-foreground motion-reduce:animate-none"
+        />
+        <span>Counting {noun}s…</span>
+      </p>
+    );
+  }
+  if (count === undefined) return null;
+  return (
+    <p className="flex items-start gap-2 text-sm text-muted-foreground tabular-nums">
+      <AppIcon icon="solar:box-linear" className="mt-0.5 size-4 shrink-0" />
+      <span>
+        Prices <b className="font-semibold text-foreground">{plural(count, noun)}</b> now.
+        {other ? ` ${other.toLocaleString("en-GB")} more in its scope use another rule.` : ""}
+      </span>
+    </p>
+  );
+}
