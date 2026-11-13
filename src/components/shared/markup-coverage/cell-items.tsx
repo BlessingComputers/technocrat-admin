@@ -23,25 +23,34 @@ export interface CellQuery {
 const MAX_ROWS = 100;
 
 /**
- * "Items here" in the "Why this price" sheet: the items the cell's rule
- * prices, each with base → rule price, the difference, and a flag when it
- * sells at another price now (the rule is not applied to it yet).
+ * The items a rule prices, from a preview run at `previewPct`: each with
+ * base → rule price, the difference, and a flag when it sells at another
+ * price now (the rule is not applied to it yet). Used for a clicked map cell
+ * and for a selected rule, both in the right-hand sheet.
  */
 export function CellItemsList({
   loading,
   failed,
   rows,
-  query,
+  previewPct,
+  winner,
+  hasChildren = false,
   noun,
+  title = "Items here",
 }: {
   loading: boolean;
   failed: boolean;
   rows: PreviewItem[] | undefined;
-  query: CellQuery;
+  previewPct: number;
+  /** The rule that prices them, or null for a gap. */
+  winner: CoverageRule | null;
+  /** The preview walked into subcategories. */
+  hasChildren?: boolean;
   /** "variant" or "part". */
   noun: string;
+  title?: string;
 }) {
-  const head = <h5 className="text-sm font-semibold">Items here</h5>;
+  const head = <h5 className="text-sm font-semibold">{title}</h5>;
   if (loading) {
     return (
       <section className="grid gap-2">
@@ -65,7 +74,7 @@ export function CellItemsList({
     );
   }
 
-  const { items, covered } = cellItems(rows, query.previewPct, query.winner);
+  const { items, covered } = cellItems(rows, previewPct, winner);
   const notApplied = items.filter((i) => i.drift).length;
   return (
     <section className="grid gap-2">
@@ -79,14 +88,14 @@ export function CellItemsList({
         )}
         .{covered > 0 ? ` ${plural(covered, "other")} in this scope use a stronger rule and are left out.` : ""}
       </p>
-      {query.hasChildren && (
+      {hasChildren && (
         <p className="text-xs text-muted-foreground">
           Includes items in its subcategories that use the same rule.
         </p>
       )}
-      {notApplied > 0 && !query.winner?.isDeal && (
+      {notApplied > 0 && !winner?.isDeal && (
         <p className="text-xs text-muted-foreground">
-          To bring them in line, use Preview &amp; apply on the winning rule.
+          To bring them in line, use Preview &amp; apply on the rule.
         </p>
       )}
       {items.length > 0 && (

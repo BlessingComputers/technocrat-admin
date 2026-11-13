@@ -12,6 +12,7 @@ import {
   ruleScopeLabel,
   rulesToReplace,
   tierOf,
+  toCoverageRule,
 } from "./markup-rule-utils";
 
 const ref = (id: string, name: string) => ({ id, name, slug: id });
@@ -149,5 +150,12 @@ describe("applySummary", () => {
     expect(applySummary({ updated: 1, results: [], skippedByOtherRule: 0 })).toBe(
       "Applied — 1 variant repriced.",
     );
+  });
+});
+
+describe("toCoverageRule", () => {
+  it("turns the list's string percentage into a number (the preview refuses a string)", () => {
+    const r = toCoverageRule(rule({ markupPercentage: "10" as unknown as number }));
+    expect(r.pct).toBe(10);
   });
 });

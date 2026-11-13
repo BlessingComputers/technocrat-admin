@@ -191,7 +191,8 @@ export function toCoverageRule(rule: PartMarkupRule): CoverageRule {
     typeId: rule.partTypeId,
     typeName: rule.partType?.name ?? null,
     itemId: rule.partId,
-    pct: rule.markupPercentage,
+    // The list sends a Decimal as a string ("10"); the preview refuses one.
+    pct: Number(rule.markupPercentage),
     affectsPrice: rule.applyTo !== "COMPARE_AT_PRICE",
     isDeal,
     dealId: rule.dealId ?? null,

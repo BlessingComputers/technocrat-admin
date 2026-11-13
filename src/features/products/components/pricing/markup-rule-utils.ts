@@ -130,7 +130,8 @@ export function toCoverageRule(rule: MarkupRule): CoverageRule {
     typeId: null,
     typeName: null,
     itemId: rule.productId,
-    pct: rule.markupPercentage,
+    // The list sends a Decimal as a string ("10"); the preview refuses one.
+    pct: Number(rule.markupPercentage),
     affectsPrice: true,
     isDeal,
     dealId: rule.dealId ?? null,

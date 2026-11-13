@@ -11,7 +11,11 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
-import { flattenCategoryTree } from "@/lib/utils/markup-coverage";
+import {
+  flattenCategoryTree,
+  type CoverageRule,
+  type PreviewItem,
+} from "@/lib/utils/markup-coverage";
 import {
   CellItemsList,
   MarkupCoverageView,
@@ -34,7 +38,11 @@ import {
   useCancelPartMarkupRule,
   usePartMarkupImpact,
 } from "../../api/pricing.queries";
-import { partRuleTypeOf, type PartMarkupRule } from "../../types/pricing";
+import {
+  partRuleTypeOf,
+  type PartMarkupPreviewRow,
+  type PartMarkupRule,
+} from "../../types/pricing";
 import type { PartMarkupRuleFormValues } from "../../schemas/markup-rule-form";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
@@ -255,7 +263,7 @@ export function PartsPricingView() {
         isLoading={isLoading}
         isError={isError}
         onRetry={() => refetch()}
-        renderItems={(r) => <RuleItems ruleId={r.id} />}
+        renderItems={(r) => <RuleItems rule={r} />}
         renderCellItems={(q) => <CellItems query={q} />}
         onAction={onAction}
         onCreate={openCreate}
@@ -311,9 +319,9 @@ export function PartsPricingView() {
   );
 }
 
-/** "Prices N parts now", loaded when the rule opens. */
-function RuleItems({ ruleId }: { ruleId: string }) {
-  const { data, isLoading, isError } = usePartMarkupImpact({ ruleId });
+/** "Prices N parts now" and the list behind it, loaded when the rule opens. */
+function RuleItems({ rule }: { rule: CoverageRule }) {
+  const { data, isLoading, isError } = usePartMarkupImpact({ ruleId: rule.id });
   if (isError) return null;
   return (
     <RuleItemsLine
@@ -321,9 +329,21 @@ function RuleItems({ ruleId }: { ruleId: string }) {
       count={data?.totalParts}
       other={data?.coveredByOtherRuleCount}
       noun="part"
+      rule={rule}
+      rows={data?.parts.map(toPreviewItem)}
     />
   );
 }
+
+const toPreviewItem = (p: PartMarkupPreviewRow): PreviewItem => ({
+  id: p.partId,
+  name: p.name,
+  detail: p.partNumber ?? null,
+  current: p.currentPrice,
+  projected: p.projectedPrice,
+  cost: p.costPrice ?? null,
+  covered: !!p.coveredByOtherRule,
+});
 
 /**
  * The clicked cell's parts: a dry run at the cell's scope (and part type)
@@ -341,16 +361,10 @@ function CellItems({ query }: { query: CellQuery }) {
     <CellItemsList
       loading={isLoading || isPlaceholderData}
       failed={isError}
-      rows={data?.parts.map((p) => ({
-        id: p.partId,
-        name: p.name,
-        detail: p.partNumber ?? null,
-        current: p.currentPrice,
-        projected: p.projectedPrice,
-        cost: p.costPrice ?? null,
-        covered: !!p.coveredByOtherRule,
-      }))}
-      query={query}
+      rows={data?.parts.map(toPreviewItem)}
+      previewPct={query.previewPct}
+      winner={query.winner}
+      hasChildren={query.hasChildren}
       noun="part"
     />
   );

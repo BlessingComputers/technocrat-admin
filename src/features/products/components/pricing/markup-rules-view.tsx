@@ -11,7 +11,11 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
-import { flattenCategoryTree } from "@/lib/utils/markup-coverage";
+import {
+  flattenCategoryTree,
+  type CoverageRule,
+  type PreviewItem,
+} from "@/lib/utils/markup-coverage";
 import {
   CellItemsList,
   MarkupCoverageView,
@@ -31,7 +35,12 @@ import {
   useResetCategory,
   useMarkupImpact,
 } from "../../api/pricing.queries";
-import { ruleTypeOf, type MarkupRule, type ResetCategoryInput } from "../../types/pricing";
+import {
+  ruleTypeOf,
+  type MarkupPreviewVariant,
+  type MarkupRule,
+  type ResetCategoryInput,
+} from "../../types/pricing";
 import type { MarkupRuleFormValues } from "../../schemas/markup-rule-form";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
@@ -283,7 +292,7 @@ export function MarkupRulesView() {
         isLoading={isLoading}
         isError={isError}
         onRetry={() => refetch()}
-        renderItems={(r) => <RuleItems ruleId={r.id} />}
+        renderItems={(r) => <RuleItems rule={r} />}
         renderCellItems={(q) => <CellItems query={q} />}
         onAction={onAction}
         onCreate={openCreate}
@@ -350,9 +359,9 @@ export function MarkupRulesView() {
   );
 }
 
-/** "Prices N variants now", loaded when the rule opens. */
-function RuleItems({ ruleId }: { ruleId: string }) {
-  const { data, isLoading, isError } = useMarkupImpact({ ruleId });
+/** "Prices N variants now" and the list behind it, loaded when the rule opens. */
+function RuleItems({ rule }: { rule: CoverageRule }) {
+  const { data, isLoading, isError } = useMarkupImpact({ ruleId: rule.id });
   if (isError) return null;
   return (
     <RuleItemsLine
@@ -360,9 +369,21 @@ function RuleItems({ ruleId }: { ruleId: string }) {
       count={data?.totalVariants}
       other={data?.coveredByOtherRuleCount}
       noun="variant"
+      rule={rule}
+      rows={data?.variants.map(toPreviewItem)}
     />
   );
 }
+
+const toPreviewItem = (v: MarkupPreviewVariant): PreviewItem => ({
+  id: v.variantId,
+  name: v.productName,
+  detail: [v.variantName, v.sku].filter(Boolean).join(" · ") || null,
+  current: v.currentPrice,
+  projected: v.projectedPrice,
+  cost: v.costPrice,
+  covered: !!v.coveredByOtherRule,
+});
 
 /**
  * The clicked cell's variants: a dry run at the cell's scope and winning %.
@@ -379,16 +400,10 @@ function CellItems({ query }: { query: CellQuery }) {
     <CellItemsList
       loading={isLoading || isPlaceholderData}
       failed={isError}
-      rows={data?.variants.map((v) => ({
-        id: v.variantId,
-        name: v.productName,
-        detail: [v.variantName, v.sku].filter(Boolean).join(" · ") || null,
-        current: v.currentPrice,
-        projected: v.projectedPrice,
-        cost: v.costPrice,
-        covered: !!v.coveredByOtherRule,
-      }))}
-      query={query}
+      rows={data?.variants.map(toPreviewItem)}
+      previewPct={query.previewPct}
+      winner={query.winner}
+      hasChildren={query.hasChildren}
       noun="variant"
     />
   );

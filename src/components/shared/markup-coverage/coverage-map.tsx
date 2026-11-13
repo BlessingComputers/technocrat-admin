@@ -1,5 +1,7 @@
 "use client";
 
+import { memo, useMemo } from "react";
+
 import { AppIcon } from "@/components/shared/app-icon";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { cn } from "@/lib/utils/cn";
 import {
   cellKey,
@@ -89,9 +92,12 @@ export function CoverageMap(props: CoverageMapProps) {
   const { id, kind, model, view, analysis, selected, focus, types, typeName } = props;
   const parts = kind === "parts";
   const noun = parts ? "part" : "product";
-  const brandName = (b: string | null) =>
-    b ? (model.brands.find((x) => x.id === b)?.name ?? b) : "Other brands";
-  const rowName = (c: string) => model.rows.find((r) => r.id === c)?.name ?? c;
+  const brandNames = useMemo(() => new Map(model.brands.map((b) => [b.id, b.name])), [model]);
+  const rowNames = useMemo(() => new Map(model.rows.map((r) => [r.id, r.name])), [model]);
+  const brandName = (b: string | null) => (b ? (brandNames.get(b) ?? b) : "Other brands");
+  const rowName = (c: string) => rowNames.get(c) ?? c;
+  // Draw one layout only: the hidden one still cost a full render per click.
+  const phone = useMediaQuery("(max-width: 639px)");
 
   const stateOf = (c: CoverageCell): CellState => {
     if (!analysis) return "";
@@ -158,123 +164,18 @@ export function CoverageMap(props: CoverageMapProps) {
 
   const cellButton = (c: CoverageCell, line: boolean) => {
     const s = stateOf(c);
-    const w = c.winner;
-    const isFocus = focus?.categoryId === c.categoryId && focus.brandId === c.brandId;
-    const lostPct =
-      s === "lost" && selected ? (
-        <s className="text-xs font-normal text-muted-foreground">{pct(selected.pct)}</s>
-      ) : null;
-    const mark =
-      s === "win" ? (
-        <span className={cn("text-success-ink", line ? "row-span-2" : "absolute top-[5px] right-1.5")}>
-          <AppIcon icon="solar:check-circle-bold" className="size-3.5" />
-        </span>
-      ) : null;
-    const name = line ? <span className="font-medium">{brandName(c.brandId)}</span> : null;
-
-    let look: string;
-    let style: React.CSSProperties | undefined;
-    let body: React.ReactNode;
-    if (c.sameAsBaseline) {
-      look = s === "win" ? "bg-success/13" : "border-transparent bg-transparent hover:border-border";
-      body = (
-        <span className="flex items-baseline gap-1.5">
-          <span aria-hidden className="text-base font-medium text-muted-foreground/60">=</span>
-          {lostPct}
-        </span>
-      );
-    } else if (!w) {
-      look = "border-dashed bg-card";
-      style = HATCH;
-      body = (
-        <>
-          <span className="flex items-baseline gap-1.5 font-medium text-muted-foreground">
-            Base{lostPct}
-          </span>
-          <span className="truncate text-xs text-muted-foreground">No rule</span>
-        </>
-      );
-    } else {
-      const inherited = !!w.categoryId && w.categoryId !== c.categoryId;
-      const tone = TONE[familyOf(w)];
-      look = s === "win" ? "bg-success/13" : inherited ? tone.soft : tone.tint;
-      let src: React.ReactNode;
-      if (w.isDeal) {
-        const after = ruleAfterDeal(c);
-        src = `Deal${w.expiresAt ? ` · ends ${shortDate(w.expiresAt)}` : ""} · then ${
-          after ? pct(after.pct) : "base"
-        }`;
-      } else if (inherited) {
-        src = (
-          <>
-            <AppIcon icon="solar:arrow-up-linear" className="size-3 shrink-0" />
-            From {w.categoryName ?? rowName(w.categoryId!)}
-          </>
-        );
-      } else {
-        src = SHORT_TIER[w.tier] ?? "";
-      }
-      body = (
-        <>
-          <span
-            className={cn(
-              "flex items-baseline gap-1.5 font-semibold tabular-nums",
-              familyOf(w) === "all" && "font-medium",
-              s === "win" ? "text-success-ink" : tone.ink,
-              familyOf(w) === "all" && s !== "win" && "text-foreground",
-            )}
-          >
-            {pct(w.pct)}
-            {lostPct}
-          </span>
-          <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">{src}</span>
-        </>
-      );
-    }
-
-    const where = `${rowName(c.categoryId)}, ${c.brandId ? brandName(c.brandId) : "other brands"}`;
-    const rel = s === "win" ? ", selected rule wins" : s === "lost" ? ", selected rule loses here" : "";
-    const same = c.sameAsBaseline ? ", same as other brands" : "";
-    const label = w
-      ? `${where}: ${pct(w.pct)} from ${w.label}${w.isDeal ? " deal" : ""}${same}${rel}`
-      : `${where}: base price, no rule${same}${rel}`;
-
     return (
-      <button
+      <MapCellButton
         key={cellKey(c.categoryId, c.brandId)}
-        type="button"
-        data-map-cell
-        aria-label={label}
-        aria-pressed={isFocus}
-        aria-haspopup="dialog"
-        onClick={() => props.onFocus({ categoryId: c.categoryId, brandId: c.brandId })}
-        style={style}
-        className={cn(
-          "relative grid w-full content-center rounded-lg border px-2.5 py-1.5 text-left text-sm transition-[background-color,border-color,opacity] hover:border-foreground/25 motion-reduce:transition-none",
-          line ? "min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5" : "min-h-[54px]",
-          look,
-          s === "win" &&
-            "-translate-y-px border-[1.5px] border-success shadow-[0_8px_20px_-8px_rgb(0_0_0/0.14)] hover:border-success dark:shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]",
-          s === "lost" && "border-[1.5px] border-dashed border-success/60",
-          s === "out" && "opacity-40 hover:opacity-80",
-          isFocus && "ring-2 ring-foreground/45 ring-offset-2 ring-offset-card",
-        )}
-      >
-        {line ? (
-          <>
-            <span className="grid min-w-0">
-              {name}
-              {body}
-            </span>
-            {mark}
-          </>
-        ) : (
-          <>
-            {body}
-            {mark}
-          </>
-        )}
-      </button>
+        cell={c}
+        s={s}
+        isFocus={focus?.categoryId === c.categoryId && focus.brandId === c.brandId}
+        line={line}
+        selectedPct={s === "lost" ? selected?.pct : undefined}
+        brandLabel={brandName(c.brandId)}
+        rowLabel={rowName(c.categoryId)}
+        onFocus={props.onFocus}
+      />
     );
   };
 
@@ -401,7 +302,8 @@ export function CoverageMap(props: CoverageMapProps) {
       )}
 
       {/* Desktop and tablet: the grid. */}
-      <div className="overflow-x-auto px-3 pb-3 max-sm:hidden">
+      {!phone && (
+      <div className="overflow-x-auto px-3 pb-3">
         <table className="w-full min-w-[560px] border-separate border-spacing-1 tabular-nums">
           <thead>
             <tr>
@@ -460,8 +362,11 @@ export function CoverageMap(props: CoverageMapProps) {
         )}
       </div>
 
+      )}
+
       {/* Phone: one card per category, the baseline and only the brands that differ. */}
-      <div className="grid gap-2.5 px-3 pb-3 sm:hidden">
+      {phone && (
+      <div className="grid gap-2.5 px-3 pb-3">
         {view.rows.map((r) => {
           const own = ownCategoryRule(model, r.id);
           const cells = view.columns.map((b) => model.cell(r.id, b));
@@ -495,6 +400,7 @@ export function CoverageMap(props: CoverageMapProps) {
           );
         })}
       </div>
+      )}
 
       {/* "Why this price" opens in a sheet on the right. Not modal, so the map
           stays usable: clicking another cell switches the sheet to it. At the
@@ -665,3 +571,145 @@ function WhyThisPrice({
     </>
   );
 }
+
+/**
+ * One map cell. Memoised: a map holds hundreds of cells (707 in the Blessing
+ * catalogue), and a click on one cell must not re-render the rest.
+ */
+const MapCellButton = memo(function MapCellButton({
+  cell: c,
+  s,
+  isFocus,
+  line,
+  selectedPct,
+  brandLabel,
+  rowLabel,
+  onFocus,
+}: {
+  cell: CoverageCell;
+  s: CellState;
+  isFocus: boolean;
+  line: boolean;
+  /** The selected rule's %, shown struck where it loses. */
+  selectedPct: number | undefined;
+  brandLabel: string;
+  rowLabel: string;
+  onFocus: (focus: MapFocus | null) => void;
+}) {
+    const w = c.winner;
+    const lostPct =
+      s === "lost" && selectedPct !== undefined ? (
+        <s className="text-xs font-normal text-muted-foreground">{pct(selectedPct)}</s>
+      ) : null;
+    const mark =
+      s === "win" ? (
+        <span className={cn("text-success-ink", line ? "row-span-2" : "absolute top-[5px] right-1.5")}>
+          <AppIcon icon="solar:check-circle-bold" className="size-3.5" />
+        </span>
+      ) : null;
+    const name = line ? <span className="font-medium">{brandLabel}</span> : null;
+
+    let look: string;
+    let style: React.CSSProperties | undefined;
+    let body: React.ReactNode;
+    if (c.sameAsBaseline) {
+      look = s === "win" ? "bg-success/13" : "border-transparent bg-transparent hover:border-border";
+      body = (
+        <span className="flex items-baseline gap-1.5">
+          <span aria-hidden className="text-base font-medium text-muted-foreground/60">=</span>
+          {lostPct}
+        </span>
+      );
+    } else if (!w) {
+      look = "border-dashed bg-card";
+      style = HATCH;
+      body = (
+        <>
+          <span className="flex items-baseline gap-1.5 font-medium text-muted-foreground">
+            Base{lostPct}
+          </span>
+          <span className="truncate text-xs text-muted-foreground">No rule</span>
+        </>
+      );
+    } else {
+      const inherited = !!w.categoryId && w.categoryId !== c.categoryId;
+      const tone = TONE[familyOf(w)];
+      look = s === "win" ? "bg-success/13" : inherited ? tone.soft : tone.tint;
+      let src: React.ReactNode;
+      if (w.isDeal) {
+        const after = ruleAfterDeal(c);
+        src = `Deal${w.expiresAt ? ` · ends ${shortDate(w.expiresAt)}` : ""} · then ${
+          after ? pct(after.pct) : "base"
+        }`;
+      } else if (inherited) {
+        src = (
+          <>
+            <AppIcon icon="solar:arrow-up-linear" className="size-3 shrink-0" />
+            From {w.categoryName ?? w.categoryId}
+          </>
+        );
+      } else {
+        src = SHORT_TIER[w.tier] ?? "";
+      }
+      body = (
+        <>
+          <span
+            className={cn(
+              "flex items-baseline gap-1.5 font-semibold tabular-nums",
+              familyOf(w) === "all" && "font-medium",
+              s === "win" ? "text-success-ink" : tone.ink,
+              familyOf(w) === "all" && s !== "win" && "text-foreground",
+            )}
+          >
+            {pct(w.pct)}
+            {lostPct}
+          </span>
+          <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">{src}</span>
+        </>
+      );
+    }
+
+    const where = `${rowLabel}, ${c.brandId ? brandLabel : "other brands"}`;
+    const rel = s === "win" ? ", selected rule wins" : s === "lost" ? ", selected rule loses here" : "";
+    const same = c.sameAsBaseline ? ", same as other brands" : "";
+    const label = w
+      ? `${where}: ${pct(w.pct)} from ${w.label}${w.isDeal ? " deal" : ""}${same}${rel}`
+      : `${where}: base price, no rule${same}${rel}`;
+
+    return (
+      <button
+        type="button"
+        data-map-cell
+        aria-label={label}
+        aria-pressed={isFocus}
+        aria-haspopup="dialog"
+        onClick={() => onFocus({ categoryId: c.categoryId, brandId: c.brandId })}
+        style={style}
+        className={cn(
+          "relative grid w-full content-center rounded-lg border px-2.5 py-1.5 text-left text-sm transition-[background-color,border-color,opacity] hover:border-foreground/25 motion-reduce:transition-none",
+          line ? "min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5" : "min-h-[54px]",
+          look,
+          s === "win" &&
+            "-translate-y-px border-[1.5px] border-success shadow-[0_8px_20px_-8px_rgb(0_0_0/0.14)] hover:border-success dark:shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]",
+          s === "lost" && "border-[1.5px] border-dashed border-success/60",
+          s === "out" && "opacity-40 hover:opacity-80",
+          isFocus && "ring-2 ring-foreground/45 ring-offset-2 ring-offset-card",
+        )}
+      >
+        {line ? (
+          <>
+            <span className="grid min-w-0">
+              {name}
+              {body}
+            </span>
+            {mark}
+          </>
+        ) : (
+          <>
+            {body}
+            {mark}
+          </>
+        )}
+      </button>
+    );
+});

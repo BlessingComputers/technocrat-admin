@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 
 import { AppIcon } from "@/components/shared/app-icon";
@@ -13,6 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils/cn";
 import {
   familyOf,
@@ -21,8 +28,11 @@ import {
   tierFamily,
   type CoverageKind,
   type CoverageRule,
+  type PreviewItem,
   type RuleAnalysis,
 } from "@/lib/utils/markup-coverage";
+
+import { CellItemsList } from "./cell-items";
 
 import { TONE, pct, plural, shortDate } from "./tone";
 
@@ -410,19 +420,28 @@ function RuleActions({
   );
 }
 
-/** The selected rule's item count, from the slice's impact query. */
+/**
+ * The selected rule's item count, from the slice's impact query, and a
+ * button that lists those items (base, rule price, difference) in a sheet.
+ */
 export function RuleItemsLine({
   loading,
   count,
   other,
   noun,
+  rule,
+  rows,
 }: {
   loading: boolean;
   count: number | undefined;
   other: number | undefined;
   /** "variant" or "part". */
   noun: string;
+  rule: CoverageRule;
+  /** The same preview's rows, for the item list. */
+  rows: PreviewItem[] | undefined;
 }) {
+  const [open, setOpen] = useState(false);
   if (loading) {
     return (
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -436,12 +455,49 @@ export function RuleItemsLine({
   }
   if (count === undefined) return null;
   return (
-    <p className="flex items-start gap-2 text-sm text-muted-foreground tabular-nums">
-      <AppIcon icon="solar:box-linear" className="mt-0.5 size-4 shrink-0" />
-      <span>
-        Prices <b className="font-semibold text-foreground">{plural(count, noun)}</b> now.
-        {other ? ` ${other.toLocaleString("en-GB")} more in its scope use another rule.` : ""}
-      </span>
-    </p>
+    <div className="grid gap-1.5">
+      <p className="flex items-start gap-2 text-sm text-muted-foreground tabular-nums">
+        <AppIcon icon="solar:box-linear" className="mt-0.5 size-4 shrink-0" />
+        <span>
+          Prices <b className="font-semibold text-foreground">{plural(count, noun)}</b> now.
+          {other ? ` ${other.toLocaleString("en-GB")} more in its scope use another rule.` : ""}
+        </span>
+      </p>
+      {rows && rows.length > 0 && (
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <AppIcon icon="solar:list-check-linear" className="size-4" />
+            Show the items
+          </Button>
+        </div>
+      )}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          side="right"
+          className="w-full gap-0 overflow-y-auto border-border bg-card shadow-soft-lg sm:max-w-md"
+        >
+          <SheetHeader className="border-b border-border px-5 pt-5 pb-4">
+            <SheetTitle className="text-base">Items this rule prices</SheetTitle>
+            <SheetDescription>
+              {rule.label} {pct(rule.pct)}
+              {rule.ruleId ? ` · ${rule.ruleId}` : ""}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-5 pt-4 pb-6">
+            <CellItemsList
+              loading={false}
+              failed={false}
+              rows={rows}
+              // The rule's own preview keeps its applyTo: a compare-at-only
+              // rule leaves the price at base, so there is no % to undo.
+              previewPct={rule.affectsPrice ? rule.pct : 0}
+              winner={rule}
+              noun={noun}
+              title="Items"
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }
