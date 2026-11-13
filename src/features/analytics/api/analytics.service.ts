@@ -15,6 +15,7 @@ import type {
   UploaderUpdatesParams,
   UploaderUpdatesResponse,
   UploadTarget,
+  PriceAgeCounts,
 } from "../types/upload-analytics";
 import type {
   AnalyticsPeriodParams,
@@ -132,5 +133,11 @@ export const analyticsService = {
   getUploaderUpdates: ({ staffId, startDate, endDate, page }: UploaderUpdatesParams) =>
     api.get<UploaderUpdatesResponse>(API_ENDPOINTS.analytics.uploaderUpdates(staffId), {
       params: { startDate, endDate, page },
+    }),
+
+  /** Stale-price counts for the dashboard card. Requires `products:read`. */
+  getPriceAge: (days: number) =>
+    api.get<PriceAgeCounts>(API_ENDPOINTS.analytics.priceAge, {
+      params: { days },
     }),
 };

@@ -29,7 +29,12 @@ import { MarkupRulesTable } from "./markup-rules-table";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
 import { CategoryResetDialog } from "./category-reset-dialog";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import {
+  cancelSummary,
+  replaceSummary,
+  resetSummary,
+  ruleScopeLabel,
+} from "./markup-rule-utils";
 
 /**
  * Why a create failed, when the server will not say.
@@ -108,7 +113,10 @@ export function MarkupRulesView() {
     setFormOpen(true);
   };
 
-  const handleSubmit = (values: MarkupRuleFormValues) => {
+  // Returns the save so the dialog can close itself, or show what a replace
+  // turned off. A rejection keeps it open; the toast says why.
+  const handleSubmit = (values: MarkupRuleFormValues): Promise<MarkupRule> => {
+    const replaceExisting = values.replaceExisting || undefined;
     if (editTarget) {
       // PATCH accepts only the mutable fields — category/brand are fixed.
       const promise = updateRule.mutateAsync({
@@ -118,6 +126,7 @@ export function MarkupRulesView() {
           applyTo: values.applyTo,
           notes: values.notes,
           isActive: values.isActive,
+          replaceExisting,
           // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
           // clear it server-side, but only on the row being edited, and that
           // row is a markup — the backend ignores both fields on a positive
@@ -127,13 +136,14 @@ export function MarkupRulesView() {
       toast.promise(promise, {
         loading: "Updating rule…",
         success: (rule) =>
-          rule.variantsRecomputed
-            ? `Rule updated — ${rule.variantsRecomputed} price${rule.variantsRecomputed === 1 ? "" : "s"} recomputed.`
-            : "Rule updated.",
+          rule.replaced
+            ? `Rule updated. ${replaceSummary(rule.replaced)}`
+            : rule.variantsRecomputed
+              ? `Rule updated — ${rule.variantsRecomputed} price${rule.variantsRecomputed === 1 ? "" : "s"} recomputed.`
+              : "Rule updated.",
         error: (err) => getErrorMessage(err, "Failed to update rule."),
       });
-      promise.then(() => setFormOpen(false)).catch(() => {});
-      return;
+      return promise;
     }
 
     const promise = createRule.mutateAsync({
@@ -144,13 +154,18 @@ export function MarkupRulesView() {
       applyTo: values.applyTo,
       notes: values.notes,
       isActive: values.isActive,
+      replaceExisting,
     });
     toast.promise(promise, {
-      loading: "Creating rule…",
-      success: "Rule created. Use Preview & Apply to reprice existing products.",
+      loading: replaceExisting ? "Creating rule and repricing…" : "Creating rule…",
+      success: (rule) =>
+        rule.replaced
+          ? `Rule created. ${replaceSummary(rule.replaced)}`
+          : "Rule created. Use Preview & Apply to reprice existing products.",
       error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => refetch());
+    promise.catch(() => refetch());
+    return promise;
   };
 
   const confirmDelete = () => {
@@ -164,16 +179,12 @@ export function MarkupRulesView() {
     promise.then(() => setDeleteTarget(null)).catch(() => {});
   };
 
-  const resetToast = (variantsReset: number, partsReset: number) =>
-    `${variantsReset} variant${variantsReset === 1 ? "" : "s"} and ${partsReset} part${partsReset === 1 ? "" : "s"} reset to base price.`;
-
   const confirmCancel = () => {
     if (!cancelTarget) return;
     const promise = cancelRule.mutateAsync(cancelTarget.id);
     toast.promise(promise, {
-      loading: "Cancelling rule & resetting prices…",
-      success: ({ variantsReset, partsReset }) =>
-        `Rule cancelled — ${resetToast(variantsReset, partsReset)}`,
+      loading: "Cancelling rule…",
+      success: (res) => `Rule cancelled — ${cancelSummary(res)}`,
       // Surfaces typed server messages (e.g. the 429 rate-limit retry window).
       error: (err) => getErrorMessage(err, "Failed to cancel rule."),
     });
@@ -185,8 +196,7 @@ export function MarkupRulesView() {
     const promise = resetRule.mutateAsync(resetTarget.id);
     toast.promise(promise, {
       loading: "Resetting prices to base…",
-      success: ({ variantsReset, partsReset }) =>
-        `Prices reset (rule still active) — ${resetToast(variantsReset, partsReset)}`,
+      success: (res) => `Prices reset (rule still active) — ${resetSummary(res)}`,
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setResetTarget(null)).catch(() => {});
@@ -196,7 +206,7 @@ export function MarkupRulesView() {
     const promise = resetCategory.mutateAsync(input);
     toast.promise(promise, {
       loading: "Resetting category prices to base…",
-      success: ({ variantsReset, partsReset }) => resetToast(variantsReset, partsReset),
+      success: (res) => resetSummary(res),
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setCategoryResetOpen(false)).catch(() => {});
@@ -253,6 +263,7 @@ export function MarkupRulesView() {
         initial={editTarget}
         categories={categories}
         brands={brands}
+        rules={rules}
         onSubmit={handleSubmit}
         isSubmitting={createRule.isPending || updateRule.isPending}
       />
@@ -277,9 +288,9 @@ export function MarkupRulesView() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={confirmCancel}
-        title="Cancel rule & reset to base?"
-        description={`This deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}” and resets every affected variant and part back to its base price. The rule is kept for audit and can be re-created later.`}
-        confirmText="Cancel & reset"
+        title="Cancel this rule?"
+        description={`This deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}”. Each variant it prices moves to the next rule that matches it (for example a brand rule or the all-products rule), or back to base price when no other rule matches. Variants priced by a deal, a hunt or a more specific rule are not touched. The rule is kept for audit and can be turned back on later.`}
+        confirmText="Cancel rule"
         isPending={cancelRule.isPending}
       />
 
@@ -288,7 +299,7 @@ export function MarkupRulesView() {
         onClose={() => setResetTarget(null)}
         onConfirm={confirmReset}
         title="Reset prices (keep rule active)?"
-        description={`This resets every affected variant and part for “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” back to base price, but leaves the rule ACTIVE — new products and price edits will have the markup re-applied, so prices will drift back up. For a permanent undo, use “Cancel rule & reset” instead.`}
+        description={`This sets the variants that “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” prices back to base price, but leaves the rule ACTIVE — new products and price edits will have the markup re-applied, so prices will drift back up. Variants priced by a deal, a hunt or a more specific rule are not touched. For a permanent undo, use “Cancel rule” instead.`}
         confirmText="Reset prices"
         isPending={resetRule.isPending}
       />

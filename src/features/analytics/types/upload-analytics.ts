@@ -80,3 +80,10 @@ export interface UploaderUpdatesParams {
   endDate: string;
   page?: number;
 }
+
+/**
+ * `GET /analytics/price-age`: active products and parts whose price was not
+ * checked in `days` days. `before` is the cut-off to pass as
+ * `priceCheckedBefore` when opening the matching list.
+ */
+export type PriceAgeCounts = components["schemas"]["PriceAgeResponse"]["data"];

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { AppIcon } from "@/components/shared/app-icon";
+import { PriceStillCorrectButton } from "@/components/shared/price-still-correct-button";
 import { getErrorMessage } from "@/lib/api/error-message";
 
 import {
@@ -18,6 +19,7 @@ import {
   useBrands,
   useCreateProduct,
   useUpdateProduct,
+  useConfirmProductPrices,
 } from "../../api/products.queries";
 import type { NewProductImage, ProductDetail } from "../../types/products";
 import { splitCategoryId } from "../../utils/category-tree";
@@ -47,6 +49,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const { data: brands = [] } = useBrands();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
+  const confirmPrices = useConfirmProductPrices();
 
   // Create only: images queued in the form travel with `POST /products` (see
   // productsService.createProduct) instead of needing a saved product first.
@@ -85,6 +88,17 @@ export function ProductForm({ initialData }: ProductFormProps) {
     (images: NewProductImage[]) => setPendingImages(images),
     [],
   );
+
+  // "Price still correct" without a fake edit (ask 42). The form keeps any
+  // unsaved changes: defaultValues are read once, so the refetch can't reset it.
+  const confirmPrice = () => {
+    if (!initialData) return;
+    toast.promise(confirmPrices.mutateAsync([initialData.id]), {
+      loading: "Saving…",
+      success: "Price marked as still correct.",
+      error: (err) => getErrorMessage(err, "Failed to confirm the price."),
+    });
+  };
 
   const onSubmit: SubmitHandler<ProductFormValues> = async (values) => {
     const dto = toCreateDto(values);
@@ -159,7 +173,15 @@ export function ProductForm({ initialData }: ProductFormProps) {
         description={
           isEditing ? initialData!.name : "Create a new product listing"
         }
-      />
+      >
+        {initialData ? (
+          <PriceStillCorrectButton
+            checkedAt={initialData.priceCheckedAt}
+            onConfirm={confirmPrice}
+            isPending={confirmPrices.isPending}
+          />
+        ) : null}
+      </PageHeader>
 
       <Card>
         <CardContent className="p-6 lg:p-8">

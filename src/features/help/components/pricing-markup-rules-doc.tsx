@@ -59,8 +59,9 @@ export function PricingMarkupRulesDoc() {
             title="Build the rule"
           >
             <p>
-              Choose what it covers — one <b>product</b>, or a <b>category</b>{" "}
-              and/or <b>brand</b> — and enter the percentage to add.
+              Choose what it covers — <b>all products</b>, one <b>product</b>,
+              or a <b>category</b> and/or <b>brand</b> — and enter the
+              percentage to add.
             </p>
           </StepCard>
 
@@ -107,8 +108,8 @@ export function PricingMarkupRulesDoc() {
             title="Undo if needed"
           >
             <p>
-              Changed your mind? <b>Reset</b> prices back to base, or <b>Cancel</b>{" "}
-              the rule entirely — both are one click away.
+              Changed your mind? <b>Reset</b> the rule&apos;s prices back to base,
+              or <b>Cancel</b> the rule entirely — both are one click away.
             </p>
           </StepCard>
         </Bento>
@@ -129,15 +130,15 @@ export function PricingMarkupRulesDoc() {
             },
             {
               title: "Choose what it covers",
-              body: "Either one specific product, searched by name, or a Category and Brand combination. Leaving one of those as “All” makes the rule broader — All categories + HP means every HP product.",
+              body: "Pick one of three cards. All products is the store-wide fallback. Category & brand covers a slice: leaving one of the two as “All” makes it broader, so All categories + HP means every HP product. One product is searched by name and beats every other rule.",
             },
             {
               title: "Type the percentage",
               body: "How much to add on top. It is always a positive number: this screen only ever puts prices up. A price cut is a deal, and deals are created under Pricing › Deals.",
             },
             {
-              title: "Preview inside the form",
-              body: "Click Preview to see how many active products it would reprice and a sample of the new prices. Nothing is saved yet.",
+              title: "Read the Impact panel",
+              body: "The right side of the form updates by itself a moment after you change the scope or the percentage. It says how many variants go up or down and by how much on average, then lists them with the old price struck through. A row tagged “Other rule” keeps its price, because a more specific rule prices it. Nothing is saved yet.",
             },
             {
               title: "Add a note & save",
@@ -145,6 +146,21 @@ export function PricingMarkupRulesDoc() {
             },
           ]}
         />
+        <Callout tone="note" title="Where it sits">
+          Above the Impact panel, the form shows the order rules are checked in,
+          with your rule highlighted. The steps above it say <b>beats this</b>{" "}
+          and how many active rules sit there: those are the products that keep
+          another rule.
+        </Callout>
+        <Callout tone="warn" title="All products: turn off the other markups">
+          A new <b>All products</b> rule (or the active one, when you edit it)
+          offers <b>Turn off the other markups</b>. Tick it and the save switches
+          off every other standing markup and reprices at once, so the one
+          percentage applies everywhere. Deals, hunts and flash sales keep
+          running. You confirm by holding the save button down. The rules you
+          turned off stay in the list as Inactive, so you can turn any of them
+          back on later.
+        </Callout>
         <Callout tone="note" title="Scope is fixed once created">
           What a rule covers can&apos;t be changed later, only its percentage,
           note, and active switch. If you need a different scope, create a new
@@ -152,9 +168,10 @@ export function PricingMarkupRulesDoc() {
         </Callout>
         <Callout tone="warn" title="One rule per scope, on or off">
           Two rules can&apos;t sit on the same product, or the same category and
-          brand pair. If one is already there the form says so and won&apos;t let
-          you save, <b>even if that rule is switched off</b>. Edit the existing
-          rule instead, or pick a narrower scope.
+          brand pair, and there is only one <b>All products</b> rule. If one is
+          already there the form says so and won&apos;t let you save,{" "}
+          <b>even if that rule is switched off</b>. Edit the existing rule
+          instead, or pick a narrower scope.
         </Callout>
       </Section>
 
@@ -187,6 +204,10 @@ export function PricingMarkupRulesDoc() {
             [
               "4. Category on its own",
               "A rule with the brand left as “All”, again walking up from the subcategory to its parents.",
+            ],
+            [
+              "5. All products",
+              "The fallback. It prices every product no other rule covers, so it always loses to a more specific rule. The table pins it to the top with a “Fallback” tag.",
             ],
           ]}
         />
@@ -264,19 +285,27 @@ export function PricingMarkupRulesDoc() {
       <Section icon="solar:refresh-linear" title="Resetting & cancelling">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <MiniCard icon="solar:refresh-linear" title="Reset prices">
-            Puts affected prices back to base but keeps the rule <b>active</b> — so
-            new products and edits will pick the markup up again, and prices drift
-            back over time.
+            Puts the prices this rule sets back to base but keeps the rule{" "}
+            <b>active</b> — so new products and edits will pick the markup up
+            again, and prices drift back over time.
           </MiniCard>
-          <MiniCard icon="solar:close-circle-linear" title="Cancel & reset">
-            Resets prices to base <b>and</b> switches the rule off. This is the
-            proper, lasting undo. The rule is kept for the record.
+          <MiniCard icon="solar:close-circle-linear" title="Cancel rule">
+            Switches the rule off and moves its products to the next rule that
+            matches them (a brand rule, say, or the all-products rule), or to
+            base when none does. This is the proper, lasting undo. The rule is
+            kept for the record.
           </MiniCard>
           <MiniCard icon="solar:trash-bin-trash-linear" title="Delete">
             Removes the rule. Prices it already changed are <b>not</b> reverted —
             reset or cancel first if you want them back to base.
           </MiniCard>
         </div>
+        <Callout tone="note" title="A rule only changes the prices it owns">
+          Apply, Reset and Cancel leave alone any product that a more specific
+          rule prices: its own product rule, a deal or hunt, or a brand or
+          category rule. After Apply, the message says how many products
+          another rule kept.
+        </Callout>
         <Callout tone="note" title="Reset the whole category at once">
           The header has a <b>Reset category prices</b> action for putting an
           entire category (optionally narrowed by brand) back to base in one go,
@@ -295,7 +324,10 @@ export function PricingMarkupRulesDoc() {
           Parts price the same way. Switch the toggle at the top of the Markup
           page from <b>Products</b> to <b>Parts</b>. Everything in this guide
           applies: scope it, preview, apply, and reset. Part rules can also be
-          scoped by <b>part type</b>, which products have no equivalent of.
+          scoped by <b>part type</b>, which products have no equivalent of, so
+          parts have nine steps in the matching order instead of five. The last
+          step is <b>All parts</b>, with the same &ldquo;turn off the other
+          markups&rdquo; option. Deals and flash sales keep running.
         </p>
         <Path items={["Pricing", "Markup", "Parts"]} />
       </Section>

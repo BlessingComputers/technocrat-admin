@@ -31,7 +31,12 @@ import type { PartMarkupRuleFormValues } from "../../schemas/markup-rule-form";
 import { MarkupRulesTable } from "./markup-rules-table";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import {
+  cancelSummary,
+  replaceSummary,
+  resetSummary,
+  ruleScopeLabel,
+} from "./markup-rule-utils";
 
 /**
  * Why a create failed, when the server will not say.
@@ -86,12 +91,22 @@ export function PartsPricingView() {
   const [resetTarget, setResetTarget] = useState<PartMarkupRule | null>(null);
   const [cancelTarget, setCancelTarget] = useState<PartMarkupRule | null>(null);
 
+  // Bumped on every open so the dialog remounts with fresh seed state (the
+  // codebase's form-dialog reset pattern, no setState-in-effect sync).
+  const [formKey, setFormKey] = useState(0);
+
   const openCreate = () => {
     setEditTarget(null);
+    setFormKey((k) => k + 1);
     setFormOpen(true);
   };
 
-  const handleSubmit = (values: PartMarkupRuleFormValues) => {
+  // Returns the save so the dialog can close itself, or show what a replace
+  // turned off. A rejection keeps it open; the toast says why.
+  const handleSubmit = (
+    values: PartMarkupRuleFormValues,
+  ): Promise<PartMarkupRule> => {
+    const replaceExisting = values.replaceExisting || undefined;
     if (editTarget) {
       const promise = updateRule.mutateAsync({
         id: editTarget.id,
@@ -100,6 +115,7 @@ export function PartsPricingView() {
           applyTo: values.applyTo,
           notes: values.notes || undefined,
           isActive: values.isActive,
+          replaceExisting,
           // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
           // clear it server-side, but only on the row being edited, and that
           // row is a markup — the backend ignores both fields on a positive
@@ -108,11 +124,11 @@ export function PartsPricingView() {
       });
       toast.promise(promise, {
         loading: "Updating rule…",
-        success: "Rule updated.",
+        success: (rule) =>
+          rule.replaced ? `Rule updated. ${replaceSummary(rule.replaced)}` : "Rule updated.",
         error: (err) => getErrorMessage(err, "Failed to update rule."),
       });
-      promise.then(() => setFormOpen(false)).catch(() => {});
-      return;
+      return promise;
     }
     const promise = createRule.mutateAsync({
       categoryId: values.categoryId || undefined,
@@ -123,13 +139,18 @@ export function PartsPricingView() {
       applyTo: values.applyTo,
       notes: values.notes || undefined,
       isActive: values.isActive,
+      replaceExisting,
     });
     toast.promise(promise, {
-      loading: "Creating rule…",
-      success: "Rule created. Use Preview & Apply to reprice existing parts.",
+      loading: replaceExisting ? "Creating rule and repricing…" : "Creating rule…",
+      success: (rule) =>
+        rule.replaced
+          ? `Rule created. ${replaceSummary(rule.replaced)}`
+          : "Rule created. Use Preview & Apply to reprice existing parts.",
       error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => refetch());
+    promise.catch(() => refetch());
+    return promise;
   };
 
   const confirmDelete = () => {
@@ -143,16 +164,13 @@ export function PartsPricingView() {
     promise.then(() => setDeleteTarget(null)).catch(() => {});
   };
 
-  const resetMsg = (n: number) =>
-    `${n} part${n === 1 ? "" : "s"} reset to base price.`;
-
   const confirmReset = () => {
     if (!resetTarget) return;
     const promise = resetRule.mutateAsync(resetTarget.id);
     toast.promise(promise, {
       loading: "Resetting prices to base…",
       success: ({ partsReset }) =>
-        `Prices reset (rule still active) — ${resetMsg(partsReset)}`,
+        `Prices reset (rule still active) — ${resetSummary(partsReset)}`,
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setResetTarget(null)).catch(() => {});
@@ -162,8 +180,8 @@ export function PartsPricingView() {
     if (!cancelTarget) return;
     const promise = cancelRule.mutateAsync(cancelTarget.id);
     toast.promise(promise, {
-      loading: "Cancelling rule & resetting prices…",
-      success: ({ partsReset }) => `Rule cancelled — ${resetMsg(partsReset)}`,
+      loading: "Cancelling rule…",
+      success: (res) => `Rule cancelled — ${cancelSummary(res)}`,
       error: (err) => getErrorMessage(err, "Failed to cancel rule."),
     });
     promise.then(() => setCancelTarget(null)).catch(() => {});
@@ -199,6 +217,7 @@ export function PartsPricingView() {
           onRetry={() => refetch()}
           onEdit={(r) => {
             setEditTarget(r);
+            setFormKey((k) => k + 1);
             setFormOpen(true);
           }}
           onApply={setApplyTarget}
@@ -209,12 +228,14 @@ export function PartsPricingView() {
       </Card>
 
       <MarkupRuleFormDialog
+        key={formKey}
         isOpen={formOpen}
         onOpenChange={setFormOpen}
         initial={editTarget}
         categories={categories}
         brands={brands}
         partTypes={partTypes}
+        rules={rules}
         onSubmit={handleSubmit}
         isSubmitting={createRule.isPending || updateRule.isPending}
       />
@@ -237,7 +258,7 @@ export function PartsPricingView() {
         onClose={() => setResetTarget(null)}
         onConfirm={confirmReset}
         title="Reset prices (keep rule active)?"
-        description={`Resets every part for “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” to base price, but leaves the rule ACTIVE — new/edited parts get the markup re-applied. For a permanent undo, use “Cancel & reset”.`}
+        description={`Sets the parts that “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” prices to base price, but leaves the rule ACTIVE — new/edited parts get the markup re-applied. Parts priced by a deal or a more specific rule are not touched. For a permanent undo, use “Cancel rule”.`}
         confirmText="Reset prices"
         isPending={resetRule.isPending}
       />
@@ -246,9 +267,9 @@ export function PartsPricingView() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={confirmCancel}
-        title="Cancel rule & reset to base?"
-        description={`Deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}” and resets every affected part back to base price. The rule is kept for audit.`}
-        confirmText="Cancel & reset"
+        title="Cancel this rule?"
+        description={`Deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}”. Each part it prices moves to the next rule that matches it (for example a brand rule or the all-parts rule), or back to base price when no other rule matches. Parts priced by a deal or a more specific rule are not touched. The rule is kept for audit.`}
+        confirmText="Cancel rule"
         isPending={cancelRule.isPending}
       />
     </div>

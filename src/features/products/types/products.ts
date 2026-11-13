@@ -4,6 +4,7 @@
 // TODO(codegen, ADR-0006): once the OpenAPI types land, alias the response
 // shapes here to the generated schemas (Zod owns request/form inputs).
 
+import type { PriceAgeDays } from "@/lib/utils/price-age";
 import type { components } from "@/types/api";
 
 // ── Taxonomy ──────────────────────────────────────────────────────────
@@ -179,6 +180,11 @@ export interface ProductDetail {
   cartStatus?: CartStatus;
   /** The staff member who uploaded the product. Surfaced to super admins only. */
   createdBy?: { staffId: string; fullName: string } | null;
+  /**
+   * When a person last set or confirmed the price (ask 42). Wire-only: the
+   * spec's product schemas do not list it.
+   */
+  priceCheckedAt: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -208,6 +214,8 @@ export interface ProductSummary {
    */
   sourcingType?: "INHOUSE" | "OUTSOURCED" | "MIXED" | (string & {});
   cartStatus?: CartStatus;
+  /** When a person last set or confirmed the price (ask 42). Wire-only. */
+  priceCheckedAt: string;
   createdAt: string;
 }
 
@@ -231,6 +239,12 @@ export interface ProductsListParams {
   maxPrice?: number;
   isFeatured?: boolean;
   isActive?: boolean;
+  /** Price not checked for this many days or more (30 / 60 / 90). */
+  priceAge?: PriceAgeDays;
+  /** Created on or after this day, `YYYY-MM-DD` (local). */
+  createdFrom?: string;
+  /** Created on or before this day, `YYYY-MM-DD` (local). */
+  createdTo?: string;
 }
 
 export interface PaginationMeta {

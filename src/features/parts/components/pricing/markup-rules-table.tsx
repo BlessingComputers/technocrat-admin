@@ -21,7 +21,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
 import { PartsMarkupTableSkeleton } from "../parts-skeletons";
 import type { PartMarkupRule } from "../../types/pricing";
-import { APPLY_TO_LABEL, ruleScopeLabel } from "./markup-rule-utils";
+import { APPLY_TO_LABEL, isAllScopeRule, ruleScopeLabel } from "./markup-rule-utils";
 
 interface MarkupRulesTableProps {
   rules: PartMarkupRule[];
@@ -98,16 +98,28 @@ export function MarkupRulesTable({
               </TableCell>
             </TableRow>
           ) : (
-            rules.map((rule) => (
+            pinFallbackFirst(rules).map((rule) => (
               <TableRow key={rule.id} className="border-b-border/40 hover:bg-muted/30">
                 <TableCell>
                   <div className="min-w-0">
-                    <span
-                      className="block truncate text-sm font-semibold text-foreground"
-                      title={ruleScopeLabel(rule)}
-                    >
-                      {ruleScopeLabel(rule)}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="block truncate text-sm font-semibold text-foreground"
+                        title={ruleScopeLabel(rule)}
+                      >
+                        {ruleScopeLabel(rule)}
+                      </span>
+                      {isAllScopeRule(rule) && (
+                        <Badge variant="muted" className="shrink-0 rounded-full text-xs">
+                          Fallback
+                        </Badge>
+                      )}
                     </span>
+                    {isAllScopeRule(rule) && (
+                      <p className="text-xs text-muted-foreground">
+                        Lowest priority. A more specific rule wins.
+                      </p>
+                    )}
                     {rule.notes && (
                       <p className="truncate text-xs italic text-muted-foreground">
                         {rule.notes}
@@ -160,7 +172,7 @@ export function MarkupRulesTable({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onCancel(rule)}>
                         <AppIcon icon="solar:forbidden-circle-linear" className="mr-2 size-4" />
-                        Cancel &amp; reset
+                        Cancel rule
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -186,4 +198,13 @@ export function MarkupRulesTable({
       </Table>
     </div>
   );
+}
+
+/**
+ * The "All parts" rule first: it is the floor every other rule sits on, so it
+ * reads as the table's baseline. The rest keep the server's order.
+ */
+function pinFallbackFirst(rules: PartMarkupRule[]): PartMarkupRule[] {
+  const fallback = rules.filter(isAllScopeRule);
+  return fallback.length ? [...fallback, ...rules.filter((r) => !isAllScopeRule(r))] : rules;
 }

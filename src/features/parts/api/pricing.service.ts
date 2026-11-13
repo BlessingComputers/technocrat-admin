@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   PartMarkupApplyInput,
   PartMarkupApplyResult,
+  PartMarkupCancelResult,
   PartMarkupPreviewInput,
   PartMarkupPreviewResult,
   PartMarkupResetResult,
@@ -51,9 +52,12 @@ export const partsPricingService = {
   resetMarkupRule: (ruleId: string) =>
     api.post<PartMarkupResetResult>(markup.reset(ruleId)),
 
-  /** Cancel: deactivate the rule AND reset its scope to base (the undo). */
+  /**
+   * Cancel: deactivate the rule and move each part it priced to its next
+   * matching rule, or to base when none matches (the undo).
+   */
   cancelMarkupRule: (ruleId: string) =>
-    api.post<PartMarkupResetResult>(markup.cancel(ruleId)),
+    api.post<PartMarkupCancelResult>(markup.cancel(ruleId)),
 
   /**
    * Catalog search powering the exact-part rule scope. The parts list nests

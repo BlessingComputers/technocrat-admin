@@ -109,8 +109,9 @@ export function RunningDealsDoc() {
             title="End it"
           >
             <p>
-              <b>End deal</b> puts every price it touched back to base. A deal
-              ends once and for good.
+              <b>End deal</b> puts every price it touched back on its standing
+              markup rule, or on base price when there is none. A deal ends once
+              and for good.
             </p>
           </StepCard>
         </Bento>
@@ -300,7 +301,7 @@ export function RunningDealsDoc() {
             ],
             [
               "Ended",
-              "Finished, by hand or by its end time. Prices are back to base and it can't be restarted.",
+              "Finished, by hand or by its end time. Prices are back on their standing markup (or base) and it can't be restarted.",
             ],
           ]}
         />
@@ -322,10 +323,11 @@ export function RunningDealsDoc() {
           create a new deal. Nothing is lost: the ended one stays in the list for
           the record.
         </Callout>
-        <Callout tone="note" title="Prices go back to base, not to their old markup">
-          Ending resets to the base price. If a markup rule should be pricing
-          those products afterwards, check <b>Pricing &rsaquo; Markup</b> and apply
-          it again.
+        <Callout tone="note" title="Prices go back to their standing markup">
+          When a deal ends, each product goes back to the markup rule that
+          normally prices it (its own rule, a brand or category rule, or the
+          all-products rule). A product with no such rule goes back to its base
+          price. You do not need to apply the markup again.
         </Callout>
       </Section>
 

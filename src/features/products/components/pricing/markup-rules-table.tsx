@@ -20,7 +20,7 @@ import {
 import { AppIcon } from "@/components/shared/app-icon";
 import { MarkupRulesTableSkeleton } from "../products-skeletons";
 import type { MarkupRule } from "../../types/pricing";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import { isAllScopeRule, ruleScopeLabel } from "./markup-rule-utils";
 
 const HEAD =
   "font-semibold text-xs text-muted-foreground";
@@ -105,7 +105,7 @@ export function MarkupRulesTable({
               </p>
             </StateRow>
           ) : (
-            rules.map((rule) => (
+            pinFallbackFirst(rules).map((rule) => (
               <MarkupRuleRow
                 key={rule.id}
                 rule={rule}
@@ -141,17 +141,30 @@ function MarkupRuleRow({
   const createdBy = rule.createdBy
     ? `${rule.createdBy.firstName} ${rule.createdBy.lastName}`.trim()
     : "—";
+  const isFallback = isAllScopeRule(rule);
 
   return (
     <TableRow className="hover:bg-muted/30 border-b-border/40">
       <TableCell>
         <div className="flex min-w-0 flex-col gap-1">
-          <span
-            className="block truncate font-semibold text-sm text-foreground leading-tight"
-            title={ruleScopeLabel(rule)}
-          >
-            {ruleScopeLabel(rule)}
+          <span className="flex min-w-0 items-center gap-2">
+            <span
+              className="block truncate font-semibold text-sm text-foreground leading-tight"
+              title={ruleScopeLabel(rule)}
+            >
+              {ruleScopeLabel(rule)}
+            </span>
+            {isFallback && (
+              <Badge variant="muted" className="shrink-0 rounded-full text-xs">
+                Fallback
+              </Badge>
+            )}
           </span>
+          {isFallback && (
+            <span className="text-xs text-muted-foreground">
+              Lowest priority. A more specific rule wins.
+            </span>
+          )}
           <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium w-fit">
             {rule.ruleId}
           </span>
@@ -216,7 +229,7 @@ function MarkupRuleRow({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onCancel(rule)}>
               <AppIcon icon="solar:undo-left-round-linear" className="size-4 mr-2" />
-              Cancel rule &amp; reset to base
+              Cancel rule
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -237,6 +250,15 @@ function MarkupRuleRow({
       </TableCell>
     </TableRow>
   );
+}
+
+/**
+ * The "All products" rule first: it is the floor every other rule sits on,
+ * so it reads as the table's baseline. The rest keep the server's order.
+ */
+function pinFallbackFirst(rules: MarkupRule[]): MarkupRule[] {
+  const fallback = rules.filter(isAllScopeRule);
+  return fallback.length ? [...fallback, ...rules.filter((r) => !isAllScopeRule(r))] : rules;
 }
 
 function StateRow({

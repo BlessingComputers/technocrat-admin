@@ -117,9 +117,11 @@ export function DealDetailView({ dealId }: { dealId: string }) {
   const doEnd = () => {
     const promise = endDeal.mutateAsync(deal.id);
     toast.promise(promise, {
-      loading: "Ending the deal & resetting prices…",
+      loading: "Ending the deal…",
+      // The backend counts only items sent to base; items that moved to a
+      // standing markup rule are not in the response.
       success: (res) =>
-        `Deal ended — ${res.variantsReset} variant${res.variantsReset === 1 ? "" : "s"} and ${res.partsReset} part${res.partsReset === 1 ? "" : "s"} back to base price.`,
+        `Deal ended — ${res.variantsReset} variant${res.variantsReset === 1 ? "" : "s"} and ${res.partsReset} part${res.partsReset === 1 ? "" : "s"} back to base price. Any others moved to their standing markup rule.`,
       error: (err) => conflictMessage(err, "Couldn’t end the deal."),
     });
     promise.then(() => setConfirmEnd(false)).catch(() => refetch());
@@ -205,8 +207,8 @@ export function DealDetailView({ dealId }: { dealId: string }) {
         onClose={() => setConfirmEnd(false)}
         onConfirm={doEnd}
         title="End this deal?"
-        description="Every price this deal changed goes back to base, and the deal is closed for good — there is no re-starting it. To run the same sale again, create a new deal."
-        confirmText="End deal & reset prices"
+        description="Every price this deal changed goes back to its standing markup rule, or to base price when no rule matches. The deal is closed for good — there is no re-starting it. To run the same sale again, create a new deal."
+        confirmText="End deal"
         variant="destructive"
         isPending={endDeal.isPending}
       />

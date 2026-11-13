@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { toPriceAgeDays } from "@/lib/utils/price-age";
 import type { ProductsListParams } from "../types/products";
 
 /**
@@ -23,6 +24,15 @@ const DEFAULT_SORT_DIR: "asc" | "desc" = "desc";
 
 type Tab = NonNullable<ProductsListParams["tab"]>;
 type SortDir = "asc" | "desc";
+
+/** The backend can only sort price age oldest-first, so the sort never flips. */
+export const ASC_ONLY_SORTS = new Set(["priceChecked"]);
+
+/** Accept only a real `YYYY-MM-DD` day from the URL. */
+function toDay(value: string | null): string | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  return Number.isNaN(new Date(`${value}T00:00:00`).getTime()) ? undefined : value;
+}
 
 function toInt(value: string | null): number | undefined {
   if (value == null || value === "") return undefined;
@@ -51,6 +61,9 @@ function parseParams(sp: URLSearchParams): ProductsListParams {
     minPrice: toInt(sp.get("minPrice")),
     maxPrice: toInt(sp.get("maxPrice")),
     isFeatured: sp.get("featured") === "1" ? true : undefined,
+    priceAge: toPriceAgeDays(toInt(sp.get("priceAge"))),
+    createdFrom: toDay(sp.get("createdFrom")),
+    createdTo: toDay(sp.get("createdTo")),
     sortKey: sp.get("sort") || DEFAULT_SORT_KEY,
     sortDir: dir === "asc" || dir === "desc" ? dir : DEFAULT_SORT_DIR,
   };
@@ -68,6 +81,9 @@ function toQueryString(params: ProductsListParams): string {
   if (params.minPrice != null) sp.set("minPrice", String(params.minPrice));
   if (params.maxPrice != null) sp.set("maxPrice", String(params.maxPrice));
   if (params.isFeatured) sp.set("featured", "1");
+  if (params.priceAge) sp.set("priceAge", String(params.priceAge));
+  if (params.createdFrom) sp.set("createdFrom", params.createdFrom);
+  if (params.createdTo) sp.set("createdTo", params.createdTo);
   if (params.sortKey && params.sortKey !== DEFAULT_SORT_KEY)
     sp.set("sort", params.sortKey);
   if (params.sortDir && params.sortDir !== DEFAULT_SORT_DIR)
@@ -158,8 +174,9 @@ export function useProductFilters() {
 
   const setSort = useCallback(
     (key: string) => {
-      const nextDir: SortDir =
-        params.sortKey === key
+      const nextDir: SortDir = ASC_ONLY_SORTS.has(key)
+        ? "asc"
+        : params.sortKey === key
           ? params.sortDir === "asc"
             ? "desc"
             : "asc"

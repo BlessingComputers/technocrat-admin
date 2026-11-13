@@ -30,6 +30,7 @@ import {
   useUpdatePart,
   usePermanentlyDeletePart,
   useBulkDeleteParts,
+  useConfirmPartPrices,
 } from "../api/parts.queries";
 import { usePartFilters } from "../hooks/use-part-filters";
 import { usePartsStats } from "../hooks/use-parts-stats";
@@ -70,6 +71,7 @@ export function PartsBrowseView() {
   const updatePart = useUpdatePart();
   const permanentlyDelete = usePermanentlyDeletePart();
   const bulkDelete = useBulkDeleteParts();
+  const confirmPrices = useConfirmPartPrices();
   const [deleteTarget, setDeleteTarget] = useState<Part | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -125,6 +127,28 @@ export function PartsBrowseView() {
       error: (err) => getErrorMessage(err, "Failed to delete part"),
     });
     promise.then(() => setDeleteTarget(null)).catch(() => {});
+  };
+
+  // "Price still correct" (ask 42). The endpoint takes DB ids (`id`), not
+  // the human `partId`.
+  const confirmPrice = (part: Part) => {
+    toast.promise(confirmPrices.mutateAsync([part.id]), {
+      loading: "Saving…",
+      success: `Price of “${part.name}” marked as still correct.`,
+      error: (err) => getErrorMessage(err, "Failed to confirm the price"),
+    });
+  };
+
+  const confirmSelectedPrices = () => {
+    if (selection.count === 0) return;
+    const promise = confirmPrices.mutateAsync(selection.ids);
+    toast.promise(promise, {
+      loading: `Confirming ${selection.count} price${selection.count === 1 ? "" : "s"}…`,
+      success: (res) =>
+        `${res.updated} part price${res.updated === 1 ? "" : "s"} marked as still correct.`,
+      error: (err) => getErrorMessage(err, "Failed to confirm prices"),
+    });
+    promise.then(() => selection.clear()).catch(() => {});
   };
 
   const confirmBulkDelete = () => {
@@ -223,8 +247,9 @@ export function PartsBrowseView() {
         noun="part"
         onEdit={() => setBulkEditOpen(true)}
         onDelete={() => setBulkDeleteOpen(true)}
+        onConfirmPrices={confirmSelectedPrices}
         onClear={selection.clear}
-        disabled={bulkDelete.isPending}
+        disabled={bulkDelete.isPending || confirmPrices.isPending}
       />
 
       <Card className="gap-0 overflow-hidden p-0">
@@ -237,6 +262,13 @@ export function PartsBrowseView() {
           onEdit={(p) => router.push(`/catalogues/parts/${p.partId}/edit`)}
           onToggleStatus={toggleStatus}
           onDelete={setDeleteTarget}
+          onConfirmPrice={confirmPrice}
+          sortedByPriceChecked={params.sort === "priceChecked"}
+          onTogglePriceCheckedSort={() =>
+            setFilter({
+              sort: params.sort === "priceChecked" ? undefined : "priceChecked",
+            })
+          }
           selectedIds={selection.selected}
           onToggleRow={selection.toggle}
           onToggleAll={(checked) =>

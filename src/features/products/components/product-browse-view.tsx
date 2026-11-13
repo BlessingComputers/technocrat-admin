@@ -28,6 +28,7 @@ import {
   usePermanentlyDeleteProduct,
   useBulkDeleteProducts,
   useBulkPermanentlyDeleteProducts,
+  useConfirmProductPrices,
 } from "../api/products.queries";
 import type { BulkHardDeleteProductsResult, ProductSummary } from "../types/products";
 import { deactivatableIds, hardDeleteSummary } from "../utils/bulk-hard-delete";
@@ -93,6 +94,7 @@ export function ProductBrowseView() {
   const permanentlyDelete = usePermanentlyDeleteProduct();
   const bulkDelete = useBulkDeleteProducts();
   const bulkHardDelete = useBulkPermanentlyDeleteProducts();
+  const confirmPrices = useConfirmProductPrices();
 
   const products = productsResponse?.data ?? [];
   const meta = productsResponse?.meta ?? {
@@ -117,6 +119,26 @@ export function ProductBrowseView() {
       success: `Product ${isActive ? "activated" : "deactivated"}`,
       error: (err) => getErrorMessage(err, "Failed to update product status"),
     });
+  };
+
+  const confirmPrice = (product: ProductSummary) => {
+    toast.promise(confirmPrices.mutateAsync([product.id]), {
+      loading: "Saving…",
+      success: `Price of “${product.name}” marked as still correct.`,
+      error: (err) => getErrorMessage(err, "Failed to confirm the price"),
+    });
+  };
+
+  const confirmSelectedPrices = () => {
+    if (selection.count === 0) return;
+    const promise = confirmPrices.mutateAsync(selection.ids);
+    toast.promise(promise, {
+      loading: `Confirming ${selection.count} price${selection.count === 1 ? "" : "s"}…`,
+      success: (res) =>
+        `${res.updated} product price${res.updated === 1 ? "" : "s"} marked as still correct.`,
+      error: (err) => getErrorMessage(err, "Failed to confirm prices"),
+    });
+    promise.then(() => selection.clear()).catch(() => {});
   };
 
   const confirmDelete = () => {
@@ -243,8 +265,11 @@ export function ProductBrowseView() {
         onEdit={() => setBulkEditOpen(true)}
         onDelete={() => setBulkDeleteOpen(true)}
         onDeletePermanently={() => setBulkHardDeleteOpen(true)}
+        onConfirmPrices={confirmSelectedPrices}
         onClear={selection.clear}
-        disabled={bulkDelete.isPending || bulkHardDelete.isPending}
+        disabled={
+          bulkDelete.isPending || bulkHardDelete.isPending || confirmPrices.isPending
+        }
       />
 
       <Card className="gap-0 overflow-hidden p-0">
@@ -258,6 +283,7 @@ export function ProductBrowseView() {
           onRetry={() => refetch()}
           onToggleStatus={toggleStatus}
           onDelete={setDeleteTarget}
+          onConfirmPrice={confirmPrice}
           selectedIds={selection.selected}
           onToggleRow={selection.toggle}
           onToggleAll={(checked) =>
