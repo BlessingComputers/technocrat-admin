@@ -194,7 +194,7 @@ export function UploadingPartsDoc() {
           steps={[
             {
               title: 'Create a rule',
-              body: "Click New Rule. Choose what it applies to — a category, a brand, a part type, or a mix — set the percentage, and save.",
+              body: "Click New rule. Choose what it applies to — all parts, one part, or a category, a brand, a part type, or a mix — set the percentage, and save. The Impact panel on the right updates by itself as you type: it shows how many parts go up or down, and tags any part that keeps another rule with “Other rule”.",
             },
             {
               title: "Preview before applying",
@@ -206,10 +206,19 @@ export function UploadingPartsDoc() {
             },
             {
               title: "Undo if needed",
-              body: '"Reset prices" puts prices back to base but keeps the rule; "Cancel & reset" also switches the rule off.',
+              body: '"Reset prices" puts the rule\'s prices back to base but keeps the rule; "Cancel rule" switches the rule off and moves its parts to their next rule, or to base.',
             },
           ]}
         />
+        <Callout tone="note" title="All parts is the fallback">
+          An <b>All parts</b> rule prices every part no other rule covers, so any
+          more specific rule still wins. There is only one, and the rules table
+          pins it to the top with a &ldquo;Fallback&rdquo; tag. When you create
+          it, or edit it while it is active, you can tick{" "}
+          <b>Turn off the other markups</b>: every other standing part markup
+          switches off and parts are repriced at once. Deals and flash sales keep
+          running, and the turned-off rules stay in the list as Inactive.
+        </Callout>
       </Section>
 
       {/* Managing */}

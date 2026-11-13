@@ -17,6 +17,8 @@ interface BulkSelectionBarProps {
   onDelete: () => void;
   /** Permanent delete. Lists that pass it get a second, destructive button. */
   onDeletePermanently?: () => void;
+  /** "Price still correct" for the selection (ask 42). Shown when passed. */
+  onConfirmPrices?: () => void;
   onClear: () => void;
   disabled?: boolean;
 }
@@ -27,6 +29,7 @@ export function BulkSelectionBar({
   onEdit,
   onDelete,
   onDeletePermanently,
+  onConfirmPrices,
   onClear,
   disabled = false,
 }: BulkSelectionBarProps) {
@@ -52,6 +55,18 @@ export function BulkSelectionBar({
       </div>
 
       <div className="flex items-center gap-2">
+        {onConfirmPrices ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onConfirmPrices}
+            disabled={disabled}
+            className="h-9 rounded-md font-medium"
+          >
+            <AppIcon icon="solar:check-circle-linear" className="mr-1.5 size-4" />
+            Price still correct
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           size="sm"

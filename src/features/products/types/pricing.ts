@@ -88,6 +88,29 @@ export interface MarkupRule {
    * recompute — how many variant prices were rewritten from base.
    */
   variantsRecomputed?: number;
+  /**
+   * The deal this rule belongs to, when a deal made it. A positive rule with a
+   * deal is not a "standing markup", so `replaceExisting` leaves it running.
+   * Not in the generated schema; read defensively.
+   */
+  dealId?: string | null;
+  /**
+   * Present on create/PATCH responses sent with `replaceExisting: true`.
+   * Wire-only (ask 41): the spec documents it in prose, not in the schema.
+   */
+  replaced?: ReplacedProductMarkups;
+}
+
+/**
+ * What `replaceExisting: true` did: the standing markups it turned off (by
+ * human `ruleId`), and how their variants were repriced. Wire-only.
+ */
+export interface ReplacedProductMarkups {
+  rulesReplaced: string[];
+  /** Variants moved onto the all-products rule. */
+  variantsRepriced: number;
+  /** Variants set to base price. */
+  variantsReset: number;
 }
 
 /**
@@ -142,9 +165,10 @@ export function isRuleAtTarget(
 
 /**
  * Create payload. Scope is EITHER `productId` (exact product) OR any
- * combination of `categoryId`/`brandId` — at least one, never both sides. The
- * backend rejects a mixed scope, since a product already implies its own
- * category and brand.
+ * combination of `categoryId`/`brandId`, never both sides. The backend rejects
+ * a mixed scope, since a product already implies its own category and brand.
+ * No scope at all is the "All products" rule (ask 41): the lowest tier, one
+ * per store.
  */
 export interface MarkupRuleInput {
   categoryId?: string;
@@ -161,6 +185,12 @@ export interface MarkupRuleInput {
    * that was already set. Always send it; never send an elapsed one back.
    */
   expiresAt?: string | null;
+  /**
+   * All-products rule only, and only while it is active (else a 400): turn
+   * off every other standing markup and reprice now. Deals, hunts and flash
+   * sales keep running. The response then carries `replaced`.
+   */
+  replaceExisting?: boolean;
 }
 
 /** Partial update — only the included fields change. */
@@ -172,6 +202,8 @@ export interface MarkupRuleUpdateInput {
   allowCouponStacking?: boolean;
   /** Same trap as on create: omit it and a timed sale silently goes indefinite. */
   expiresAt?: string | null;
+  /** Same rule as on create: an active all-products rule only. */
+  replaceExisting?: boolean;
 }
 
 // ── Preview (dry-run) ──────────────────────────────────────────────────
@@ -210,11 +242,20 @@ export interface MarkupPreviewVariant {
   projectedCompareAtPrice: number | null;
   costPrice: number;
   projectedMargin: number;
+  /**
+   * A more specific rule prices this variant (its own product rule, a deal or
+   * hunt, a brand or category rule), so the rule leaves it alone and
+   * `projectedPrice` does not take effect. Wire-only (ask 41); older backends
+   * omit it, which reads as `false`.
+   */
+  coveredByOtherRule?: boolean;
 }
 
 export interface MarkupPreviewResult {
   totalVariants: number;
   totalProducts: number;
+  /** How many rows have `coveredByOtherRule`. Wire-only (ask 41). */
+  coveredByOtherRuleCount?: number;
   markupPercentage: number;
   applyTo: MarkupApplyTo;
   variants: MarkupPreviewVariant[];
@@ -240,17 +281,33 @@ export interface MarkupApplyResultRow {
 export interface MarkupApplyResult {
   updated: number;
   results: MarkupApplyResultRow[];
+  /**
+   * In-scope variants left alone because a more specific rule prices them
+   * (their own product rule, a deal or hunt, a brand or category rule).
+   * Wire-only: the spec documents it in prose, not in the schema.
+   */
+  skippedByOtherRule: number;
 }
 
 // ── Reset (cancel / reset-keep-active / reset-category) ────────────────
 
 /**
- * Shared result of any reset operation — cancel (deactivate + reset), reset
- * (keep active), or category reset: how many variants/parts were reset to base.
+ * Result of reset (keep active) or category reset: how many variants/parts
+ * were set to base. A rule reset only touches the variants that rule prices.
  */
 export interface MarkupResetResult {
   variantsReset: number;
   partsReset: number;
+}
+
+/**
+ * Result of cancel. Cancel moves each variant the rule priced to its next
+ * matching rule (`variantsRepriced`), or to base when none matches
+ * (`variantsReset`). Product rules never price parts, so `partsReset` is 0.
+ * Wire-only: the spec documents `variantsRepriced` in prose, not the schema.
+ */
+export interface MarkupCancelResult extends MarkupResetResult {
+  variantsRepriced: number;
 }
 
 /**

@@ -19,7 +19,7 @@ import {
   usePreviewMarkupRule,
 } from "../../api/pricing.queries";
 import type { MarkupRule } from "../../types/pricing";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import { applySummary, ruleScopeLabel } from "./markup-rule-utils";
 import { MetaLabel } from "@/components/shared/meta-label";
 
 interface MarkupApplyDialogProps {
@@ -61,9 +61,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
       { ruleId },
       {
         onSuccess: (res) => {
-          toast.success(
-            `Applied — ${res.updated} variant${res.updated === 1 ? "" : "s"} repriced.`,
-          );
+          toast.success(applySummary(res));
         },
         onError: (err) => {
           if (err instanceof ApiError && err.status === 429) {

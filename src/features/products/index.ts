@@ -18,7 +18,6 @@ export {
   ProductsTableSkeleton,
   ProductDetailSkeleton,
   ProductFormSkeleton,
-  MarkupRulesTableSkeleton,
   RecentProductsSnapshotSkeleton,
   CategoriesPanelSkeleton,
 } from "./components/products-skeletons";

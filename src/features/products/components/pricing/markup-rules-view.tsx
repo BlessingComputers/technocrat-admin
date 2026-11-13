@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
@@ -9,9 +9,20 @@ import { RefreshButton } from "@/components/shared/refresh-button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
+import {
+  flattenCategoryTree,
+  type CoverageRule,
+  type PreviewItem,
+} from "@/lib/utils/markup-coverage";
+import {
+  CellItemsList,
+  MarkupCoverageView,
+  RuleItemsLine,
+  type CellQuery,
+  type RuleAction,
+} from "@/components/shared/markup-coverage/markup-coverage-view";
 
 import { useCategories, useBrands } from "../../api/products.queries";
 import {
@@ -22,14 +33,27 @@ import {
   useCancelMarkupRule,
   useResetMarkupRule,
   useResetCategory,
+  useMarkupImpact,
 } from "../../api/pricing.queries";
-import type { MarkupRule, ResetCategoryInput } from "../../types/pricing";
+import {
+  ruleTypeOf,
+  type MarkupPreviewVariant,
+  type MarkupRule,
+  type ResetCategoryInput,
+} from "../../types/pricing";
 import type { MarkupRuleFormValues } from "../../schemas/markup-rule-form";
-import { MarkupRulesTable } from "./markup-rules-table";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
 import { CategoryResetDialog } from "./category-reset-dialog";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import {
+  PRODUCT_TIERS,
+  cancelSummary,
+  replaceSummary,
+  resetSummary,
+  ruleScopeLabel,
+  toCoverageRule,
+} from "./markup-rule-utils";
+import { formatExpiry } from "./sale-timing";
 
 /**
  * Why a create failed, when the server will not say.
@@ -62,16 +86,29 @@ function createErrorMessage(err: unknown): string {
 
 /** Markup rules management (Products half of `/pricing/markup`). */
 export function MarkupRulesView() {
-  // MARKUP only. Deals are the same rows with a negative percentage and they
-  // live on /pricing/deals; an existing one does not appear here any more.
+  // Every rule, deals included: deals are negative rules in the same tiers,
+  // so the coverage map must see them (a deal can lose to a stronger markup).
+  // Deals are still managed on /pricing/deals; their rows link there.
   const {
-    data: rules = [],
+    data: allRules,
     isLoading,
     isError,
     isFetching,
     refetch,
-  } = useMarkupRules("MARKUP");
+  } = useMarkupRules();
   const { data: categories = [] } = useCategories();
+  // The form dialog's ladder and replace list keep the MARKUP-only list.
+  const rules = useMemo(
+    () => (allRules ?? []).filter((r) => ruleTypeOf(r) === "MARKUP"),
+    [allRules],
+  );
+  const byId = useMemo(() => new Map((allRules ?? []).map((r) => [r.id, r])), [allRules]);
+  const coverageRules = useMemo(() => (allRules ?? []).map(toCoverageRule), [allRules]);
+  const rows = useMemo(
+    () =>
+      flattenCategoryTree(categories, (c) => c.subtreeProductCount ?? c.productCount ?? 0),
+    [categories],
+  );
   const { data: brands = [] } = useBrands();
 
   const createRule = useCreateMarkupRule();
@@ -108,7 +145,10 @@ export function MarkupRulesView() {
     setFormOpen(true);
   };
 
-  const handleSubmit = (values: MarkupRuleFormValues) => {
+  // Returns the save so the dialog can close itself, or show what a replace
+  // turned off. A rejection keeps it open; the toast says why.
+  const handleSubmit = (values: MarkupRuleFormValues): Promise<MarkupRule> => {
+    const replaceExisting = values.replaceExisting || undefined;
     if (editTarget) {
       // PATCH accepts only the mutable fields — category/brand are fixed.
       const promise = updateRule.mutateAsync({
@@ -118,6 +158,7 @@ export function MarkupRulesView() {
           applyTo: values.applyTo,
           notes: values.notes,
           isActive: values.isActive,
+          replaceExisting,
           // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
           // clear it server-side, but only on the row being edited, and that
           // row is a markup — the backend ignores both fields on a positive
@@ -127,13 +168,14 @@ export function MarkupRulesView() {
       toast.promise(promise, {
         loading: "Updating rule…",
         success: (rule) =>
-          rule.variantsRecomputed
-            ? `Rule updated — ${rule.variantsRecomputed} price${rule.variantsRecomputed === 1 ? "" : "s"} recomputed.`
-            : "Rule updated.",
+          rule.replaced
+            ? `Rule updated. ${replaceSummary(rule.replaced)}`
+            : rule.variantsRecomputed
+              ? `Rule updated — ${rule.variantsRecomputed} price${rule.variantsRecomputed === 1 ? "" : "s"} recomputed.`
+              : "Rule updated.",
         error: (err) => getErrorMessage(err, "Failed to update rule."),
       });
-      promise.then(() => setFormOpen(false)).catch(() => {});
-      return;
+      return promise;
     }
 
     const promise = createRule.mutateAsync({
@@ -144,13 +186,18 @@ export function MarkupRulesView() {
       applyTo: values.applyTo,
       notes: values.notes,
       isActive: values.isActive,
+      replaceExisting,
     });
     toast.promise(promise, {
-      loading: "Creating rule…",
-      success: "Rule created. Use Preview & Apply to reprice existing products.",
+      loading: replaceExisting ? "Creating rule and repricing…" : "Creating rule…",
+      success: (rule) =>
+        rule.replaced
+          ? `Rule created. ${replaceSummary(rule.replaced)}`
+          : "Rule created. Use Preview & Apply to reprice existing products.",
       error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => refetch());
+    promise.catch(() => refetch());
+    return promise;
   };
 
   const confirmDelete = () => {
@@ -164,16 +211,12 @@ export function MarkupRulesView() {
     promise.then(() => setDeleteTarget(null)).catch(() => {});
   };
 
-  const resetToast = (variantsReset: number, partsReset: number) =>
-    `${variantsReset} variant${variantsReset === 1 ? "" : "s"} and ${partsReset} part${partsReset === 1 ? "" : "s"} reset to base price.`;
-
   const confirmCancel = () => {
     if (!cancelTarget) return;
     const promise = cancelRule.mutateAsync(cancelTarget.id);
     toast.promise(promise, {
-      loading: "Cancelling rule & resetting prices…",
-      success: ({ variantsReset, partsReset }) =>
-        `Rule cancelled — ${resetToast(variantsReset, partsReset)}`,
+      loading: "Cancelling rule…",
+      success: (res) => `Rule cancelled — ${cancelSummary(res)}`,
       // Surfaces typed server messages (e.g. the 429 rate-limit retry window).
       error: (err) => getErrorMessage(err, "Failed to cancel rule."),
     });
@@ -185,31 +228,40 @@ export function MarkupRulesView() {
     const promise = resetRule.mutateAsync(resetTarget.id);
     toast.promise(promise, {
       loading: "Resetting prices to base…",
-      success: ({ variantsReset, partsReset }) =>
-        `Prices reset (rule still active) — ${resetToast(variantsReset, partsReset)}`,
+      success: (res) => `Prices reset (rule still active) — ${resetSummary(res)}`,
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setResetTarget(null)).catch(() => {});
+  };
+
+  const onAction = (action: RuleAction, { id }: { id: string }) => {
+    const rule = byId.get(id);
+    if (!rule) return;
+    if (action === "apply") setApplyTarget(rule);
+    else if (action === "edit") openEdit(rule);
+    else if (action === "reset") setResetTarget(rule);
+    else if (action === "cancel") setCancelTarget(rule);
+    else setDeleteTarget(rule);
   };
 
   const handleCategoryReset = (input: ResetCategoryInput) => {
     const promise = resetCategory.mutateAsync(input);
     toast.promise(promise, {
       loading: "Resetting category prices to base…",
-      success: ({ variantsReset, partsReset }) => resetToast(variantsReset, partsReset),
+      success: (res) => resetSummary(res),
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setCategoryResetOpen(false)).catch(() => {});
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
-        title="Products Markup"
-        description="Standing markup rules, scoped by product, category and brand. Sales live under Deals."
+        title="Products markup"
+        description="Standing markup rules, strongest first, and what each product sells at. Sales live under Deals."
       >
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
-        <Button asChild variant="outline" className="rounded-lg font-medium h-10">
+        <Button asChild variant="outline" className="rounded-lg font-medium h-10 max-sm:hidden">
           <Link href="/catalogues?page=1">
             <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />
             Products
@@ -218,33 +270,34 @@ export function MarkupRulesView() {
         <Button
           variant="outline"
           onClick={() => setCategoryResetOpen(true)}
-          className="rounded-lg font-medium h-10"
+          className="rounded-lg font-medium h-10 max-sm:hidden"
         >
           <AppIcon icon="solar:rewind-back-linear" className="mr-2 size-4" />
           Reset category prices
         </Button>
         <Button
           onClick={openCreate}
-          className="rounded-lg bg-primary text-primary-foreground font-semibold px-5 h-10"
+          className="rounded-lg bg-primary text-primary-foreground font-semibold px-5 h-10 max-sm:flex-1"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 size-5" />
-          New Rule
+          New rule
         </Button>
       </PageHeader>
 
-      <Card className="overflow-hidden p-0 gap-0">
-        <MarkupRulesTable
-          rules={rules}
-          isLoading={isLoading}
-          isError={isError}
-          onRetry={() => refetch()}
-          onEdit={openEdit}
-          onApply={setApplyTarget}
-          onResetKeepActive={setResetTarget}
-          onCancel={setCancelTarget}
-          onDelete={setDeleteTarget}
-        />
-      </Card>
+      <MarkupCoverageView
+        kind="products"
+        rules={coverageRules}
+        rows={rows}
+        tiers={PRODUCT_TIERS}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        renderItems={(r) => <RuleItems rule={r} />}
+        renderCellItems={(q) => <CellItems query={q} />}
+        onAction={onAction}
+        onCreate={openCreate}
+        formatExpiry={formatExpiry}
+      />
 
       <MarkupRuleFormDialog
         key={formKey}
@@ -253,6 +306,7 @@ export function MarkupRulesView() {
         initial={editTarget}
         categories={categories}
         brands={brands}
+        rules={rules}
         onSubmit={handleSubmit}
         isSubmitting={createRule.isPending || updateRule.isPending}
       />
@@ -277,9 +331,9 @@ export function MarkupRulesView() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={confirmCancel}
-        title="Cancel rule & reset to base?"
-        description={`This deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}” and resets every affected variant and part back to its base price. The rule is kept for audit and can be re-created later.`}
-        confirmText="Cancel & reset"
+        title="Cancel this rule?"
+        description={`This deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}”. Each variant it prices moves to the next rule that matches it (for example a brand rule or the all-products rule), or back to base price when no other rule matches. Variants priced by a deal, a hunt or a more specific rule are not touched. The rule is kept for audit and can be turned back on later.`}
+        confirmText="Cancel rule"
         isPending={cancelRule.isPending}
       />
 
@@ -288,7 +342,7 @@ export function MarkupRulesView() {
         onClose={() => setResetTarget(null)}
         onConfirm={confirmReset}
         title="Reset prices (keep rule active)?"
-        description={`This resets every affected variant and part for “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” back to base price, but leaves the rule ACTIVE — new products and price edits will have the markup re-applied, so prices will drift back up. For a permanent undo, use “Cancel rule & reset” instead.`}
+        description={`This sets the variants that “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” prices back to base price, but leaves the rule ACTIVE — new products and price edits will have the markup re-applied, so prices will drift back up. Variants priced by a deal, a hunt or a more specific rule are not touched. For a permanent undo, use “Cancel rule” instead.`}
         confirmText="Reset prices"
         isPending={resetRule.isPending}
       />
@@ -302,5 +356,55 @@ export function MarkupRulesView() {
         isSubmitting={resetCategory.isPending}
       />
     </div>
+  );
+}
+
+/** "Prices N variants now" and the list behind it, loaded when the rule opens. */
+function RuleItems({ rule }: { rule: CoverageRule }) {
+  const { data, isLoading, isError } = useMarkupImpact({ ruleId: rule.id });
+  if (isError) return null;
+  return (
+    <RuleItemsLine
+      loading={isLoading}
+      count={data?.totalVariants}
+      other={data?.coveredByOtherRuleCount}
+      noun="variant"
+      rule={rule}
+      rows={data?.variants.map(toPreviewItem)}
+    />
+  );
+}
+
+const toPreviewItem = (v: MarkupPreviewVariant): PreviewItem => ({
+  id: v.variantId,
+  name: v.productName,
+  detail: [v.variantName, v.sku].filter(Boolean).join(" · ") || null,
+  current: v.currentPrice,
+  projected: v.projectedPrice,
+  cost: v.costPrice,
+  covered: !!v.coveredByOtherRule,
+});
+
+/**
+ * The clicked cell's variants: a dry run at the cell's scope and winning %.
+ * Rows a stronger rule prices come back flagged and are left out.
+ */
+function CellItems({ query }: { query: CellQuery }) {
+  const { data, isLoading, isPlaceholderData, isError } = useMarkupImpact({
+    categoryId: query.categoryId,
+    brandId: query.brandId ?? undefined,
+    markupPercentage: query.previewPct,
+    applyTo: "PRICE",
+  });
+  return (
+    <CellItemsList
+      loading={isLoading || isPlaceholderData}
+      failed={isError}
+      rows={data?.variants.map(toPreviewItem)}
+      previewPct={query.previewPct}
+      winner={query.winner}
+      hasChildren={query.hasChildren}
+      noun="variant"
+    />
   );
 }

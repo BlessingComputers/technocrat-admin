@@ -58,6 +58,9 @@ export const API_ENDPOINTS = {
     bulkEdit: endpoint("/v1/products/bulk-edit"),
     bulkDelete: endpoint("/v1/products/bulk-delete"),
     bulkDeletePermanent: endpoint("/v1/products/bulk-delete/permanent"),
+    // "Price still correct" for 1–200 products (DB ids). Moves priceCheckedAt
+    // only; no uploader credit (ask 42).
+    priceCheck: endpoint("/v1/products/price-check"),
     featured: endpoint("/v1/products/featured"),
     bySlug: endpoint("/v1/products/slug"),
     categories: endpoint("/v1/products/categories"),
@@ -95,6 +98,9 @@ export const API_ENDPOINTS = {
       // updateMany). Bodies take DB `id` UUIDs (`partIds`), not human partId.
       bulkEdit: endpoint("/v1/products/parts/bulk-edit"),
       bulkDelete: endpoint("/v1/products/parts/bulk-delete"),
+      // "Price still correct" for 1–200 parts. Lives under /products/parts,
+      // not the /parts path the ask proposed.
+      priceCheck: endpoint("/v1/products/parts/price-check"),
       // Backfills every active part into the shared products+parts search
       // index. products.adminSync walks products only and never reaches these.
       adminSync: endpoint("/v1/products/parts/admin/sync"),
@@ -140,7 +146,7 @@ export const API_ENDPOINTS = {
         endpoint(`/v1/products/pricing/markup-rules/${id}`),
       markupPreview: endpoint("/v1/products/pricing/markup-rules/preview"),
       markupApply: endpoint("/v1/products/pricing/markup-rules/apply"),
-      // Deactivates the rule AND resets every price in its scope to base.
+      // Deactivates the rule and moves its prices to their next rule, or base.
       cancelMarkupRule: (ruleId: string) =>
         endpoint(`/v1/products/pricing/markup-rules/${ruleId}/cancel`),
       // Resets prices to base but leaves the rule active (it will re-apply).
@@ -334,6 +340,8 @@ export const API_ENDPOINTS = {
     target: (staffId: string) => endpoint(`/v1/analytics/targets/${staffId}`),
     adSpend: endpoint("/v1/analytics/ad-spend"),
     adSpendEntry: (id: string) => endpoint(`/v1/analytics/ad-spend/${id}`),
+    // Active products + parts whose priceCheckedAt is older than `days`.
+    priceAge: endpoint("/v1/analytics/price-age"),
   },
   // Store tax: the global setting (master switch + fallback rate) plus scoped
   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),

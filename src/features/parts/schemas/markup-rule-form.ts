@@ -16,10 +16,11 @@ import {
  * server-side on a positive rule, so a standing pricing policy has no use for
  * either.
  *
- * Scope is EITHER one exact part (`partId`) OR a category/brand/part-type slice
- * — at least one must be set, and the two sides are mutually exclusive because a
- * part already implies its own category, brand, and type (mirrors the backend's
- * `createPartMarkupRuleSchema` refines).
+ * Scope is EITHER one exact part (`partId`) OR a category/brand/part-type
+ * slice, and the two sides are mutually exclusive because a part already
+ * implies its own category, brand, and type (mirrors the backend's
+ * `createPartMarkupRuleSchema` refines). No scope at all is the "All parts"
+ * rule (ask 41), and only that rule, while active, may send `replaceExisting`.
  */
 export const partMarkupRuleFormSchema = z
   .object({
@@ -40,12 +41,15 @@ export const partMarkupRuleFormSchema = z
     applyTo: z.enum(["PRICE", "COMPARE_AT_PRICE", "BOTH"]),
     notes: z.string().max(500).optional().or(z.literal("")),
     isActive: z.boolean(),
+    replaceExisting: z.boolean().optional(),
   })
   .refine(
-    (v) => !!(v.partId || v.categoryId || v.brandId || v.partTypeId),
+    (v) =>
+      !v.replaceExisting ||
+      (!v.partId && !v.categoryId && !v.brandId && !v.partTypeId && v.isActive),
     {
-      message: "Pick a part, or at least one of category, brand, or part type",
-      path: ["partId"],
+      message: "Only an active “All parts” rule can turn off the other markups",
+      path: ["replaceExisting"],
     },
   )
   .refine(

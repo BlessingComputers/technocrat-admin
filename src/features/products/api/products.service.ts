@@ -1,5 +1,10 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import {
+  confirmPricesInBatches,
+  priceCheckedBefore,
+  type PriceCheckResult,
+} from "@/lib/utils/price-age";
 import { chunkBySize } from "../utils/image-chunks";
 import type {
   BrandInput,
@@ -64,10 +69,21 @@ function buildListParams(params?: ProductsListParams): QueryParams {
       params?.isFeatured !== undefined ? String(params.isFeatured) : undefined,
     isActive:
       params?.isActive !== undefined ? String(params.isActive) : undefined,
+    // Price age and created range work on this Prisma-backed /products/all
+    // only; the OpenSearch GET /products silently ignores them.
+    priceCheckedBefore: params?.priceAge
+      ? priceCheckedBefore(params.priceAge)
+      : undefined,
+    createdFrom: params?.createdFrom
+      ? new Date(`${params.createdFrom}T00:00:00`).toISOString()
+      : undefined,
+    createdTo: params?.createdTo
+      ? new Date(`${params.createdTo}T23:59:59.999`).toISOString()
+      : undefined,
   };
 
   // Sort: API sortBy = newest | oldest | price_asc | price_desc | name_asc |
-  // name_desc | popularity.
+  // name_desc | popularity | price_checked_oldest (ascending only).
   if (params?.sortKey && params?.sortDir) {
     const { sortKey, sortDir } = params;
     if (sortKey === "name") {
@@ -78,6 +94,8 @@ function buildListParams(params?: ProductsListParams): QueryParams {
       q.sortBy = sortDir === "asc" ? "oldest" : "newest";
     } else if (sortKey === "qty" || sortKey === "popularity") {
       q.sortBy = "popularity";
+    } else if (sortKey === "priceChecked") {
+      q.sortBy = "price_checked_oldest";
     }
   } else {
     q.sortBy = "newest";
@@ -310,6 +328,16 @@ export const productsService = {
   /** Multi-select soft-delete (deactivate) — mirrors DELETE /:id, not /permanent. */
   bulkDeleteProducts: (productIds: string[]) =>
     api.post<BulkDeleteProductsResult>(products.bulkDelete, { productIds }),
+
+  /**
+   * "Price still correct" for products (DB ids), sent 200 at a time. Moves
+   * `priceCheckedAt` to now and nothing else; logs a `priceConfirmed` edit
+   * with no uploader credit. Unknown ids are skipped, not an error.
+   */
+  confirmPrices: (ids: string[]) =>
+    confirmPricesInBatches(ids, (batch) =>
+      api.post<PriceCheckResult>(products.priceCheck, { ids: batch }),
+    ),
 
   /**
    * Multi-select hard delete. Same per-product guards as /:id/permanent, but

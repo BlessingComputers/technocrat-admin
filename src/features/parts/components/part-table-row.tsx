@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppIcon } from "@/components/shared/app-icon";
+import { PriceAgeBadge } from "@/components/shared/price-age-badge";
 import { formatPrice } from "@/lib/utils/format";
 import type { Part } from "../types/parts";
 import { PartsStockBadge } from "./parts-stock-badge";
@@ -24,6 +25,7 @@ interface PartTableRowProps {
   onEdit: (part: Part) => void;
   onToggleStatus: (part: Part) => void;
   onDelete: (part: Part) => void;
+  onConfirmPrice: (part: Part) => void;
 }
 
 export function PartTableRow({
@@ -34,6 +36,7 @@ export function PartTableRow({
   onEdit,
   onToggleStatus,
   onDelete,
+  onConfirmPrice,
 }: PartTableRowProps) {
   const primaryImage =
     p.images.find((img) => img.isPrimary)?.url ?? p.images[0]?.url ?? null;
@@ -144,6 +147,11 @@ export function PartTableRow({
         <PartsStockBadge isInStock={p.isInStock} stockQuantity={p.stockQuantity} />
       </TableCell>
 
+      {/* Price checked (ask 42) */}
+      <TableCell>
+        <PriceAgeBadge checkedAt={p.priceCheckedAt} />
+      </TableCell>
+
       {/* Status */}
       <TableCell>
         <Badge
@@ -166,7 +174,7 @@ export function PartTableRow({
               <AppIcon icon="solar:menu-dots-bold" className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuItem onClick={() => onView(p)}>
               <AppIcon icon="solar:eye-linear" className="mr-2 size-4" />
               View Details
@@ -174,6 +182,10 @@ export function PartTableRow({
             <DropdownMenuItem onClick={() => onEdit(p)}>
               <AppIcon icon="solar:pen-2-linear" className="mr-2 size-4" />
               Edit Part
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onConfirmPrice(p)}>
+              <AppIcon icon="solar:check-circle-linear" className="mr-2 size-4" />
+              Price still correct
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onToggleStatus(p)}>
               {p.isActive ? (

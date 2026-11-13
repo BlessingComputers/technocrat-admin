@@ -106,6 +106,18 @@ export function ProductsFilterBar({
     });
   if (params.isFeatured)
     chips.push({ key: "featured", label: "Featured", clear: { isFeatured: undefined } });
+  if (params.priceAge)
+    chips.push({
+      key: "priceAge",
+      label: `Price checked ${params.priceAge}+ days ago`,
+      clear: { priceAge: undefined },
+    });
+  if (params.createdFrom || params.createdTo)
+    chips.push({
+      key: "created",
+      label: `Added: ${params.createdFrom ?? "…"} – ${params.createdTo ?? "…"}`,
+      clear: { createdFrom: undefined, createdTo: undefined },
+    });
 
   const hasActiveFilters = chips.length > 0 || searchValue !== "";
 

@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { AppIcon } from "@/components/shared/app-icon";
+import { ChoiceCard } from "@/components/shared/choice-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { usePermissions } from "@/lib/auth/use-permissions";
-import { cn } from "@/lib/utils/cn";
 
 import { useCreateDeal } from "../api/deals.queries";
 import { dealFormSchema } from "../schemas/deal-form";
@@ -218,13 +218,13 @@ export function DealFormView() {
           {/* The default is the API's default, and the off state is the one
               that needs explaining: it rejects the code for the WHOLE basket,
               not just the discounted line. */}
-          <ChoiceRow
+          <ChoiceCard
             selected={allowCouponStacking}
             onSelect={() => setAllowCouponStacking(true)}
             title="Shoppers can still use a discount code"
             detail="A code stacks on top of the sale price."
           />
-          <ChoiceRow
+          <ChoiceCard
             selected={!allowCouponStacking}
             onSelect={() => setAllowCouponStacking(false)}
             title="Block discount codes"
@@ -343,56 +343,6 @@ export function DealFormView() {
         </div>
       </form>
     </div>
-  );
-}
-
-/**
- * A two-option chooser, built from buttons because the project has no
- * radio-group primitive. `role="radio"` + `aria-checked` keeps it announced as
- * the radio pair it looks like.
- */
-function ChoiceRow({
-  selected,
-  onSelect,
-  title,
-  detail,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
-      className={cn(
-        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-        selected
-          ? "border-primary/50 bg-primary/[0.06]"
-          : "border-border hover:bg-muted/30",
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-          selected ? "border-primary" : "border-muted-foreground/40",
-        )}
-      >
-        {selected && <span className="size-2 rounded-full bg-primary" />}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-foreground">
-          {title}
-        </span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">
-          {detail}
-        </span>
-      </span>
-    </button>
   );
 }
 

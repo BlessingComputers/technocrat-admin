@@ -61,7 +61,13 @@ export interface PartMarkupRule {
   notes: string | null;
   category?: Ref | null;
   brand?: Ref | null;
+  /**
+   * The part type. The backend sends it as `partTypeRef` (the Prisma
+   * relation name); `partsPricingService.getMarkupRules` copies it here.
+   */
   partType?: Ref | null;
+  /** Wire name of `partType`. Read `partType`, not this. */
+  partTypeRef?: Ref | null;
   part?: Ref | null;
   createdAt?: string;
   updatedAt?: string;
@@ -85,6 +91,28 @@ export interface PartMarkupRule {
   expiresAt?: string | null;
   /** Present on PATCH responses when a change triggered a recompute. */
   partsRecomputed?: number;
+  /**
+   * The deal this rule belongs to, when a deal made it. A positive rule with a
+   * deal is not a "standing markup", so `replaceExisting` leaves it running.
+   */
+  dealId?: string | null;
+  /**
+   * Present on create/PATCH responses sent with `replaceExisting: true`.
+   * Wire-only (ask 41): the spec documents it in prose, not in the schema.
+   */
+  replaced?: ReplacedPartMarkups;
+}
+
+/**
+ * What `replaceExisting: true` did: the standing part markups it turned off
+ * (by human `ruleId`), and how their parts were repriced. Wire-only.
+ */
+export interface ReplacedPartMarkups {
+  rulesReplaced: string[];
+  /** Parts moved onto the all-parts rule. */
+  partsRepriced: number;
+  /** Parts set to base price. */
+  partsReset: number;
 }
 
 /**
@@ -140,9 +168,10 @@ export function isPartRuleAtTarget(
 
 /**
  * Create payload. Scope is EITHER `partId` (one exact part) OR any combination
- * of `categoryId`/`brandId`/`partTypeId` — at least one, never both sides. The
- * backend rejects a mixed scope, since a part already implies its own category,
- * brand, and type.
+ * of `categoryId`/`brandId`/`partTypeId`, never both sides. The backend rejects
+ * a mixed scope, since a part already implies its own category, brand, and
+ * type. No scope at all is the "All parts" rule (ask 41): the lowest of the 9
+ * tiers, one per store.
  */
 export interface PartMarkupRuleInput {
   categoryId?: string;
@@ -160,6 +189,12 @@ export interface PartMarkupRuleInput {
    * that was already set. Always send it; never send an elapsed one back.
    */
   expiresAt?: string | null;
+  /**
+   * All-parts rule only, and only while it is active (else a 400): turn off
+   * every other standing part markup and reprice now. Deals and flash sales
+   * keep running. The response then carries `replaced`.
+   */
+  replaceExisting?: boolean;
 }
 
 /** Partial update — only the included fields change (scope is fixed). */
@@ -171,6 +206,8 @@ export interface PartMarkupRuleUpdateInput {
   allowCouponStacking?: boolean;
   /** Same trap as on create: omit it and a timed sale silently goes indefinite. */
   expiresAt?: string | null;
+  /** Same rule as on create: an active all-parts rule only. */
+  replaceExisting?: boolean;
 }
 
 // ── Preview (dry-run) ──────────────────────────────────────────────────
@@ -199,10 +236,17 @@ export interface PartMarkupPreviewRow {
   projectedPrice: number | null;
   costPrice?: number | null;
   projectedMargin?: number;
+  /**
+   * A more specific rule prices this part, so the rule leaves it alone and
+   * `projectedPrice` does not take effect. Wire-only (ask 41).
+   */
+  coveredByOtherRule?: boolean;
 }
 
 export interface PartMarkupPreviewResult {
   totalParts: number;
+  /** How many rows have `coveredByOtherRule`. Wire-only (ask 41). */
+  coveredByOtherRuleCount?: number;
   markupPercentage: number;
   applyTo: PartMarkupApplyTo;
   parts: PartMarkupPreviewRow[];
@@ -218,9 +262,23 @@ export interface PartMarkupApplyInput {
 export interface PartMarkupApplyResult {
   updated: number;
   results?: unknown[];
+  /**
+   * In-scope parts left alone because a more specific rule prices them.
+   * Wire-only: the spec documents it in prose, not in the schema.
+   */
+  skippedByOtherRule: number;
 }
 
-/** Shared result of reset (keep active) / cancel (deactivate + reset). */
+/** Result of reset (keep active): parts this rule priced, set to base. */
 export interface PartMarkupResetResult {
   partsReset: number;
+}
+
+/**
+ * Result of cancel. Cancel moves each part the rule priced to its next
+ * matching rule (`partsRepriced`), or to base when none matches
+ * (`partsReset`). Wire-only: `partsRepriced` is prose in the spec.
+ */
+export interface PartMarkupCancelResult extends PartMarkupResetResult {
+  partsRepriced: number;
 }

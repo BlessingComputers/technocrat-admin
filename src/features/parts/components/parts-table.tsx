@@ -25,6 +25,10 @@ interface PartsTableProps {
   onEdit: (part: Part) => void;
   onToggleStatus: (part: Part) => void;
   onDelete: (part: Part) => void;
+  onConfirmPrice: (part: Part) => void;
+  /** True while the list is sorted by price age (oldest check first). */
+  sortedByPriceChecked: boolean;
+  onTogglePriceCheckedSort: () => void;
   /** DB UUIDs of the currently selected rows. */
   selectedIds: Set<string>;
   onToggleRow: (id: string) => void;
@@ -34,7 +38,7 @@ interface PartsTableProps {
 const HEAD =
   "font-semibold text-xs text-muted-foreground";
 
-const COL_SPAN = 7;
+const COL_SPAN = 8;
 
 export function PartsTable({
   parts,
@@ -45,6 +49,9 @@ export function PartsTable({
   onEdit,
   onToggleStatus,
   onDelete,
+  onConfirmPrice,
+  sortedByPriceChecked,
+  onTogglePriceCheckedSort,
   selectedIds,
   onToggleRow,
   onToggleAll,
@@ -57,7 +64,7 @@ export function PartsTable({
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table className="min-w-[820px]">
+      <Table className="min-w-[940px]">
         <TableHeader className="bg-primary/[0.04]">
           <TableRow className="border-b-border/60">
             <TableHead className="w-10 pl-4">
@@ -71,6 +78,29 @@ export function PartsTable({
             <TableHead className={HEAD}>Type</TableHead>
             <TableHead className={HEAD}>Pricing</TableHead>
             <TableHead className={HEAD}>Stock</TableHead>
+            <TableHead
+              className={HEAD}
+              aria-sort={sortedByPriceChecked ? "ascending" : "none"}
+            >
+              {/* The backend sorts price age oldest-first only, so this is an
+                  on/off toggle, not an asc/desc flip. */}
+              <button
+                type="button"
+                onClick={onTogglePriceCheckedSort}
+                className="group flex select-none items-center gap-1"
+              >
+                Price Checked
+                <AppIcon
+                  icon="solar:alt-arrow-up-linear"
+                  className={cn(
+                    "size-3 transition-opacity",
+                    sortedByPriceChecked
+                      ? "text-primary-ink opacity-100"
+                      : "opacity-0 group-hover:opacity-50",
+                  )}
+                />
+              </button>
+            </TableHead>
             <TableHead className={HEAD}>Status</TableHead>
             <TableHead className={cn(HEAD, "pr-6 text-right")}>Actions</TableHead>
           </TableRow>
@@ -123,6 +153,7 @@ export function PartsTable({
                 onEdit={onEdit}
                 onToggleStatus={onToggleStatus}
                 onDelete={onDelete}
+                onConfirmPrice={onConfirmPrice}
               />
             ))
           )}

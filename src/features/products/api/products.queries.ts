@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/api/error-message";
+import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
 import { productsService } from "./products.service";
 import type {
   BrandInput,
@@ -203,6 +204,21 @@ export function useBulkDeleteProducts() {
       productsService.bulkDeleteProducts(productIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+    },
+  });
+}
+
+/**
+ * "Price still correct" for 1–200 products. Refreshes the lists and details
+ * (their `priceCheckedAt` moved) and the dashboard's stale-price count.
+ */
+export function useConfirmProductPrices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => productsService.confirmPrices(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: PRICE_AGE_QUERY_KEY });
     },
   });
 }

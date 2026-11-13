@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   PartMarkupApplyInput,
   PartMarkupApplyResult,
+  PartMarkupCancelResult,
   PartMarkupPreviewInput,
   PartMarkupPreviewResult,
   PartMarkupResetResult,
@@ -23,11 +24,18 @@ export const partsPricingService = {
    * Every rule, or only one half of them. `?type=markup|discount` is
    * server-side and case insensitive, and an unrecognised value is a 400 rather
    * than a silent empty list. Omitting it returns everything.
+   *
+   * The backend names the part type relation `partTypeRef`; every reader
+   * (labels, the coverage map, the edit dialog) reads `partType`, so copy it.
    */
   getMarkupRules: (type?: PartMarkupRuleType) =>
-    api.get<PartMarkupRule[]>(markup.rules, {
-      params: { type: type?.toLowerCase() },
-    }),
+    api
+      .get<PartMarkupRule[]>(markup.rules, {
+        params: { type: type?.toLowerCase() },
+      })
+      .then((rules) =>
+        rules.map((r) => ({ ...r, partType: r.partType ?? r.partTypeRef ?? null })),
+      ),
 
   createMarkupRule: (data: PartMarkupRuleInput) =>
     api.post<PartMarkupRule>(markup.rules, data),
@@ -51,9 +59,12 @@ export const partsPricingService = {
   resetMarkupRule: (ruleId: string) =>
     api.post<PartMarkupResetResult>(markup.reset(ruleId)),
 
-  /** Cancel: deactivate the rule AND reset its scope to base (the undo). */
+  /**
+   * Cancel: deactivate the rule and move each part it priced to its next
+   * matching rule, or to base when none matches (the undo).
+   */
   cancelMarkupRule: (ruleId: string) =>
-    api.post<PartMarkupResetResult>(markup.cancel(ruleId)),
+    api.post<PartMarkupCancelResult>(markup.cancel(ruleId)),
 
   /**
    * Catalog search powering the exact-part rule scope. The parts list nests

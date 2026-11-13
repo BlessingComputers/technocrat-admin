@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { useStaffSession } from "@/lib/auth/session-context";
 import { isSuperAdmin } from "@/lib/auth/permissions";
 import { getErrorMessage } from "@/lib/api/error-message";
+import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
 import { analyticsService } from "./analytics.service";
 import type { AdminKpiParams } from "../types/analytics";
 import type {
@@ -134,6 +135,21 @@ export function useRecentOrders(limit = 5) {
   return useQuery({
     queryKey: analyticsKeys.recentOrders(limit),
     queryFn: () => analyticsService.getRecentOrders(limit),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Stale-price counts (ask 42). The key root is shared so the products and
+ * parts "Still correct" mutations refresh it. Requires `products:read`.
+ */
+export function usePriceAge(days: number, enabled = true) {
+  const { staffSession } = useStaffSession();
+
+  return useQuery({
+    queryKey: [...PRICE_AGE_QUERY_KEY, days] as const,
+    queryFn: () => analyticsService.getPriceAge(days),
+    enabled: enabled && !!staffSession,
     staleTime: 1000 * 60 * 5,
   });
 }

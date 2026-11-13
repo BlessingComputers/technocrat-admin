@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppIcon } from "@/components/shared/app-icon";
+import { PRICE_AGE_OPTIONS, toPriceAgeDays } from "@/lib/utils/price-age";
 import type { ProductsListParams } from "../types/products";
 
 export interface ConditionOption {
@@ -36,7 +37,8 @@ interface ProductsMoreFiltersProps {
 }
 
 /**
- * Advanced filters (condition · price range · featured) tucked behind a popover
+ * Advanced filters (condition · price range · price age · created range ·
+ * featured) tucked behind a popover
  * so the inline bar stays calm. The draft is local and committed on Apply as one
  * patch — keeping each price keystroke out of the URL history. The active-count
  * badge reflects the committed params, not the draft.
@@ -51,12 +53,17 @@ export function ProductsMoreFilters({
   const [minPrice, setMinPrice] = useState(params.minPrice?.toString() ?? "");
   const [maxPrice, setMaxPrice] = useState(params.maxPrice?.toString() ?? "");
   const [featured, setFeatured] = useState(Boolean(params.isFeatured));
+  const [priceAge, setPriceAge] = useState(params.priceAge?.toString() ?? "");
+  const [createdFrom, setCreatedFrom] = useState(params.createdFrom ?? "");
+  const [createdTo, setCreatedTo] = useState(params.createdTo ?? "");
 
   const activeCount =
     (params.condition ? 1 : 0) +
     (params.minPrice != null ? 1 : 0) +
     (params.maxPrice != null ? 1 : 0) +
-    (params.isFeatured ? 1 : 0);
+    (params.isFeatured ? 1 : 0) +
+    (params.priceAge ? 1 : 0) +
+    (params.createdFrom || params.createdTo ? 1 : 0);
 
   const min = minPrice.trim() === "" ? undefined : Number(minPrice);
   const max = maxPrice.trim() === "" ? undefined : Number(maxPrice);
@@ -64,6 +71,8 @@ export function ProductsMoreFilters({
     min != null && max != null && Number.isFinite(min) && Number.isFinite(max)
       ? min > max
       : false;
+  // `YYYY-MM-DD` strings compare correctly as text.
+  const dateError = Boolean(createdFrom && createdTo && createdFrom > createdTo);
 
   // Reflect the committed params whenever the popover opens.
   function handleOpenChange(next: boolean) {
@@ -72,17 +81,23 @@ export function ProductsMoreFilters({
       setMinPrice(params.minPrice?.toString() ?? "");
       setMaxPrice(params.maxPrice?.toString() ?? "");
       setFeatured(Boolean(params.isFeatured));
+      setPriceAge(params.priceAge?.toString() ?? "");
+      setCreatedFrom(params.createdFrom ?? "");
+      setCreatedTo(params.createdTo ?? "");
     }
     setOpen(next);
   }
 
   function apply() {
-    if (priceError) return;
+    if (priceError || dateError) return;
     onApply({
       condition: condition || undefined,
       minPrice: min != null && Number.isFinite(min) ? min : undefined,
       maxPrice: max != null && Number.isFinite(max) ? max : undefined,
       isFeatured: featured ? true : undefined,
+      priceAge: toPriceAgeDays(priceAge ? Number(priceAge) : undefined),
+      createdFrom: createdFrom || undefined,
+      createdTo: createdTo || undefined,
     });
     setOpen(false);
   }
@@ -92,11 +107,17 @@ export function ProductsMoreFilters({
     setMinPrice("");
     setMaxPrice("");
     setFeatured(false);
+    setPriceAge("");
+    setCreatedFrom("");
+    setCreatedTo("");
     onApply({
       condition: undefined,
       minPrice: undefined,
       maxPrice: undefined,
       isFeatured: undefined,
+      priceAge: undefined,
+      createdFrom: undefined,
+      createdTo: undefined,
     });
     setOpen(false);
   }
@@ -176,6 +197,58 @@ export function ProductsMoreFilters({
           )}
         </div>
 
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Price last checked
+          </Label>
+          <Select
+            value={priceAge || "any"}
+            onValueChange={(v) => setPriceAge(v === "any" ? "" : v)}
+          >
+            <SelectTrigger className="h-9 w-full border border-border bg-card">
+              <SelectValue placeholder="Any time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              {PRICE_AGE_OPTIONS.map((days) => (
+                <SelectItem key={days} value={String(days)}>
+                  {days}+ days ago
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Date added
+          </Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              aria-label="Added from"
+              className="h-9 border border-border bg-card"
+              value={createdFrom}
+              max={createdTo || undefined}
+              onChange={(e) => setCreatedFrom(e.target.value)}
+            />
+            <span className="text-muted-foreground">–</span>
+            <Input
+              type="date"
+              aria-label="Added to"
+              className="h-9 border border-border bg-card"
+              value={createdTo}
+              min={createdFrom || undefined}
+              onChange={(e) => setCreatedTo(e.target.value)}
+            />
+          </div>
+          {dateError && (
+            <p className="text-xs font-medium text-destructive-ink">
+              The start date can’t be after the end date.
+            </p>
+          )}
+        </div>
+
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
           <Label
             htmlFor="featured-only"
@@ -202,7 +275,7 @@ export function ProductsMoreFilters({
           <Button
             size="sm"
             onClick={apply}
-            disabled={priceError}
+            disabled={priceError || dateError}
             className="h-8 px-4 font-medium"
           >
             Apply
