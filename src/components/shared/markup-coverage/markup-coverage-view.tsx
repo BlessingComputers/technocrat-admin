@@ -26,12 +26,14 @@ import {
   type CoverageRule,
 } from "@/lib/utils/markup-coverage";
 
+import type { CellQuery } from "./cell-items";
 import { CoverageMap, type MapFocus } from "./coverage-map";
 import { RuleLanes, type RuleAction, type TierInfo } from "./rule-lanes";
 import { SCROLL_COLUMN, pct } from "./tone";
 
 export type { RuleAction } from "./rule-lanes";
 export { RuleItemsLine } from "./rule-lanes";
+export { CellItemsList, type CellQuery } from "./cell-items";
 
 export interface MarkupCoverageViewProps {
   kind: CoverageKind;
@@ -48,6 +50,8 @@ export interface MarkupCoverageViewProps {
   onAction: (action: RuleAction, rule: CoverageRule) => void;
   onCreate: () => void;
   formatExpiry: (iso: string) => string;
+  /** The clicked cell's items in the "Why this price" sheet. */
+  renderCellItems?: (query: CellQuery) => ReactNode;
 }
 
 /**
@@ -279,6 +283,7 @@ export function MarkupCoverageView(props: MarkupCoverageViewProps) {
           typeName={typeName}
           itemRuleCount={itemRuleCount}
           formatExpiry={props.formatExpiry}
+          renderCellItems={props.renderCellItems}
         />
       </div>
     </div>

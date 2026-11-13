@@ -13,8 +13,10 @@ import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { flattenCategoryTree } from "@/lib/utils/markup-coverage";
 import {
+  CellItemsList,
   MarkupCoverageView,
   RuleItemsLine,
+  type CellQuery,
   type RuleAction,
 } from "@/components/shared/markup-coverage/markup-coverage-view";
 
@@ -254,6 +256,7 @@ export function PartsPricingView() {
         isError={isError}
         onRetry={() => refetch()}
         renderItems={(r) => <RuleItems ruleId={r.id} />}
+        renderCellItems={(q) => <CellItems query={q} />}
         onAction={onAction}
         onCreate={openCreate}
         formatExpiry={formatExpiry}
@@ -317,6 +320,37 @@ function RuleItems({ ruleId }: { ruleId: string }) {
       loading={isLoading}
       count={data?.totalParts}
       other={data?.coveredByOtherRuleCount}
+      noun="part"
+    />
+  );
+}
+
+/**
+ * The clicked cell's parts: a dry run at the cell's scope (and part type)
+ * and winning %. Rows a stronger rule prices come back flagged and are left out.
+ */
+function CellItems({ query }: { query: CellQuery }) {
+  const { data, isLoading, isPlaceholderData, isError } = usePartMarkupImpact({
+    categoryId: query.categoryId,
+    brandId: query.brandId ?? undefined,
+    partTypeId: query.typeId ?? undefined,
+    markupPercentage: query.previewPct,
+    applyTo: "PRICE",
+  });
+  return (
+    <CellItemsList
+      loading={isLoading || isPlaceholderData}
+      failed={isError}
+      rows={data?.parts.map((p) => ({
+        id: p.partId,
+        name: p.name,
+        detail: p.partNumber ?? null,
+        current: p.currentPrice,
+        projected: p.projectedPrice,
+        cost: p.costPrice ?? null,
+        covered: !!p.coveredByOtherRule,
+      }))}
+      query={query}
       noun="part"
     />
   );

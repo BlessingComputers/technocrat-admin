@@ -4,6 +4,7 @@ import {
   analyzeRule,
   buildCoverage,
   candidates,
+  cellItems,
   categoryChain,
   countGaps,
   familyCounts,
@@ -55,6 +56,7 @@ function rule(
     typeName: type,
     itemId: item,
     pct,
+    affectsPrice: true,
     isDeal: pct < 0,
     dealId: null,
     meta: "",
@@ -294,5 +296,41 @@ describe("flattenCategoryTree", () => {
       { id: "a1", name: "A1", parentId: "a", count: 1 },
       { id: "b", name: "B", parentId: null, count: 2 },
     ]);
+  });
+});
+
+describe("cellItems", () => {
+  const row = (id: string, projected: number, current: number, extra: object = {}) => ({
+    id,
+    name: id,
+    detail: null,
+    current,
+    projected,
+    cost: 50,
+    covered: false,
+    ...extra,
+  });
+
+  it("recovers the base and the difference, and flags prices not applied yet", () => {
+    const { items, covered } = cellItems(
+      [row("a", 115, 115), row("b", 230, 200), row("c", 115, 115, { covered: true })],
+      15,
+      { affectsPrice: true },
+    );
+    expect(covered).toBe(1);
+    expect(items.map((i) => [i.id, i.base, i.rulePrice, i.diff, i.drift])).toEqual([
+      ["a", 100, 115, 15, false],
+      ["b", 200, 230, 30, true],
+    ]);
+  });
+
+  it("prices a gap at base (previewed at 1%)", () => {
+    const [i] = cellItems([row("a", 101, 100)], 1, null).items;
+    expect([i.base, i.rulePrice, i.diff, i.drift]).toEqual([100, 100, 0, false]);
+  });
+
+  it("gives no base at the cost floor", () => {
+    const [i] = cellItems([row("a", 50, 50)], -60, { affectsPrice: true }).items;
+    expect([i.base, i.rulePrice, i.diff]).toEqual([null, 50, null]);
   });
 });

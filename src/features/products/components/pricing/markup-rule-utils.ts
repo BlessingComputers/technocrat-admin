@@ -131,6 +131,7 @@ export function toCoverageRule(rule: MarkupRule): CoverageRule {
     typeName: null,
     itemId: rule.productId,
     pct: rule.markupPercentage,
+    affectsPrice: true,
     isDeal,
     dealId: rule.dealId ?? null,
     meta: isDeal ? (rule.notes ?? "Deal") : (APPLY_TO_LABEL[rule.applyTo] ?? rule.applyTo),

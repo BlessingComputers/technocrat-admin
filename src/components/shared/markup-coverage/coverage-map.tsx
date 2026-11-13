@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import {
   cellKey,
+  cellPreviewPct,
   familyCounts,
   familyOf,
   isLive,
@@ -26,6 +27,7 @@ import {
   type RuleAnalysis,
 } from "@/lib/utils/markup-coverage";
 
+import type { CellQuery } from "./cell-items";
 import type { TierInfo } from "./rule-lanes";
 import {
   HATCH,
@@ -66,6 +68,8 @@ export interface CoverageMapProps {
   itemRuleCount: number;
   /** The slice's long expiry format ("20 Nov 2026, 11:59 pm"). */
   formatExpiry: (iso: string) => string;
+  /** The clicked cell's items, from the slice's preview query. */
+  renderCellItems?: (query: CellQuery) => React.ReactNode;
 }
 
 const SHORT_TIER: Record<string, string> = {
@@ -519,10 +523,12 @@ export function CoverageMap(props: CoverageMapProps) {
   );
 }
 
-/** "Why this price": the ladder for the clicked cell, shown in its popover. */
+/** "Why this price": the ladder and the items for the clicked cell, in the sheet. */
 function WhyThisPrice({
   kind,
+  model,
   tiers,
+  renderCellItems,
   cell: c,
   typeName,
   formatExpiry,
@@ -647,6 +653,14 @@ function WhyThisPrice({
             );
           })}
         </ol>
+        {renderCellItems?.({
+          categoryId: c.categoryId,
+          brandId: c.brandId,
+          typeId: model.typeId,
+          previewPct: cellPreviewPct(w),
+          winner: w,
+          hasChildren: model.rows.some((r) => r.parentId === c.categoryId),
+        })}
       </div>
     </>
   );

@@ -13,8 +13,10 @@ import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { flattenCategoryTree } from "@/lib/utils/markup-coverage";
 import {
+  CellItemsList,
   MarkupCoverageView,
   RuleItemsLine,
+  type CellQuery,
   type RuleAction,
 } from "@/components/shared/markup-coverage/markup-coverage-view";
 
@@ -282,6 +284,7 @@ export function MarkupRulesView() {
         isError={isError}
         onRetry={() => refetch()}
         renderItems={(r) => <RuleItems ruleId={r.id} />}
+        renderCellItems={(q) => <CellItems query={q} />}
         onAction={onAction}
         onCreate={openCreate}
         formatExpiry={formatExpiry}
@@ -356,6 +359,36 @@ function RuleItems({ ruleId }: { ruleId: string }) {
       loading={isLoading}
       count={data?.totalVariants}
       other={data?.coveredByOtherRuleCount}
+      noun="variant"
+    />
+  );
+}
+
+/**
+ * The clicked cell's variants: a dry run at the cell's scope and winning %.
+ * Rows a stronger rule prices come back flagged and are left out.
+ */
+function CellItems({ query }: { query: CellQuery }) {
+  const { data, isLoading, isPlaceholderData, isError } = useMarkupImpact({
+    categoryId: query.categoryId,
+    brandId: query.brandId ?? undefined,
+    markupPercentage: query.previewPct,
+    applyTo: "PRICE",
+  });
+  return (
+    <CellItemsList
+      loading={isLoading || isPlaceholderData}
+      failed={isError}
+      rows={data?.variants.map((v) => ({
+        id: v.variantId,
+        name: v.productName,
+        detail: [v.variantName, v.sku].filter(Boolean).join(" · ") || null,
+        current: v.currentPrice,
+        projected: v.projectedPrice,
+        cost: v.costPrice,
+        covered: !!v.coveredByOtherRule,
+      }))}
+      query={query}
       noun="variant"
     />
   );

@@ -192,6 +192,7 @@ export function toCoverageRule(rule: PartMarkupRule): CoverageRule {
     typeName: rule.partType?.name ?? null,
     itemId: rule.partId,
     pct: rule.markupPercentage,
+    affectsPrice: rule.applyTo !== "COMPARE_AT_PRICE",
     isDeal,
     dealId: rule.dealId ?? null,
     meta: isDeal ? (rule.notes ?? "Deal") : (APPLY_TO_LABEL[rule.applyTo] ?? rule.applyTo),

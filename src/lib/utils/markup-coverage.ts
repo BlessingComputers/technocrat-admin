@@ -37,6 +37,8 @@ export interface CoverageRule {
   /** Exact product or part. */
   itemId: string | null;
   pct: number;
+  /** False when the rule only changes the compare-at price (parts). */
+  affectsPrice: boolean;
   /** A negative rule: a deal, hunt or flash sale (managed on /pricing/deals). */
   isDeal: boolean;
   dealId: string | null;
@@ -446,4 +448,78 @@ export function flattenCategoryTree<T extends { id: string; name: string; childr
   };
   walk(roots, null, 0);
   return rows;
+}
+
+// ── Items in a cell ───────────────────────────────────────────────────
+
+/** One row of a markup preview, in a slice-free shape. */
+export interface PreviewItem {
+  id: string;
+  name: string;
+  /** Variant name, SKU or part number. */
+  detail: string | null;
+  current: number | null;
+  /** Base price with the previewed % applied. */
+  projected: number | null;
+  cost: number | null;
+  /** A stronger rule prices it, so it is not in this cell's rule. */
+  covered: boolean;
+}
+
+export interface CellItem {
+  id: string;
+  name: string;
+  detail: string | null;
+  /** Null when the cost floor hides it. */
+  base: number | null;
+  /** What the cell's rule sells it at. */
+  rulePrice: number | null;
+  /** rulePrice − base. */
+  diff: number | null;
+  /** What it sells at now. */
+  now: number | null;
+  /** Sells at another price now: the rule is not applied to it yet. */
+  drift: boolean;
+}
+
+/** The % to preview a cell with: its winner's, or 1% for a gap (the API refuses 0). */
+export const cellPreviewPct = (winner: Pick<CoverageRule, "pct"> | null): number =>
+  winner?.pct ?? 1;
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * The cell's items from a preview run at the cell's scope and `previewPct`.
+ * The backend prices `round2(base × (1 + % / 100))`, floored at cost
+ * (deriveFromBase), so the base comes back out of the projected price. A row
+ * at the cost floor has no reliable base.
+ */
+export function cellItems(
+  rows: readonly PreviewItem[],
+  previewPct: number,
+  winner: Pick<CoverageRule, "affectsPrice"> | null,
+): { items: CellItem[]; covered: number } {
+  const m = 1 + previewPct / 100;
+  const items: CellItem[] = [];
+  let covered = 0;
+  for (const r of rows) {
+    if (r.covered) {
+      covered += 1;
+      continue;
+    }
+    const floored = r.projected !== null && r.cost !== null && r.projected <= r.cost;
+    const base = r.projected === null || floored ? null : round2(r.projected / m);
+    const rulePrice = winner?.affectsPrice ? r.projected : base;
+    items.push({
+      id: r.id,
+      name: r.name,
+      detail: r.detail,
+      base,
+      rulePrice,
+      diff: rulePrice !== null && base !== null ? round2(rulePrice - base) : null,
+      now: r.current,
+      drift: r.current !== null && rulePrice !== null && Math.abs(r.current - rulePrice) >= 0.01,
+    });
+  }
+  return { items, covered };
 }
