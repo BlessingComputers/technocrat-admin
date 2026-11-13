@@ -2,6 +2,13 @@
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils/cn";
 import {
   cellKey,
@@ -20,7 +27,17 @@ import {
 } from "@/lib/utils/markup-coverage";
 
 import type { TierInfo } from "./rule-lanes";
-import { HATCH, HATCH_DENSE, PANEL, TONE, familyTone, pct, plural, shortDate } from "./tone";
+import {
+  HATCH,
+  HATCH_DENSE,
+  PANEL,
+  SCROLL_COLUMN,
+  TONE,
+  familyTone,
+  pct,
+  plural,
+  shortDate,
+} from "./tone";
 
 export interface MapFocus {
   categoryId: string;
@@ -40,7 +57,8 @@ export interface CoverageMapProps {
   selected: CoverageRule | null;
   analysis: RuleAnalysis | null;
   focus: MapFocus | null;
-  onFocus: (focus: MapFocus) => void;
+  /** The clicked cell (null closes its "Why this price" popover). */
+  onFocus: (focus: MapFocus | null) => void;
   /** Parts: the types that have a rule. */
   types?: { id: string; name: string; count: number }[];
   onType?: (typeId: string | null) => void;
@@ -221,8 +239,10 @@ export function CoverageMap(props: CoverageMapProps) {
       <button
         key={cellKey(c.categoryId, c.brandId)}
         type="button"
+        data-map-cell
         aria-label={label}
         aria-pressed={isFocus}
+        aria-haspopup="dialog"
         onClick={() => props.onFocus({ categoryId: c.categoryId, brandId: c.brandId })}
         style={style}
         className={cn(
@@ -233,7 +253,7 @@ export function CoverageMap(props: CoverageMapProps) {
             "-translate-y-px border-[1.5px] border-success shadow-[0_8px_20px_-8px_rgb(0_0_0/0.14)] hover:border-success dark:shadow-[0_8px_20px_-8px_rgb(0_0_0/0.5)]",
           s === "lost" && "border-[1.5px] border-dashed border-success/60",
           s === "out" && "opacity-40 hover:opacity-80",
-          isFocus && "ring-1 ring-foreground/35 ring-offset-2 ring-offset-card",
+          isFocus && "ring-2 ring-foreground/45 ring-offset-2 ring-offset-card",
         )}
       >
         {line ? (
@@ -255,7 +275,10 @@ export function CoverageMap(props: CoverageMapProps) {
   };
 
   return (
-    <section aria-labelledby={`${id}-map`} className="min-w-0 rounded-[14px] border border-border/60 bg-card shadow-soft">
+    <section
+      aria-labelledby={`${id}-map`}
+      className={cn("min-w-0 rounded-[14px] border border-border/60 bg-card shadow-soft", SCROLL_COLUMN)}
+    >
       <div className="px-5 pt-4 pb-3 max-sm:px-3.5">
         <h3 id={`${id}-map`} className="text-base font-semibold">
           Coverage map
@@ -469,36 +492,48 @@ export function CoverageMap(props: CoverageMapProps) {
         })}
       </div>
 
-      <WhyThisPrice {...props} rowName={rowName} brandName={brandName} />
+      {/* "Why this price" opens in a sheet on the right. Not modal, so the map
+          stays usable: clicking another cell switches the sheet to it. At the
+          bottom of the card the answer sat out of view and a click looked
+          like it did nothing. */}
+      <Sheet modal={false} open={!!focus} onOpenChange={(open) => !open && props.onFocus(null)}>
+        <SheetContent
+          side="right"
+          className="w-full gap-0 overflow-y-auto border-border bg-card shadow-soft-lg sm:max-w-md"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            if ((e.target as Element | null)?.closest?.("[data-map-cell]")) e.preventDefault();
+          }}
+        >
+          {focus && (
+            <WhyThisPrice
+              {...props}
+              cell={model.cell(focus.categoryId, focus.brandId)}
+              rowName={rowName}
+              brandName={brandName}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }
 
-/** "Why this price": the ladder for the clicked cell. */
+/** "Why this price": the ladder for the clicked cell, shown in its popover. */
 function WhyThisPrice({
   kind,
-  model,
   tiers,
-  focus,
+  cell: c,
   typeName,
   formatExpiry,
   rowName,
   brandName,
-}: CoverageMapProps & { rowName: (c: string) => string; brandName: (b: string | null) => string }) {
+}: CoverageMapProps & {
+  cell: CoverageCell;
+  rowName: (c: string) => string;
+  brandName: (b: string | null) => string;
+}) {
   const parts = kind === "parts";
-  const shell = "grid gap-2.5 border-t border-border px-5 pt-4 pb-[18px] max-sm:p-3.5";
-  if (!focus) {
-    return (
-      <div className={shell}>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <AppIcon icon="solar:cursor-linear" className="size-[18px]" />
-          Click a cell to see which rule wins it, and why.
-        </p>
-      </div>
-    );
-  }
-
-  const c = model.cell(focus.categoryId, focus.brandId);
   const w = c.winner;
   const cat = rowName(c.categoryId);
   const where = `${cat} × ${brandName(c.brandId)}${parts ? ` × ${typeName ?? "other types"}` : ""}`;
@@ -546,68 +581,73 @@ function WhyThisPrice({
   }
 
   return (
-    <div className={shell} aria-live="polite">
-      <h4 className="text-base font-semibold">Why this price: {where}</h4>
-      <p className="max-w-[75ch] text-sm tabular-nums">{sentence}</p>
-      <ol className="relative grid max-w-[620px] gap-0.5 before:absolute before:top-3.5 before:bottom-3.5 before:left-[11px] before:w-[1.5px] before:bg-border">
-        {tiers.map((t) => {
-          const isItem = t.key === "product" || t.key === "part";
-          const r = isItem ? undefined : c.candidates.find((x) => x.tier === t.key);
-          const won = !!r && r === w;
-          const tone = r ? TONE[familyOf(r)] : null;
-          let sub: React.ReactNode;
-          let rel = "";
-          if (isItem) {
-            sub = `Can beat this for single ${parts ? "parts" : "products"}`;
-            rel = "Not on the map";
-          } else if (!r) {
-            sub = "No rule";
-          } else {
-            const fromParent = r.categoryId && r.categoryId !== c.categoryId ? `, from ${r.categoryName ?? rowName(r.categoryId)}` : "";
-            sub = `${r.label} ${pct(r.pct)}${r.isDeal && r.expiresAt ? `, deal to ${formatExpiry(r.expiresAt)}` : ""}${fromParent}`;
-            rel = won ? "Wins" : "Loses";
-          }
-          return (
-            <li
-              key={t.key}
-              className={cn(
-                "relative grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border border-transparent py-[5px] pr-2",
-                won && tone?.tint,
-              )}
-            >
-              <span aria-hidden className="z-10 grid size-6 place-items-center">
-                <span
-                  className={cn(
-                    "rounded-full border-[1.5px]",
-                    won && tone
-                      ? cn("size-[11px]", tone.dot, tone.line)
-                      : cn("size-[9px] bg-card", r && tone ? tone.line : "border-dashed border-muted-foreground"),
-                  )}
-                />
-              </span>
-              <span className={cn("min-w-0 text-sm", !r && "text-muted-foreground", won && "font-semibold")}>
-                {t.label}
-                <small
-                  className={cn(
-                    "block text-xs font-normal text-muted-foreground tabular-nums",
-                    r && !won && "line-through",
-                  )}
-                >
-                  {sub}
-                </small>
-              </span>
-              <span
+    <>
+      <SheetHeader className="border-b border-border px-5 pt-5 pb-4">
+        <SheetTitle className="text-base">Why this price</SheetTitle>
+        <SheetDescription>{where}</SheetDescription>
+      </SheetHeader>
+      <div className="grid gap-4 px-5 pt-4 pb-6">
+        <p className="text-sm tabular-nums">{sentence}</p>
+        <ol className="relative grid gap-0.5 before:absolute before:top-3.5 before:bottom-3.5 before:left-[11px] before:w-[1.5px] before:bg-border">
+          {tiers.map((t) => {
+            const isItem = t.key === "product" || t.key === "part";
+            const r = isItem ? undefined : c.candidates.find((x) => x.tier === t.key);
+            const won = !!r && r === w;
+            const tone = r ? TONE[familyOf(r)] : null;
+            let sub: React.ReactNode;
+            let rel = "";
+            if (isItem) {
+              sub = `Can beat this for single ${parts ? "parts" : "products"}`;
+              rel = "Not on the map";
+            } else if (!r) {
+              sub = "No rule";
+            } else {
+              const fromParent = r.categoryId && r.categoryId !== c.categoryId ? `, from ${r.categoryName ?? rowName(r.categoryId)}` : "";
+              sub = `${r.label} ${pct(r.pct)}${r.isDeal && r.expiresAt ? `, deal to ${formatExpiry(r.expiresAt)}` : ""}${fromParent}`;
+              rel = won ? "Wins" : "Loses";
+            }
+            return (
+              <li
+                key={t.key}
                 className={cn(
-                  "text-right text-xs whitespace-nowrap text-muted-foreground",
-                  won && tone && cn("font-semibold", tone.ink),
+                  "relative grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border border-transparent py-[5px] pr-2",
+                  won && tone?.tint,
                 )}
               >
-                {rel}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+                <span aria-hidden className="z-10 grid size-6 place-items-center">
+                  <span
+                    className={cn(
+                      "rounded-full border-[1.5px]",
+                      won && tone
+                        ? cn("size-[11px]", tone.dot, tone.line)
+                        : cn("size-[9px] bg-card", r && tone ? tone.line : "border-dashed border-muted-foreground"),
+                    )}
+                  />
+                </span>
+                <span className={cn("min-w-0 text-sm", !r && "text-muted-foreground", won && "font-semibold")}>
+                  {t.label}
+                  <small
+                    className={cn(
+                      "block text-xs font-normal text-muted-foreground tabular-nums",
+                      r && !won && "line-through",
+                    )}
+                  >
+                    {sub}
+                  </small>
+                </span>
+                <span
+                  className={cn(
+                    "text-right text-xs whitespace-nowrap text-muted-foreground",
+                    won && tone && cn("font-semibold", tone.ink),
+                  )}
+                >
+                  {rel}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </>
   );
 }

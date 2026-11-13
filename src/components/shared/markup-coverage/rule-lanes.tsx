@@ -168,6 +168,17 @@ export function RuleLanes(props: RuleLanesProps) {
   );
 }
 
+/** The rule's scope as labelled parts: Category, Brand, Type, or one item. */
+function scopeChips(rule: CoverageRule, kind: CoverageKind): { key: string | null; value: string }[] {
+  if (rule.itemId) return [{ key: kind === "parts" ? "Part" : "Product", value: rule.label }];
+  const chips = [
+    rule.categoryId && { key: "Category", value: rule.categoryName ?? "Unknown category" },
+    rule.brandId && { key: "Brand", value: rule.brandName ?? "Unknown brand" },
+    rule.typeId && { key: "Type", value: rule.typeName ?? "Unknown type" },
+  ].filter((c): c is { key: string; value: string } => !!c);
+  return chips.length ? chips : [{ key: null, value: kind === "parts" ? "All parts" : "All products" }];
+}
+
 function RuleRow({
   rule,
   selected,
@@ -190,13 +201,33 @@ function RuleRow({
         type="button"
         aria-expanded={selected}
         onClick={() => onSelect(selected ? null : rule.id)}
-        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-[11px] px-2.5 py-2 text-left"
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 rounded-[11px] px-2.5 py-2 text-left"
       >
-        <span className={cn("truncate font-medium", off && "font-normal text-muted-foreground")}>
-          {rule.label}
+        {/* Each part of the scope named, so "which is the brand, which is the
+            category" never has to be guessed from "Apple · Phones". */}
+        <span className={cn("flex min-w-0 flex-wrap gap-1", off && "opacity-70")}>
+          {scopeChips(rule, rest.kind).map((c) => (
+            <span
+              key={`${c.key}:${c.value}`}
+              className="inline-flex max-w-full min-w-0 items-baseline gap-1 rounded-md border border-border bg-background/60 px-1.5 py-0.5 text-xs"
+            >
+              {c.key && <span className="shrink-0 text-muted-foreground">{c.key}:</span>}
+              <span className="truncate font-medium text-foreground">{c.value}</span>
+            </span>
+          ))}
         </span>
-        <span className="row-span-2 flex items-center gap-2 tabular-nums">
-          {!rule.isActive && (
+        <span
+          className={cn(
+            "row-span-2 pt-0.5 text-base font-semibold tabular-nums",
+            off ? "font-normal text-muted-foreground" : tone.ink,
+          )}
+        >
+          {pct(rule.pct)}
+        </span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+          {rule.isActive ? (
+            <span className="font-medium text-foreground">On</span>
+          ) : (
             <Badge variant="muted" className="rounded-full">
               Off
             </Badge>
@@ -207,18 +238,8 @@ function RuleRow({
               {rule.expiresAt ? `Deal · ends ${shortDate(rule.expiresAt)}` : "Deal"}
             </Badge>
           )}
-          <span
-            className={cn(
-              "text-base font-semibold",
-              off ? "font-normal text-muted-foreground" : tone.ink,
-            )}
-          >
-            {pct(rule.pct)}
-          </span>
-        </span>
-        <span className="truncate font-mono text-xs text-muted-foreground">
-          {rule.ruleId}
-          {rule.meta ? ` · ${rule.meta}` : ""}
+          {rule.meta && <span className="truncate">· {rule.meta}</span>}
+          {rule.ruleId && <span className="font-mono">· {rule.ruleId}</span>}
         </span>
       </button>
       {selected && <RuleDetail rule={rule} off={off} now={now} onSelect={onSelect} {...rest} />}

@@ -61,7 +61,13 @@ export interface PartMarkupRule {
   notes: string | null;
   category?: Ref | null;
   brand?: Ref | null;
+  /**
+   * The part type. The backend sends it as `partTypeRef` (the Prisma
+   * relation name); `partsPricingService.getMarkupRules` copies it here.
+   */
   partType?: Ref | null;
+  /** Wire name of `partType`. Read `partType`, not this. */
+  partTypeRef?: Ref | null;
   part?: Ref | null;
   createdAt?: string;
   updatedAt?: string;

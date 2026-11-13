@@ -82,6 +82,14 @@ export const TONE: Record<CoverageFamily, Tone> = {
   },
 };
 
+/**
+ * From lg up the lanes and the map sit side by side and scroll on their own:
+ * each sticks to the top of the app's scrolling <main> and is capped at the
+ * window height left under the topbar (4rem) and main's padding.
+ */
+export const SCROLL_COLUMN =
+  "lg:sticky lg:top-0 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-y-contain";
+
 /** The quiet surface behind the baseline column, the chart and the callout. */
 export const PANEL = "bg-background/60";
 

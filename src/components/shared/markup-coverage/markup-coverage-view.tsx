@@ -28,7 +28,7 @@ import {
 
 import { CoverageMap, type MapFocus } from "./coverage-map";
 import { RuleLanes, type RuleAction, type TierInfo } from "./rule-lanes";
-import { pct } from "./tone";
+import { SCROLL_COLUMN, pct } from "./tone";
 
 export type { RuleAction } from "./rule-lanes";
 export { RuleItemsLine } from "./rule-lanes";
@@ -232,7 +232,7 @@ export function MarkupCoverageView(props: MarkupCoverageViewProps) {
       <div className="grid items-start gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section
           aria-labelledby={`${id}-lanes`}
-          className="rounded-[14px] border border-border/60 bg-card shadow-soft"
+          className={cn("rounded-[14px] border border-border/60 bg-card shadow-soft", SCROLL_COLUMN)}
         >
           <div className="px-5 pt-4 pb-3 max-sm:px-3.5">
             <h3 id={`${id}-lanes`} className="text-base font-semibold">
