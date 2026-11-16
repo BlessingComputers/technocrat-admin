@@ -95,6 +95,21 @@ export const huntsService = {
   updateHuntDeal: (id: string, huntDealId: string, data: UpdateHuntDealInput) =>
     api.patch<HuntCampaign>(hunts.huntDeal(id, huntDealId), data),
 
+  /**
+   * Take a drop back from its holder. 409 `HUNT_DEAL_NOT_CLAIMED` on an OPEN
+   * drop. Inside the slot this restarts the Deal, so the item is live again for
+   * everyone. It does not touch the order: no cancel and no refund.
+   */
+  releaseHuntDeal: (id: string, huntDealId: string, reason: string) =>
+    api.post<unknown>(hunts.releaseHuntDeal(id, huntDealId), { reason }),
+
+  /** 204. Refused once ACTIVE or ENDED. */
+  deleteCampaign: (id: string) => api.delete<void>(hunts.detail(id)),
+
+  /** 204. Refused once ACTIVE or ENDED. */
+  deleteHuntDeal: (id: string, huntDealId: string) =>
+    api.delete<void>(hunts.huntDeal(id, huntDealId)),
+
   // ── Reads that only feed the form ──────────────────────────────────────
   //
   // Thin copies of what the deals slice reads, since features may not import

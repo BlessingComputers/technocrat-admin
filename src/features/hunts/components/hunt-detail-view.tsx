@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,8 +19,9 @@ import {
   useHuntProductPricing,
 } from "../api/hunts.queries";
 import { useNow } from "../hooks/use-now";
-import type { HuntCampaign } from "../types/hunts";
+import type { HuntCampaign, HuntDeal } from "../types/hunts";
 import {
+  canDeleteCampaign,
   claimCounts,
   currentSlot,
   isMonitorLive,
@@ -33,6 +35,8 @@ import {
   formatHuntWindow,
   sameHuntDay,
 } from "../utils/hunt-time";
+import { HuntDeleteDialog } from "./hunt-delete-dialog";
+import { HuntDropActions } from "./hunt-drop-actions";
 import { HuntSlotList } from "./hunt-slot-list";
 import { HuntStatusBadge } from "./hunt-status-badge";
 import { HuntWinnersTable } from "./hunt-winners-table";
@@ -42,8 +46,8 @@ import { HuntWinnersTable } from "./hunt-winners-table";
  *
  * SCHEDULED shows the secret schedule. ACTIVE is the same list as a live
  * monitor, polled every 15 seconds, with the open slot marked. ENDED swaps the
- * list for the winners table, unpaid claims first. Read-only: the form and the
- * release, delete and edit actions live on their own pages.
+ * list for the winners table, unpaid claims first. The form and the release
+ * live on their own pages. Deleting a campaign or removing a drop happens here.
  */
 export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const { data: campaign, isLoading, isError, error, refetch, isFetching } =
@@ -55,6 +59,7 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const stored = useHuntDealPercentages(deals);
   const now = useNow(HUNT_POLL_MS);
   const { can } = usePermissions();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (isLoading) return <SkeletonDetailPage />;
 
@@ -90,7 +95,13 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const ended = campaign.status === "ENDED";
   const polling = isMonitorLive(campaign, now);
   const withDate = !sameHuntDay(campaign.windowStart, campaign.windowEnd);
+  const canWrite = can("huntCampaigns:write");
   const listProps = {
+    actionsFor: canWrite
+      ? (deal: HuntDeal) => (
+          <HuntDropActions campaign={campaign} deal={deal} now={now} />
+        )
+      : undefined,
     deals: campaign.huntDeals,
     pricing: pricing.pricing,
     storedPercentages: stored.byDeal,
@@ -117,10 +128,20 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
           </Link>
         </Button>
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
+        {canWrite && canDeleteCampaign(campaign) && (
+          <Button
+            variant="outline"
+            onClick={() => setIsDeleting(true)}
+            className="h-10 rounded-lg font-medium text-destructive-ink"
+          >
+            <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
+            Delete
+          </Button>
+        )}
         {/* The backend refuses edits once ACTIVE or ENDED, so there is no
             button to press then. */}
         {(campaign.status === "SCHEDULED" || campaign.status === "DRAFT") &&
-          can("huntCampaigns:write") && (
+          canWrite && (
             <Button asChild className="h-10 rounded-lg font-semibold">
               <Link href={`/pricing/hunts/${campaign.id}/edit`}>
                 <AppIcon icon="solar:pen-2-linear" className="mr-2 size-4" />
@@ -129,6 +150,12 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
             </Button>
           )}
       </PageHeader>
+
+      <HuntDeleteDialog
+        campaign={campaign}
+        open={isDeleting}
+        onOpenChange={setIsDeleting}
+      />
 
       <CampaignSummary campaign={campaign} now={now} />
 

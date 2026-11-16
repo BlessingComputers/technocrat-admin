@@ -43,6 +43,8 @@ export const API_ENDPOINTS = {
     detail: (id: string) => endpoint(`/v1/hunt-campaigns/${id}`),
     huntDeal: (id: string, huntDealId: string) =>
       endpoint(`/v1/hunt-campaigns/${id}/hunt-deals/${huntDealId}`),
+    releaseHuntDeal: (id: string, huntDealId: string) =>
+      endpoint(`/v1/hunt-campaigns/${id}/hunt-deals/${huntDealId}/release`),
   },
   products: {
     base: endpoint("/v1/products"),

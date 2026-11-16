@@ -9,3 +9,6 @@ export { HuntDetailView } from "./components/hunt-detail-view";
 
 // `/pricing/hunts/new` and `/pricing/hunts/[id]/edit`: the campaign form.
 export { HuntFormView } from "./components/hunt-form-view";
+
+// `/pricing/hunts/[id]/release/[huntDealId]`: take a drop back from its holder.
+export { HuntReleaseView } from "./components/hunt-release-view";

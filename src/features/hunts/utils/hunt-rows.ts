@@ -215,6 +215,43 @@ export function isMonitorLive(campaign: HuntCampaign, now: number): boolean {
   return false;
 }
 
+/** A campaign past its window that the server still calls SCHEDULED. */
+export function isStaleCampaign(campaign: HuntCampaign, now: number): boolean {
+  return campaign.status === "SCHEDULED" && now >= ms(campaign.windowEnd);
+}
+
+/**
+ * Whether staff may delete this campaign.
+ *
+ * SCHEDULED alone is not enough. The server does not always move a campaign out
+ * of SCHEDULED after it ran (backend ask 39e), so a campaign can read SCHEDULED
+ * and still hold a winner's record. Deleting that record must not be one click
+ * away, so a drop with a holder keeps the campaign.
+ */
+export function canDeleteCampaign(campaign: HuntCampaign): boolean {
+  return (
+    campaign.status === "SCHEDULED" &&
+    campaign.huntDeals.every((d) => d.claimStatus === "OPEN")
+  );
+}
+
+/** A drop can go before its slot opens, unless it is the campaign's last one. */
+export function canRemoveDrop(campaign: HuntCampaign, deal: HuntDeal, now: number): boolean {
+  return (
+    campaign.status === "SCHEDULED" &&
+    campaign.huntDeals.length > 1 &&
+    deal.claimStatus === "OPEN" &&
+    now < ms(deal.slotStart)
+  );
+}
+
+/** What a release does, in the words the confirm uses. */
+export function releaseConsequence(deal: HuntDeal, now: number): string {
+  return now < ms(deal.slotEnd)
+    ? "The item goes live again for everyone right now."
+    : "The item will not drop again.";
+}
+
 export type PaymentTone = "success" | "warning" | "danger" | "info" | "muted";
 
 /** Badge tone for a gateway order's payment status. */

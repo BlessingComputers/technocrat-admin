@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/shared/app-icon";
 import { SkeletonRows } from "@/components/shared/skeletons";
 
+import { useNow } from "../hooks/use-now";
 import type { HuntCampaign } from "../types/hunts";
-import { claimCounts } from "../utils/hunt-rows";
+import { canDeleteCampaign, claimCounts, isStaleCampaign } from "../utils/hunt-rows";
 import { formatHuntWindow } from "../utils/hunt-time";
 import { HuntStatusBadge } from "./hunt-status-badge";
 
@@ -37,6 +38,8 @@ export function HuntsTable({
   onRetry,
   isFiltered,
 }: HuntsTableProps) {
+  const now = useNow(60_000);
+
   // Rendered instead of the table: the shared skeleton emits divs, which a
   // <tbody> cannot hold.
   if (isLoading) {
@@ -96,7 +99,7 @@ export function HuntsTable({
             </StateRow>
           ) : (
             campaigns.map((campaign) => (
-              <CampaignRow key={campaign.id} campaign={campaign} />
+              <CampaignRow key={campaign.id} campaign={campaign} now={now} />
             ))
           )}
         </TableBody>
@@ -105,7 +108,7 @@ export function HuntsTable({
   );
 }
 
-function CampaignRow({ campaign }: { campaign: HuntCampaign }) {
+function CampaignRow({ campaign, now }: { campaign: HuntCampaign; now: number }) {
   const { total, claimed, held } = claimCounts(campaign.huntDeals);
 
   return (
@@ -131,6 +134,13 @@ function CampaignRow({ campaign }: { campaign: HuntCampaign }) {
 
       <TableCell>
         <HuntStatusBadge status={campaign.status} />
+        {isStaleCampaign(campaign, now) && (
+          <p className="mt-1 whitespace-normal text-xs font-semibold text-warning-ink">
+            {canDeleteCampaign(campaign)
+              ? "Never ran. It will block the next campaign from showing publicly. Delete it."
+              : "Past its window and still Scheduled. It can block the next campaign from showing publicly."}
+          </p>
+        )}
       </TableCell>
 
       <TableCell>

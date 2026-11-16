@@ -240,6 +240,28 @@ export const helpDocs: HelpDoc[] = [
     updated: "2026-09-04",
   },
   {
+    slug: "running-treasure-hunts",
+    title: "Running a treasure hunt",
+    description:
+      "Set hunt prices, keep the schedule secret, handle a winner who does not pay, and clear stale campaigns.",
+    icon: "solar:gift-linear",
+    category: "catalogue",
+    type: "walkthrough",
+    requiredPermissions: ["huntCampaigns"],
+    keywords: [
+      "treasure hunt",
+      "hunt",
+      "drop",
+      "campaign",
+      "secret schedule",
+      "winner",
+      "release",
+      "unpaid",
+      "stale campaign",
+    ],
+    updated: "2026-11-02",
+  },
+  {
     slug: "running-deals",
     title: "Running Deals",
     description:

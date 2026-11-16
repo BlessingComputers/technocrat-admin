@@ -22,6 +22,8 @@ import { HuntPriceFigure } from "./hunt-price-figure";
 import { UnappliedDiscountLine } from "./unapplied-discount-line";
 
 interface HuntSlotListProps {
+  /** Set when the viewer may write. Without it the rows have no actions. */
+  actionsFor?: (deal: HuntDeal) => React.ReactNode;
   deals: HuntDeal[];
   pricing: Map<string, HuntProductPricing>;
   /** Stored discounts for drops the campaign response reports as 0. */
@@ -38,6 +40,7 @@ interface HuntSlotListProps {
  * and each row carries its claim state and the holder's order.
  */
 export function HuntSlotList({
+  actionsFor,
   deals,
   pricing,
   storedPercentages,
@@ -79,6 +82,7 @@ export function HuntSlotList({
               now={now}
               isNext={next?.id === deal.id}
               withDate={withDate}
+              actions={actionsFor?.(deal)}
             />
           ))}
         </ol>
@@ -96,7 +100,9 @@ function SlotRow({
   now,
   isNext,
   withDate,
+  actions,
 }: {
+  actions?: React.ReactNode;
   index: number;
   deal: HuntDeal;
   pricing?: HuntProductPricing;
@@ -151,12 +157,15 @@ function SlotRow({
         )}
       </div>
 
-      <HuntPriceFigure
-        className="shrink-0 text-right"
-        pricing={pricing}
-        percentage={percentage}
-        isLoading={pricesLoading}
-      />
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <HuntPriceFigure
+          className="text-right"
+          pricing={pricing}
+          percentage={percentage}
+          isLoading={pricesLoading}
+        />
+        {actions}
+      </div>
     </li>
   );
 }

@@ -7,6 +7,7 @@ export { BulkProductUploadDoc } from "./components/bulk-product-upload-doc";
 export { CategoriesBrandsTaxonomyDoc } from "./components/categories-brands-taxonomy-doc";
 export { PricingMarkupRulesDoc } from "./components/pricing-markup-rules-doc";
 export { RunningDealsDoc } from "./components/running-deals-doc";
+export { RunningTreasureHuntsDoc } from "./components/running-treasure-hunts-doc";
 export { ProcessingOrdersDoc } from "./components/processing-orders-doc";
 export { ManagingCustomersDoc } from "./components/managing-customers-doc";
 export { BankAccountsDoc } from "./components/bank-accounts-doc";

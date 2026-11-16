@@ -33,6 +33,8 @@ import { UnappliedDiscountLine } from "./unapplied-discount-line";
 const HEAD = "font-semibold text-xs text-muted-foreground";
 
 interface HuntWinnersTableProps {
+  /** Set when the viewer may write. Without it the rows have no actions. */
+  actionsFor?: (deal: HuntDeal) => React.ReactNode;
   deals: HuntDeal[];
   pricing: Map<string, HuntProductPricing>;
   storedPercentages: Map<string, number>;
@@ -49,6 +51,7 @@ interface HuntWinnersTableProps {
  * accounts for every item that was announced.
  */
 export function HuntWinnersTable({
+  actionsFor,
   deals,
   pricing,
   storedPercentages,
@@ -103,6 +106,7 @@ export function HuntWinnersTable({
                 pricesLoading={pricesLoading}
                 now={now}
                 withDate={withDate}
+                actions={actionsFor?.(deal)}
               />
             ))}
           </TableBody>
@@ -119,7 +123,9 @@ function WinnerRow({
   pricesLoading,
   now,
   withDate,
+  actions,
 }: {
+  actions?: React.ReactNode;
   deal: HuntDeal;
   pricing?: HuntProductPricing;
   percentage: number | null;
@@ -177,6 +183,7 @@ function WinnerRow({
             {release.text}, {formatHuntTime(release.at)}
           </p>
         )}
+        {actions && <div className="mt-2">{actions}</div>}
       </TableCell>
 
       <TableCell>
