@@ -226,10 +226,10 @@ export function RunningDealsDoc() {
           steps={[
             {
               title: "Open the deal from the list",
-              body: "The list filters by status: Draft, Scheduled, Active, Ended. A draft is one you haven't started.",
+              body: "The list groups deals: Running now, Coming up, Drafts, and Ended folded at the bottom. Click a deal and it opens on the right. A draft is one you haven't started.",
             },
             {
-              title: "Check the target table",
+              title: "Check the targets",
               body: "Everything the deal covers, one row each, with its discount. A row showing a warning already has another rule on it. See below.",
             },
             {

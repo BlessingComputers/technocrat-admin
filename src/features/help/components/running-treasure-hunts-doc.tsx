@@ -59,7 +59,7 @@ export function RunningTreasureHuntsDoc() {
           drop shows publicly only as a countdown, from its reveal time.
         </p>
         <Callout tone="warn" title="Do not share the campaign page">
-          The campaign page shows every drop time. Do not screenshot it for
+          The campaign panel shows every drop time. Do not screenshot it for
           social, and do not tell customers the times.
         </Callout>
       </Section>
@@ -70,7 +70,7 @@ export function RunningTreasureHuntsDoc() {
         subtitle="The clock is 15 minutes, and it runs by itself."
       >
         <p>
-          A winner&apos;s order holds the item for 15 minutes. The campaign page
+          A winner&apos;s order holds the item for 15 minutes. The campaign panel
           shows the release time on the row. A phone call only helps before that
           time. After it, the system releases the item by itself, and if the slot
           has closed the item stays unsold.

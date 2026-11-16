@@ -45,7 +45,7 @@ export function HuntReleaseView({
   const { mutate: release, isPending } = useReleaseHuntDeal(campaignId);
   const [reason, setReason] = useState("");
 
-  const detailHref = `/pricing/hunts/${campaignId}`;
+  const detailHref = `/pricing/hunts?campaign=${campaignId}`;
 
   if (isLoading) return <SkeletonDetailPage />;
 
