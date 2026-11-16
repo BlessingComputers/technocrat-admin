@@ -1,216 +1,31 @@
 // Extracts only the Solar icons we actually use into a small committed JSON,
 // so icons render fully offline (no Iconify CDN calls) without bundling the
 // entire multi-thousand-icon Solar set. Also emits a tiny hand-authored `brand`
-// collection for third-party marks Solar doesn't ship (WhatsApp). Re-run after
-// editing BASES or BRAND_ICONS:
-//   npm run gen:icons
+// collection for third-party marks Solar doesn't ship (WhatsApp).
+//
+// The icon list is every `solar:<name>` / `brand:<name>` literal in src/, so
+// there is no hand-kept list to forget. Runs before `dev` and `build`;
+// `npm run gen:icons` runs it by hand. Icon names must stay literal strings
+// (no `solar:${base}-bold` templates) or the scan cannot see them.
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { getIcons } from "@iconify/utils";
 
 const require = createRequire(import.meta.url);
 const solar = require("@iconify-json/solar/icons.json");
 
-// Base names; each gets a `-linear` (inactive) and `-bold` (active) variant.
-const BASES = [
-  "widget-5", // Dashboard
-  "box", // Products
-  "cart-large-2", // Orders
-  "users-group-rounded", // Customers
-  "bill-list", // Invoices
-  "bill-check", // Invoices: approved KPI
-  "bill-cross", // Invoices: rejected KPI
-  "box-minimalistic", // Inventories
-  "shield-user", // Users
-  "chart-2", // Sales
-  "share", // Socials
-  "shield-keyhole", // Security
-  "card", // Bank Accounts
-  "settings", // Settings
-  // chrome / misc
-  "magnifer", // search
-  "bell", // notifications
-  "question-circle", // help
-  "logout-2", // log out (topbar menu / logout modal)
-  "danger-triangle", // confirm/alert modals
-  "sun-2", // theme: light
-  "moon", // theme: dark
-  "shield-warning", // emergency unblock
-  "lock-keyhole-unlocked", // emergency unblock action
-  // auth / login
-  "shield-check", // login brand mark
-  "eye", // password reveal
-  "eye-closed", // password hide
-  "lock-keyhole-minimalistic", // login submit / security note
-  // dashboard
-  "arrow-right-up", // KPI trend up
-  "arrow-right-down", // KPI trend down
-  "menu-dots", // card actions
-  "calendar", // date filter
-  "calendar-mark", // date input
-  "magic-stick-3", // active range sparkle
-  "filter", // recent-orders filter
-  "inbox", // empty state
-  "pulse", // staff activity
-  "dollar-minimalistic", // refunds
-  // orders feature
-  "clock-circle", // awaiting payment / audit timestamp
-  "document-text", // pending review / notes
-  "wallet", // potential revenue
-  "user", // customer / actor
-  "letter", // email
-  "phone", // phone
-  "map-point", // delivery address
-  "delivery", // dispatch / delivery method
-  "shop", // pick-up method
-  "arrow-left", // back nav
-  "danger-circle", // error / alert
-  "forbidden-circle", // cancel / ban
-  "close-circle", // reject
-  "check-circle", // confirm / done
-  "square-arrow-right-up", // external link (proof)
-  "copy", // copy invoice number
-  "refresh", // status refresh
-  "buildings-3", // bank
-  "pen-2", // edit
-  "power", // toggle active
-  "trash-bin-trash", // delete
-  "star", // primary / make primary
-  "add-circle", // add new
-  // products list
-  "alt-arrow-left", // pagination prev
-  "alt-arrow-right", // pagination next
-  "alt-arrow-up", // sort asc
-  "alt-arrow-down", // sort desc
-  // product detail
-  "info-circle", // about / empty states
-  "tag", // classification
-  "layers-minimalistic", // system metadata
-  "gallery", // product image gallery
-  "gallery-add", // bulk-upload images dropzone
-  // product form
-  "cloud-upload", // image upload dropzone
-  // taxonomy (brands & categories)
-  "folder", // categories
-  "folder-open", // selected category
-  // users (RBAC)
-  "key", // permissions tab
-  "user-plus-rounded", // onboard staff
-  // chat
-  "chat-round", // Chat nav + conversation glyph
-  "chat-round-dots", // conversation with activity
-  "plain-2", // send message
-  "check-read", // read receipt (double tick)
-  "file", // staff-room file action
-  "paperclip", // composer attach
-  "hand-shake", // queue: take/self-assign
-  "sidebar-minimalistic", // toggle context panel
-  "stop-circle", // AI stop control (A5)
-  "play-circle", // AI resume control (A5)
-  // help center (ADR-0011 Doc Kit + guides)
-  "compass", // getting-started / hub orientation
-  "hamburger-menu", // sidebar drawer
-  "widget-2", // top bar
-  "list", // sidebar / field reference
-  "book", // browse all guides
-  "cpu-bolt", // uploading parts
-  "routing-2", // two ways to add parts
-  "link", // attach existing part
-  "link-broken", // remove from product
-  "tag-price", // pricing & markup
-  "lightbulb-bolt", // callout: tip
-  // whatsapp inbox
-  "chat-square-call", // WhatsApp inbox empty/placeholder glyph (the nav uses
-  // the real brand mark — see BRAND_ICONS below)
-  "smartphone", // customer's WhatsApp number
-  "hourglass", // 24h reply window
-  // monitor (Security section)
-  "bolt", // stats: max latency KPI
-  "shield-cross", // access-gate restricted state (also used by payments' gate,
-  // which was missing this from the subset — fixed here since it's the same icon)
-  // pre-orders queue
-  "clipboard-list", // Pre-orders nav item
-  "clipboard-check", // queue empty state ("nothing waiting")
-  "arrow-right", // advance-status primary action
-  "restart", // reset filters
-  "file-corrupted", // pre-order not found
-  // coupons
-  "ticket", // Coupons nav item + empty state
-  // nav regroup: Pricing and Payments children (six-group sidebar)
-  "graph-up", // Pricing > Markup
-  "sale", // Pricing > Deals
-  "gift", // Pricing > Hunts + hunt empty states
-  "calculator", // Pricing > Tax
-  "wallet-money", // Payments parent (the nav asked for this one all
-  // along and it was never in the subset, so the row rendered iconless)
-  "card-transfer", // Payments > Transactions
-  // Used in code but missing from the subset until 2026-10-23, so they
-  // loaded from Iconify's CDN (against ADR-0009). Found by diffing every
-  // `solar:` string in src/ against solar-subset.json.
-  "user-circle", // settings-workspace
-  "crown", // sidebar
-  "lock-keyhole", // analytics: campaign-links-page
-  "target", // analytics: traffic-campaigns-table
-  "flag", // analytics: traffic-campaigns-table
-  "plug-circle", // analytics: traffic-page
-  "cloud-cross", // analytics: traffic-page
-  "window-frame", // analytics: traffic-view
-  "bag-check", // analytics: traffic-view
-  "pulse-2", // analytics: traffic-view
-  "global", // analytics: traffic-view
-  "history", // analytics: traffic-view
-  "chart-square", // analytics: upload-performance-chart
-  "cpu", // analytics: uploader-summary-strip
-  "user-speak", // chat: conversation-list-item
-  "user-check", // customers: customers-stats-bar
-  "user-plus", // customers: customers-stats-bar
-  "cup-star", // customers: customers-stats-bar
-  "bag-4", // customers: customer-orders-list
-  "verified-check", // customers: customer-profile-card
-  "bell-off", // notifications: notification-bell
-  "user-rounded", // orders: order-customer-card
-  "scooter", // orders: order-delivery-card
-  "banknote-2", // orders: order-source-badge
-  "cart-check", // parts: part-detail-view
-  "rewind-back", // parts: markup-rules-table
-  "radar", // payments: payment-miden-card
-  "radar-2", // payments: payment-reconcile-card
-  "card-recive", // payments: payment-refund-dialog
-  "refresh-circle", // payments: dlq-row
-  "inbox-archive", // payments: dlq-table
-  "widget-4", // products: catalogue-overview-stats
-  "hashtag", // products: product-pricing-card
-  "undo-left-round", // products: markup-rules-table
-  "tuning-2", // products: products-more-filters
-  "gallery-wide", // promotions: promotion-card
-  "widget", // promotions: promotion-card
-  "smartphone-update", // promotions: promotion-card
-  "pen", // promotions: promotion-card
-  "archive", // promotions: promotion-card
-  "crop", // promotions: promotion-form
-  "document", // promotions: promotion-slide-manager
-  "pause", // sales-notifications: recipients-table
-  "play", // sales-notifications: recipients-table
-  "pause-circle", // tax: tax-setting-panel
-  "arrow-up", // markup coverage map: "From <parent>" cell line
-  "list-check", // markup coverage map: facts line
-];
+const ICON_RE = /\b(solar|brand):([a-z0-9]+(?:-[a-z0-9]+)*)/g;
 
-/**
- * Exact names outside the linear/bold pair, such as the duotone tiles on the
- * dashboard's quick links (`features/analytics/components/quick-links-grid.tsx`).
- */
-const EXTRA = [
-  "box-bold-duotone",
-  "cart-large-2-bold-duotone",
-  "users-group-rounded-bold-duotone",
-  "bill-list-bold-duotone",
-  "box-minimalistic-bold-duotone",
-  "cloud-upload-bold-duotone",
-  "chat-round-bold-duotone",
-  "shield-user-bold-duotone",
-];
+/** name → first file that uses it, per collection. */
+const used = { solar: new Map(), brand: new Map() };
+for (const entry of readdirSync("src", { recursive: true, withFileTypes: true })) {
+  if (!entry.isFile() || !/\.(tsx?|mdx?)$/.test(entry.name)) continue;
+  const file = join(entry.parentPath, entry.name);
+  for (const [, prefix, name] of readFileSync(file, "utf8").matchAll(ICON_RE)) {
+    if (!used[prefix].has(name)) used[prefix].set(name, file);
+  }
+}
 
 /**
  * Third-party brand marks Solar does not ship. Hand-authored rather than pulled
@@ -225,14 +40,19 @@ const BRAND_ICONS = {
     "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z",
 };
 
-const names = BASES.flatMap((b) => [`${b}-linear`, `${b}-bold`]).concat(EXTRA);
+const names = [...used.solar.keys()].sort();
 const subset = getIcons(solar, names);
 
-const missing = names.filter(
-  (n) => !subset?.icons?.[n] && !subset?.aliases?.[n],
-);
+const missing = [
+  ...names
+    .filter((n) => !subset?.icons?.[n] && !subset?.aliases?.[n])
+    .map((n) => `solar:${n}  (${used.solar.get(n)})`),
+  ...[...used.brand.keys()]
+    .filter((n) => !(n in BRAND_ICONS))
+    .map((n) => `brand:${n}  (${used.brand.get(n)}) — add it to BRAND_ICONS`),
+];
 if (missing.length) {
-  console.error("Missing Solar icons:\n  " + missing.join("\n  "));
+  console.error("Unknown icons:\n  " + missing.join("\n  "));
   process.exit(1);
 }
 
