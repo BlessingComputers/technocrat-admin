@@ -127,7 +127,7 @@ export function DealFormView() {
     });
 
     promise
-      .then((deal) => router.push(`/pricing/deals/${deal.id}`))
+      .then((deal) => router.push(`/pricing/deals?deal=${deal.id}`))
       .catch(() => {});
   };
 

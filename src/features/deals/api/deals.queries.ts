@@ -1,6 +1,7 @@
 import {
   skipToken,
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -17,6 +18,8 @@ export const dealKeys = {
   /** One page of one list variant. A missing `status` is every status. */
   list: ({ status, page = 1, limit = 20 }: DealsListParams = {}) =>
     [...dealKeys.lists(), status ?? "all", page, limit] as const,
+  /** Ended deals, 20 a page, for "Show ended". Under `lists()` so starts and ends refresh it. */
+  ended: () => [...dealKeys.lists(), "ENDED", "infinite"] as const,
   detail: (id: string) => [...dealKeys.all, "detail", id] as const,
   /**
    * Where the per-target outcome of a start is parked.
@@ -61,6 +64,21 @@ export function useDeals(params: DealsListParams = {}) {
     queryKey: dealKeys.list(params),
     queryFn: () => dealsService.getDeals(params),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Ended deals for the folded group, 20 at a time. The first page always loads:
+ * its `meta.total` is the count on "Show ended (N)".
+ */
+export function useEndedDeals() {
+  return useInfiniteQuery({
+    queryKey: dealKeys.ended(),
+    queryFn: ({ pageParam }) =>
+      dealsService.getDeals({ status: "ENDED", page: pageParam, limit: 20 }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
   });
 }
 

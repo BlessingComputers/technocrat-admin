@@ -4,13 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
-import { PageHeader } from "@/components/shared/page-header";
 import { AppIcon } from "@/components/shared/app-icon";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SkeletonDetailPage } from "@/components/shared/skeletons";
+import { SkeletonRows } from "@/components/shared/skeletons";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { usePermissions } from "@/lib/auth/use-permissions";
@@ -38,10 +37,11 @@ import {
   formatDealTime,
 } from "../utils/deal-timing";
 import { entityLabel, targetScopeLabel } from "../utils/deal-scope";
+import { DealRail } from "./deal-rail";
 import { DealStatusBadge } from "./deal-status-badge";
 
 /**
- * `/pricing/deals/[id]` — one deal, and the two buttons that move prices.
+ * The right panel of `/pricing/deals?deal=<id>`: one deal, and the two buttons that move prices.
  *
  * This is where a deal is started, because starting is where partial failure
  * happens: the response carries one result per target, and a deal can come back
@@ -50,7 +50,16 @@ import { DealStatusBadge } from "./deal-status-badge";
  * response and nowhere else — so it is caught here, parked in the query cache,
  * and rendered against the target table.
  */
-export function DealDetailView({ dealId }: { dealId: string }) {
+export function DealDetailView({
+  dealId,
+  others,
+  now,
+}: {
+  dealId: string;
+  /** Running and coming-up deals, for the "runs at the same time" rails. */
+  others: Deal[];
+  now: number;
+}) {
   const { can } = usePermissions();
   const canWrite = can("priceMarkup:write");
 
@@ -66,12 +75,18 @@ export function DealDetailView({ dealId }: { dealId: string }) {
   const [confirmStart, setConfirmStart] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
 
-  if (isLoading) return <SkeletonDetailPage />;
+  if (isLoading) {
+    return (
+      <Card className="p-5">
+        <SkeletonRows rows={5} rowHeight="h-12" />
+      </Card>
+    );
+  }
 
   if (isError || !deal) {
     const notFound = error instanceof ApiError && error.status === 404;
     return (
-      <Card className="mx-auto max-w-2xl items-center justify-center gap-3 py-16 text-center">
+      <Card className="items-center justify-center gap-3 py-16 text-center">
         <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <AppIcon icon="solar:sale-linear" className="size-7" />
         </div>
@@ -128,26 +143,19 @@ export function DealDetailView({ dealId }: { dealId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      {/* The status badge rides in the actions slot rather than inside the
-          title: this admin's PageHeader takes a plain string, and its ruled
-          masthead is house identity — not something a feature bends. */}
-      <PageHeader
-        title={deal.name}
-        description={`${deal.dealId} · created ${formatDealTime(deal.createdAt)}`}
-      >
-        <DealStatusBadge status={deal.status} />
-        <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
-          <Link href="/pricing/deals">
-            <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />
-            Deals
-          </Link>
-        </Button>
+    <Card className="gap-6 p-5 sm:p-6">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="flex flex-wrap items-center gap-2.5 text-lg font-semibold tracking-tight">
+            {deal.name}
+            <DealStatusBadge status={deal.status} />
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {deal.dealId} · created {formatDealTime(deal.createdAt)}
+          </p>
+        </div>
         {canWrite && canStart && (
-          <Button
-            onClick={() => setConfirmStart(true)}
-            className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground"
-          >
+          <Button onClick={() => setConfirmStart(true)} className="h-10 rounded-lg px-5 font-semibold">
             <AppIcon icon="solar:play-circle-linear" className="mr-2 size-5" />
             Start deal
           </Button>
@@ -162,7 +170,9 @@ export function DealDetailView({ dealId }: { dealId: string }) {
             End deal
           </Button>
         )}
-      </PageHeader>
+      </div>
+
+      <DealRail deal={deal} others={others} now={now} />
 
       <DealSummary deal={deal} />
 
@@ -170,11 +180,9 @@ export function DealDetailView({ dealId }: { dealId: string }) {
         <PartialStartNotice failed={startResult.targetsFailed} total={startResult.results.length} />
       )}
 
-      <Card className="gap-0 overflow-hidden p-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-primary/[0.04] px-5 py-3">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Targets
-          </h2>
+      <section className="overflow-hidden rounded-lg border border-border/70">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2.5">
+          <h3 className="text-sm font-semibold tracking-tight">Targets</h3>
           <span className="text-xs font-medium text-muted-foreground">
             {deal.targets.length} in this deal
           </span>
@@ -184,7 +192,7 @@ export function DealDetailView({ dealId }: { dealId: string }) {
           results={startResult?.results}
           names={{ categories, brands, partTypes }}
         />
-      </Card>
+      </section>
 
       {/* Said once, where someone would otherwise go hunting for a button. */}
       <p className="text-xs font-medium text-muted-foreground">
@@ -212,7 +220,7 @@ export function DealDetailView({ dealId }: { dealId: string }) {
         variant="destructive"
         isPending={endDeal.isPending}
       />
-    </div>
+    </Card>
   );
 }
 
@@ -223,7 +231,7 @@ function DealSummary({ deal }: { deal: Deal }) {
   const started = startedTargetCount(deal);
 
   return (
-    <Card className="grid grid-cols-1 gap-5 p-6 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
       <Fact label="Timing">
         {deal.status === "SCHEDULED" && start.state === "future" ? (
           <>
@@ -289,7 +297,7 @@ function DealSummary({ deal }: { deal: Deal }) {
           </>
         )}
       </Fact>
-    </Card>
+    </div>
   );
 }
 
@@ -372,7 +380,7 @@ function TargetRow({
   const notStarted = status === "DRAFT" || status === "SCHEDULED";
 
   return (
-    <div className="flex flex-wrap items-start gap-4 px-5 py-4">
+    <div className="flex flex-wrap items-start gap-4 px-4 py-3">
       <span className="mt-0.5 font-mono text-xs font-semibold text-muted-foreground">
         {String(index + 1).padStart(2, "0")}
       </span>
@@ -436,8 +444,8 @@ function conflictMessage(err: unknown, fallback: string): string {
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-1 bg-card p-3">
+      <p className="text-xs font-semibold text-muted-foreground">
         {label}
       </p>
       <div className="text-sm font-semibold text-foreground">{children}</div>

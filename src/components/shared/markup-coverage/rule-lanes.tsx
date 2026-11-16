@@ -424,7 +424,7 @@ function RuleActions({
     return (
       <div className="flex flex-wrap gap-1.5">
         <Button asChild variant="outline" size="sm">
-          <Link href={rule.dealId ? `/pricing/deals/${rule.dealId}` : "/pricing/deals"}>
+          <Link href={rule.dealId ? `/pricing/deals?deal=${rule.dealId}` : "/pricing/deals"}>
             <AppIcon icon="solar:arrow-right-up-linear" className="size-4" />
             Open in Deals
           </Link>
