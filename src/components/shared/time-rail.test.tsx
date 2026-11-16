@@ -15,7 +15,7 @@ function rail(props: Partial<Parameters<typeof TimeRail>[0]> = {}) {
   return {
     used: container.querySelector<HTMLElement>(".h-1.bg-info"),
     tick: container.querySelector<HTMLElement>(".h-2.bg-info"),
-    dot: container.querySelector<HTMLElement>(".border-primary"),
+    dot: container.querySelector<HTMLElement>(".border-foreground"),
     html: container.innerHTML,
   };
 }

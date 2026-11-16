@@ -89,10 +89,12 @@ export function TimeRail({
           />
         );
       })}
+      {/* Ink, not --primary: this admin's brand green sits beside --success,
+          which marks claimed hunt drops on the same rail. */}
       {!upcoming && nowAt !== null && (
         <div
           aria-hidden
-          className="absolute top-[5px] size-3 -translate-x-1/2 rounded-full border-[3px] border-primary bg-card"
+          className="absolute top-[5px] size-3 -translate-x-1/2 rounded-full border-[3px] border-foreground bg-card"
           style={{ left: `${nowAt}%` }}
         />
       )}
