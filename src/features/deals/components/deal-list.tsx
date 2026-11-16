@@ -62,9 +62,17 @@ export function DealList(props: DealListProps) {
   const row = (deal: Deal) => (
     <DealRow key={deal.id} deal={deal} now={now} selected={deal.id === selectedId} />
   );
+  const open = groups.running.length + groups.comingUp.length + groups.drafts.length;
 
   return (
     <Card className="gap-0 p-1.5">
+      {/* Without this line an empty list is a blank card, or a lone "Show
+          ended" button with a top rule over nothing. */}
+      {open === 0 && (
+        <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+          {ended.total === 0 ? "No deals yet." : "Nothing running, coming up or in draft."}
+        </p>
+      )}
       <Group label="Running now" count={groups.running.length}>{groups.running.map(row)}</Group>
       <Group label="Coming up" count={groups.comingUp.length}>{groups.comingUp.map(row)}</Group>
       <Group label="Drafts" count={groups.drafts.length}>{groups.drafts.map(row)}</Group>

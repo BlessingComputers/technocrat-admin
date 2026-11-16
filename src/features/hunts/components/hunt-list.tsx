@@ -62,12 +62,14 @@ export function HuntList({
   const row = (c: HuntCampaign) => (
     <CampaignRow key={c.id} campaign={c} now={now} selected={c.id === selectedId} />
   );
-  const empty = !groups.live.length && !groups.scheduled.length && !groups.ended.length;
+  const open = groups.live.length + groups.scheduled.length;
 
   return (
     <Card className="gap-0 p-1.5">
-      {empty && (
-        <p className="px-3 py-8 text-center text-xs text-muted-foreground">No treasure hunts yet.</p>
+      {open === 0 && (
+        <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+          {groups.ended.length === 0 ? "No treasure hunts yet." : "Nothing live or scheduled."}
+        </p>
       )}
       <Group label="Live now" count={groups.live.length}>{groups.live.map(row)}</Group>
       <Group label="Scheduled" count={groups.scheduled.length}>{groups.scheduled.map(row)}</Group>

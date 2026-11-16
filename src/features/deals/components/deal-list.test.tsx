@@ -86,6 +86,17 @@ describe("DealList", () => {
     list({}, { total: 0 });
     expect(screen.queryByRole("button", { name: /Show ended/ })).toBeNull();
   });
+
+  it("says so when there are no deals at all", () => {
+    list({ groups: groupDeals([]), selectedId: null }, { total: 0 });
+    expect(screen.getByText("No deals yet.")).toBeTruthy();
+  });
+
+  it("says nothing is open when only ended deals exist", () => {
+    list({ groups: groupDeals([]), selectedId: null });
+    expect(screen.getByText("Nothing running, coming up or in draft.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show ended deals (3)" })).toBeTruthy();
+  });
 });
 
 describe("DealOverview", () => {

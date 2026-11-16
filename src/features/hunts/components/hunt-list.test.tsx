@@ -108,6 +108,12 @@ describe("HuntList", () => {
     renderList([]);
     expect(screen.getByText("No treasure hunts yet.")).toBeTruthy();
   });
+
+  it("says nothing is open when only ended campaigns exist", () => {
+    renderList([campaign({ id: "old", status: "ENDED" })]);
+    expect(screen.getByText("Nothing live or scheduled.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show ended campaigns (1)" })).toBeTruthy();
+  });
 });
 
 describe("HuntWindowRail", () => {
