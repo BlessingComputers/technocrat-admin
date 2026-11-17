@@ -1,11 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/shared/page-header";
 import { RefreshButton } from "@/components/shared/refresh-button";
 import { AppIcon } from "@/components/shared/app-icon";
-import { SkeletonDetailPage } from "@/components/shared/skeletons";
+import { SkeletonRows } from "@/components/shared/skeletons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/error";
@@ -18,8 +18,9 @@ import {
   useHuntProductPricing,
 } from "../api/hunts.queries";
 import { useNow } from "../hooks/use-now";
-import type { HuntCampaign } from "../types/hunts";
+import type { HuntCampaign, HuntDeal } from "../types/hunts";
 import {
+  canDeleteCampaign,
   claimCounts,
   currentSlot,
   isMonitorLive,
@@ -33,17 +34,20 @@ import {
   formatHuntWindow,
   sameHuntDay,
 } from "../utils/hunt-time";
+import { HuntDeleteDialog } from "./hunt-delete-dialog";
+import { HuntDropActions } from "./hunt-drop-actions";
 import { HuntSlotList } from "./hunt-slot-list";
 import { HuntStatusBadge } from "./hunt-status-badge";
+import { HuntWindowRail } from "./hunt-window-rail";
 import { HuntWinnersTable } from "./hunt-winners-table";
 
 /**
- * `/pricing/hunts/[id]`: one campaign, as one screen with three states.
+ * The right panel of `/pricing/hunts?campaign=<id>`: one campaign, three states.
  *
  * SCHEDULED shows the secret schedule. ACTIVE is the same list as a live
  * monitor, polled every 15 seconds, with the open slot marked. ENDED swaps the
- * list for the winners table, unpaid claims first. Read-only: the form and the
- * release, delete and edit actions live on their own pages.
+ * list for the winners table, unpaid claims first. The form and the release
+ * live on their own pages. Deleting a campaign or removing a drop happens here.
  */
 export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const { data: campaign, isLoading, isError, error, refetch, isFetching } =
@@ -55,13 +59,20 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const stored = useHuntDealPercentages(deals);
   const now = useNow(HUNT_POLL_MS);
   const { can } = usePermissions();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  if (isLoading) return <SkeletonDetailPage />;
+  if (isLoading) {
+    return (
+      <Card className="p-5">
+        <SkeletonRows rows={5} rowHeight="h-12" />
+      </Card>
+    );
+  }
 
   if (isError || !campaign) {
     const notFound = error instanceof ApiError && error.status === 404;
     return (
-      <Card className="mx-auto max-w-2xl items-center justify-center gap-3 py-16 text-center">
+      <Card className="items-center justify-center gap-3 py-16 text-center">
         <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <AppIcon icon="solar:gift-linear" className="size-7" />
         </div>
@@ -90,7 +101,13 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
   const ended = campaign.status === "ENDED";
   const polling = isMonitorLive(campaign, now);
   const withDate = !sameHuntDay(campaign.windowStart, campaign.windowEnd);
+  const canWrite = can("huntCampaigns:write");
   const listProps = {
+    actionsFor: canWrite
+      ? (deal: HuntDeal) => (
+          <HuntDropActions campaign={campaign} deal={deal} now={now} />
+        )
+      : undefined,
     deals: campaign.huntDeals,
     pricing: pricing.pricing,
     storedPercentages: stored.byDeal,
@@ -100,27 +117,32 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader
-        title={
-          <span className="flex flex-wrap items-center gap-3">
+    <Card className="gap-6 p-5 sm:p-6">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="flex flex-wrap items-center gap-2.5 text-lg font-semibold tracking-tight">
             {campaign.name}
             <HuntStatusBadge status={campaign.status} />
-          </span>
-        }
-        description={`${campaign.campaignId} · created ${formatHuntTime(campaign.createdAt)}`}
-      >
-        <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
-          <Link href="/pricing/hunts">
-            <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />
-            Hunts
-          </Link>
-        </Button>
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {campaign.campaignId} · created {formatHuntTime(campaign.createdAt)}
+          </p>
+        </div>
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
+        {canWrite && canDeleteCampaign(campaign) && (
+          <Button
+            variant="outline"
+            onClick={() => setIsDeleting(true)}
+            className="h-10 rounded-lg font-medium text-destructive-ink"
+          >
+            <AppIcon icon="solar:trash-bin-trash-linear" className="mr-2 size-4" />
+            Delete
+          </Button>
+        )}
         {/* The backend refuses edits once ACTIVE or ENDED, so there is no
             button to press then. */}
         {(campaign.status === "SCHEDULED" || campaign.status === "DRAFT") &&
-          can("huntCampaigns:write") && (
+          canWrite && (
             <Button asChild className="h-10 rounded-lg font-semibold">
               <Link href={`/pricing/hunts/${campaign.id}/edit`}>
                 <AppIcon icon="solar:pen-2-linear" className="mr-2 size-4" />
@@ -128,7 +150,17 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
               </Link>
             </Button>
           )}
-      </PageHeader>
+      </div>
+
+      <HuntDeleteDialog
+        campaign={campaign}
+        open={isDeleting}
+        onOpenChange={setIsDeleting}
+      />
+
+      {!ended && <SecretScheduleNotice />}
+
+      <HuntWindowRail campaign={campaign} now={now} />
 
       <CampaignSummary campaign={campaign} now={now} />
 
@@ -139,10 +171,8 @@ export function HuntDetailView({ campaignId }: { campaignId: string }) {
         </p>
       )}
 
-      {!ended && <SecretScheduleNotice />}
-
       {ended ? <HuntWinnersTable {...listProps} /> : <HuntSlotList {...listProps} />}
-    </div>
+    </Card>
   );
 }
 
@@ -155,7 +185,7 @@ function CampaignSummary({ campaign, now }: { campaign: HuntCampaign; now: numbe
   const unpaid = deals.filter(isUnpaidClaim).length;
 
   return (
-    <Card className="grid grid-cols-1 gap-5 p-6 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
       <Fact label="Window">
         {formatHuntWindow(campaign.windowStart, campaign.windowEnd)}
         <Note>{windowNote(campaign, now)}</Note>
@@ -205,7 +235,7 @@ function CampaignSummary({ campaign, now }: { campaign: HuntCampaign; now: numbe
             : "One unit per item."}
         </Note>
       </Fact>
-    </Card>
+    </div>
   );
 }
 
@@ -254,8 +284,8 @@ function SecretScheduleNotice() {
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-1 bg-card p-3">
+      <p className="text-xs font-semibold text-muted-foreground">
         {label}
       </p>
       <div className="text-sm font-semibold text-foreground">{children}</div>

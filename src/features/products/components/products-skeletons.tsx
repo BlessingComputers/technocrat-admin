@@ -60,15 +60,6 @@ export function ProductFormSkeleton() {
   );
 }
 
-/** Rows shown while the markup-rules query loads (used by `MarkupRulesTable`). */
-export function MarkupRulesTableSkeleton() {
-  return (
-    <div className="p-4">
-      <SkeletonRows rows={5} rowHeight="h-14" />
-    </div>
-  );
-}
-
 /** Recently-added snapshot rows on the products hub (used by `RecentProductsSnapshot`). */
 export function RecentProductsSnapshotSkeleton() {
   return (

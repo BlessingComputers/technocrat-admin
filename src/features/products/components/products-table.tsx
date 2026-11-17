@@ -27,6 +27,7 @@ interface ProductsTableProps {
   onRetry: () => void;
   onToggleStatus: (product: ProductSummary) => void;
   onDelete: (product: ProductSummary) => void;
+  onConfirmPrice: (product: ProductSummary) => void;
   /** DB UUIDs of the currently selected rows. */
   selectedIds: Set<string>;
   onToggleRow: (id: string) => void;
@@ -34,7 +35,7 @@ interface ProductsTableProps {
   onToggleAll: (checked: boolean) => void;
 }
 
-const COL_SPAN = 9;
+const COL_SPAN = 10;
 
 const HEAD =
   "font-semibold text-xs text-muted-foreground";
@@ -89,6 +90,7 @@ export function ProductsTable({
   onRetry,
   onToggleStatus,
   onDelete,
+  onConfirmPrice,
   selectedIds,
   onToggleRow,
   onToggleAll,
@@ -101,7 +103,7 @@ export function ProductsTable({
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table className="min-w-[900px]">
+      <Table className="min-w-[1000px]">
         <TableHeader className="bg-primary/[0.04]">
           <TableRow className="border-b-border/60">
             <TableHead className="w-10 pl-4">
@@ -122,6 +124,9 @@ export function ProductsTable({
             <TableHead className={HEAD}>Source</TableHead>
             <SortableHead sortKey="createdAt" activeKey={sortKey} dir={sortDir} onSort={onSort}>
               Date Added
+            </SortableHead>
+            <SortableHead sortKey="priceChecked" activeKey={sortKey} dir={sortDir} onSort={onSort}>
+              Price Checked
             </SortableHead>
             <TableHead className={HEAD}>Status</TableHead>
             <TableHead className={cn(HEAD, "text-right pr-6")}>Actions</TableHead>
@@ -170,6 +175,7 @@ export function ProductsTable({
                 onToggleSelected={() => onToggleRow(p.id)}
                 onToggleStatus={onToggleStatus}
                 onDelete={onDelete}
+                onConfirmPrice={onConfirmPrice}
               />
             ))
           )}

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { AppIcon } from "@/components/shared/app-icon";
 import { FilterSearch } from "@/components/shared/filter-bar";
+import { PRICE_AGE_OPTIONS, toPriceAgeDays } from "@/lib/utils/price-age";
 import type { Brand, Category, PartType, PartsListParams } from "../types/parts";
 
 interface PartsFilterBarProps {
@@ -56,6 +57,8 @@ export function PartsFilterBar({
         ? "out"
         : "all";
 
+  const priceAge = params.priceAge ? String(params.priceAge) : "any";
+
   const chips: ActiveChip[] = [];
   if (category !== "all")
     chips.push({
@@ -86,6 +89,12 @@ export function PartsFilterBar({
       key: "stock",
       label: stock === "in" ? "In stock" : "Out of stock",
       clear: { isInStock: undefined },
+    });
+  if (params.priceAge)
+    chips.push({
+      key: "priceAge",
+      label: `Price checked ${params.priceAge}+ days ago`,
+      clear: { priceAge: undefined },
     });
 
   const hasActiveFilters = chips.length > 0 || searchValue !== "";
@@ -191,6 +200,30 @@ export function PartsFilterBar({
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={priceAge}
+            onValueChange={(v) =>
+              onChange({
+                priceAge: toPriceAgeDays(v === "any" ? undefined : Number(v)),
+              })
+            }
+          >
+            <SelectTrigger
+              className="w-full sm:w-[170px]"
+              aria-label="Price last checked"
+            >
+              <SelectValue placeholder="Price checked" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Price checked: any</SelectItem>
+              {PRICE_AGE_OPTIONS.map((days) => (
+                <SelectItem key={days} value={String(days)}>
+                  Not checked {days}+ days
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   MarkupApplyInput,
   MarkupApplyResult,
+  MarkupCancelResult,
   MarkupPreviewInput,
   MarkupPreviewResult,
   MarkupResetResult,
@@ -67,15 +68,15 @@ export const pricingService = {
     api.post<MarkupApplyResult>(pricing.markupApply, input),
 
   /**
-   * Cancel a rule: atomically deactivates it (isActive=false) and resets every
-   * variant and part in its scope back to base price — the primary "undo".
+   * Cancel a rule: deactivates it (isActive=false) and moves every variant it
+   * priced to its next matching rule, or to base price — the primary "undo".
    * The rule record is kept for audit. Works for brand-only rules too; the
    * old 400 on rules with no categoryId was removed backend-side in 4f7f074.
    * @param ruleId The rule's DB UUID.
-   * @returns Counts of variants and parts reset to base.
+   * @returns Variants sent to base, and variants moved to their next rule.
    */
   cancelMarkupRule: (ruleId: string) =>
-    api.post<MarkupResetResult>(pricing.cancelMarkupRule(ruleId)),
+    api.post<MarkupCancelResult>(pricing.cancelMarkupRule(ruleId)),
 
   /**
    * Reset all in-scope prices to base but leave the rule active. Prices drift

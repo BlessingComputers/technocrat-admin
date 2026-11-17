@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/page-header";
 import { AppIcon } from "@/components/shared/app-icon";
+import { PriceStillCorrectButton } from "@/components/shared/price-still-correct-button";
 import { getErrorMessage } from "@/lib/api/error-message";
 
 import {
@@ -26,6 +27,7 @@ import {
   useUpdatePart,
   useLinkPart,
   useBulkUploadPartImages,
+  useConfirmPartPrices,
 } from "../../api/parts.queries";
 import type { PartDetail, PreUploadedPartImage } from "../../types/parts";
 import {
@@ -75,6 +77,18 @@ export function PartForm({ initialData, productContext }: PartFormProps) {
   const updateMutation = useUpdatePart();
   const linkMutation = useLinkPart();
   const bulkUploadMutation = useBulkUploadPartImages();
+  const confirmPrices = useConfirmPartPrices();
+
+  // "Price still correct" without a fake edit (ask 42). Takes the DB id.
+  // defaultValues are read once, so the refetch keeps unsaved changes.
+  const confirmPrice = () => {
+    if (!initialData) return;
+    toast.promise(confirmPrices.mutateAsync([initialData.id]), {
+      loading: "Saving…",
+      success: "Price marked as still correct.",
+      error: (err) => getErrorMessage(err, "Failed to confirm the price."),
+    });
+  };
 
   // Images queued in the create-mode image section. On save they're uploaded
   // first (visible feedback) and their url/metadata is attached to the create.
@@ -279,7 +293,15 @@ export function PartForm({ initialData, productContext }: PartFormProps) {
               ? `New part for ${productContext.ownerSku || "this product"}`
               : "Create a new part"
         }
-      />
+      >
+        {initialData ? (
+          <PriceStillCorrectButton
+            checkedAt={initialData.priceCheckedAt}
+            onConfirm={confirmPrice}
+            isPending={confirmPrices.isPending}
+          />
+        ) : null}
+      </PageHeader>
 
       <Card>
         <CardContent className="p-6 lg:p-8">

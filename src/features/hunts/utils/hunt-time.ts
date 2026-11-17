@@ -39,6 +39,11 @@ export function formatHuntClock(value: TimeInput): string {
 }
 
 /** True when both fall on the same calendar day in Lagos. */
+/** "2:00 pm", for rail ticks: the zone is said once, beside the rail. */
+export function formatHuntTick(value: TimeInput): string {
+  return format(value, CLOCK);
+}
+
 export function sameHuntDay(a: TimeInput, b: TimeInput): boolean {
   const day: Intl.DateTimeFormatOptions = {
     year: "numeric",

@@ -1,23 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useId, useMemo, useState } from "react";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { AppIcon } from "@/components/shared/app-icon";
-import { MetaLabel } from "@/components/shared/meta-label";
+import { ChoiceCardGroup } from "@/components/shared/choice-card";
 import {
   ItemScopePicker,
-  ScopeModeToggle,
   type ScopeItem,
 } from "@/components/shared/item-scope-picker";
-import { ApiError } from "@/lib/api/client";
-import { formatPrice } from "@/lib/utils/format";
 import {
+  AllScopeNote,
+  DetailsGroup,
+  FixedScope,
+  FooterButtons,
+  FooterNote,
+  FormGroup,
+  ImpactSection,
+  MarkupDialogBody,
+  MarkupDialogContent,
+  MarkupDialogFooter,
+  MarkupDialogHead,
+  MarkupPercentField,
+  MiniImpact,
+  PriorityLadder,
+  ReplaceConfirm,
+  ReplaceOption,
+  ReplaceResult,
+  Tok,
+  type ImpactStatus,
+  type ReplacedRow,
+} from "@/components/shared/markup-rule-dialog";
+import { ApiError } from "@/lib/api/client";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import {
+  sortImpactRows,
+  summarizeImpact,
+  type ImpactRow,
+} from "@/lib/utils/markup-impact";
+import {
+  useMarkupImpact,
   useMarkupProductSearch,
-  usePreviewMarkupRule,
   useRuleAtTarget,
 } from "../../api/pricing.queries";
 import {
@@ -35,18 +60,42 @@ import {
   MARKUP_MAX_PERCENT,
   MARKUP_MIN_PERCENT,
   ruleTypeOf,
+  type MarkupPreviewInput,
   type MarkupRule,
+  type MarkupRuleTarget,
+  type ReplacedProductMarkups,
 } from "../../types/pricing";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import {
+  PRODUCT_TIER_LABEL,
+  productLadder,
+  replacedRuleRows,
+  ruleScopeLabel,
+  rulesToReplace,
+  tierOf,
+  type ProductTier,
+} from "./markup-rule-utils";
 import { formatExpiry, markupRuleExpiry } from "./sale-timing";
 import type { ProductBrand, ProductCategory } from "../../types/products";
 
 /** Sentinel for the "applies to all" option (shadcn Select rejects ""). */
 const ALL = "__all__";
 
-const APPLY_TO_OPTIONS: { value: string; label: string }[] = [
-  { value: "PRICE", label: "Selling price" },
-];
+/** The backend documents one target for product rules: the selling price. */
+const APPLY_TO = "PRICE";
+
+/** Wait this long after the last change before asking for a new preview. */
+const PREVIEW_DEBOUNCE_MS = 600;
+
+type ScopeMode = "all" | "taxonomy" | "item";
+
+const SCOPE_OPTIONS = [
+  { value: "all", title: "All products", detail: "The fallback when no other rule fits" },
+  { value: "taxonomy", title: "Category & brand", detail: "A slice of the catalogue" },
+  { value: "item", title: "One product", detail: "Beats every other rule" },
+] as const;
+
+const NOUN = { one: "variant", many: "variants" };
+const KEEPS_RUNNING = "Deals, hunts and flash sales keep running.";
 
 interface MarkupRuleFormDialogProps {
   isOpen: boolean;
@@ -55,7 +104,18 @@ interface MarkupRuleFormDialogProps {
   initial: MarkupRule | null;
   categories: ProductCategory[];
   brands: ProductBrand[];
-  onSubmit: (values: MarkupRuleFormValues) => void;
+  /**
+   * The Markup screen's rule list (markups only, active or not). Feeds the
+   * ladder counts, the replace count, and the "Turned off" list after a
+   * replace.
+   */
+  rules: MarkupRule[];
+  /**
+   * Saves the rule. Resolves with the saved rule; the dialog closes itself,
+   * or shows the replace result. Rejects to keep the dialog open (the caller
+   * shows the error).
+   */
+  onSubmit: (values: MarkupRuleFormValues) => Promise<MarkupRule>;
   isSubmitting: boolean;
 }
 
@@ -65,393 +125,489 @@ export function MarkupRuleFormDialog({
   initial,
   categories,
   brands,
+  rules,
   onSubmit,
   isSubmitting,
 }: MarkupRuleFormDialogProps) {
   const isEditing = !!initial;
+  const ids = useId();
 
-  // A rule targets EITHER one exact product OR a category/brand slice — never
-  // both (backend refine). Seed the mode from an existing product-scoped rule so
-  // edit reflects reality; scope is immutable once created, but the mode still
-  // decides which fields render.
+  // A rule targets the whole store, a category/brand slice, or one exact
+  // product (backend either/or refine). Scope is immutable once a rule exists,
+  // so on edit the mode only decides what the read-only scope says.
   const initialProduct: ScopeItem | null = initial?.productId
     ? { id: initial.productId, name: initial.product?.name ?? "Specific product" }
     : null;
-  const [scopeMode, setScopeMode] = useState<"taxonomy" | "item">(
-    initialProduct ? "item" : "taxonomy",
+  const [scopeMode, setScopeMode] = useState<ScopeMode>(() =>
+    !initial
+      ? "taxonomy"
+      : initial.productId
+        ? "item"
+        : tierOf(initial) === "all"
+          ? "all"
+          : "taxonomy",
   );
   const [product, setProduct] = useState<ScopeItem | null>(initialProduct);
   const [productTerm, setProductTerm] = useState("");
   const { data: productResults = [], isFetching: isSearchingProducts } =
     useMarkupProductSearch(scopeMode === "item" ? productTerm : "");
 
-  const [categoryId, setCategoryId] = useState<string>(
-    initial?.categoryId ?? ALL,
-  );
+  const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? ALL);
   const [brandId, setBrandId] = useState<string>(initial?.brandId ?? ALL);
   // Always a positive magnitude on this screen. A negative percentage is a
   // deal, and deals are created from /pricing/deals.
   const [percentage, setPercentage] = useState<string>(
     initial ? String(initial.markupPercentage) : "",
   );
-  const [applyTo, setApplyTo] = useState<string>(initial?.applyTo ?? "PRICE");
   const [notes, setNotes] = useState<string>(initial?.notes ?? "");
   const [isActive, setIsActive] = useState<boolean>(initial?.isActive ?? true);
+  const [replace, setReplace] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // form → confirm (replace only) → done (replace only).
+  const [step, setStep] = useState<"form" | "confirm" | "done">("form");
+  const [result, setResult] = useState<{
+    replaced: ReplacedProductMarkups;
+    rows: ReplacedRow[];
+  } | null>(null);
 
-  // Ad-hoc dry-run so staff can see what a percentage would do before saving.
-  const preview = usePreviewMarkupRule();
-
-  // The chosen scope. An item-scoped rule omits the taxonomy keys entirely (and
-  // vice versa) so the backend's either/or refine is satisfied.
+  // ── The chosen scope ────────────────────────────────────────────────
+  const isAll = scopeMode === "all";
   const isItemScope = scopeMode === "item";
-  const category = isItemScope || categoryId === ALL ? undefined : categoryId;
-  const brand = isItemScope || brandId === ALL ? undefined : brandId;
+  const isTaxonomy = scopeMode === "taxonomy";
+  const category = isTaxonomy && categoryId !== ALL ? categoryId : undefined;
+  const brand = isTaxonomy && brandId !== ALL ? brandId : undefined;
   const scopeProductId = isItemScope ? product?.id : undefined;
-  const percentageValue = Number(percentage) || 0;
+  const pct = Number(percentage) || 0;
+  const pctValid = pct >= MARKUP_MIN_PERCENT && pct <= MARKUP_MAX_PERCENT;
 
-  // Pre-flight clash check. Deals are the same backend rows at the same targets,
-  // and this screen no longer lists them — so without this, saving a markup over
-  // a running sale ends it with nothing on screen to say so. Scope is immutable
-  // once a rule exists, so only a new rule can land on top of something.
-  const { rule: ruleAtTarget, isChecking: isCheckingTarget } = useRuleAtTarget(
-    isEditing
+  // Complete enough to look up and preview. "Category & brand" with both on
+  // "All" would be the all-products rule by another name, so it waits for a
+  // pick; the All card is the way to that rule.
+  const scopeReady = isAll || !!scopeProductId || !!(category || brand);
+  const selfTier: ProductTier | null = isAll
+    ? "all"
+    : isItemScope
+      ? "product"
+      : scopeReady
+        ? tierOf({ categoryId: category, brandId: brand })
+        : null;
+
+  // ── Clash check (create only) ───────────────────────────────────────
+  // Deals are the same backend rows at the same targets, and this screen does
+  // not list them, so without this a markup saved over a running sale ends it
+  // with nothing on screen to say so. `{}` finds an existing all-products rule.
+  const target: MarkupRuleTarget | null =
+    isEditing || !scopeReady
       ? null
-      : { productId: scopeProductId, categoryId: category, brandId: brand },
-  );
+      : { productId: scopeProductId, categoryId: category, brandId: brand };
+  const { rule: ruleAtTarget, isChecking: isCheckingTarget } = useRuleAtTarget(target);
   const clashType = ruleAtTarget ? ruleTypeOf(ruleAtTarget) : null;
-  // A second markup at the same scope is refused server-side, and ask 27 means
-  // that refusal arrives as an untyped 500. Block it here instead.
   const blockedByMarkup = clashType === "MARKUP";
 
-  // Drop a stale preview whenever the scope or percentage changes (or reopen).
-  useEffect(() => {
-    preview.reset();
-    // preview handle is stable; key only on the inputs that change the result.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isOpen,
-    scopeMode,
-    product?.id,
-    categoryId,
-    brandId,
-    percentage,
-    applyTo,
-  ]);
+  // ── Replace (ask 41) ────────────────────────────────────────────────
+  // Offered on a new all-products rule, and on editing the active one.
+  const canReplace = isAll && (!initial || initial.isActive);
+  const toReplace = useMemo(() => rulesToReplace(rules, initial?.id), [rules, initial?.id]);
+  const replaceOn = canReplace && replace && isActive && toReplace.length > 0;
 
-  const handlePreview = () => {
-    if (!category && !brand && !scopeProductId) {
+  // ── Live impact ─────────────────────────────────────────────────────
+  const previewInput: MarkupPreviewInput | null =
+    scopeReady && pctValid
+      ? {
+          categoryId: category,
+          brandId: brand,
+          scopeProductId,
+          markupPercentage: pct,
+          applyTo: APPLY_TO,
+        }
+      : null;
+  const previewKey = JSON.stringify(previewInput);
+  const debouncedKey = useDebouncedValue(previewKey, PREVIEW_DEBOUNCE_MS);
+  const debouncedInput = useMemo(
+    () => JSON.parse(debouncedKey) as MarkupPreviewInput | null,
+    [debouncedKey],
+  );
+  const impact = useMarkupImpact(debouncedInput);
+  const impactError = impact.error as ApiError | null;
+  const impactStatus: ImpactStatus = !previewInput
+    ? "idle"
+    : impactError
+      ? impactError.status === 404
+        ? "missing"
+        : "error"
+      : impact.data
+        ? "ready"
+        : "loading";
+  const { rows: impactRows, summary } = useMemo(() => {
+    if (!impact.data) return { rows: [], summary: null };
+    const rows: ImpactRow[] = impact.data.variants.map((v) => ({
+      id: v.variantId,
+      name: v.productName,
+      detail: v.variantName,
+      current: v.currentPrice,
+      projected: v.projectedPrice,
+      covered: !!v.coveredByOtherRule,
+    }));
+    return {
+      rows: sortImpactRows(rows, replaceOn),
+      summary: summarizeImpact(rows, replaceOn),
+    };
+  }, [impact.data, replaceOn]);
+  const shownSummary = impactStatus === "ready" ? summary : null;
+
+  // ── Ladder ──────────────────────────────────────────────────────────
+  const ladder = selfTier ? productLadder(rules, selfTier, initial?.id, replaceOn) : [];
+  const categoryName =
+    categories.find((c) => c.id === category)?.name ?? initial?.category?.name;
+  const brandName = brands.find((b) => b.id === brand)?.name ?? initial?.brand?.name;
+  const selfDetail = isAll
+    ? replaceOn
+      ? "The only markup left"
+      : "Store-wide fallback"
+    : isItemScope
+      ? (product?.name ?? "Pick a product")
+      : [brandName, categoryName].filter(Boolean).join(" · ");
+
+  // ── Title: the rule as a sentence ───────────────────────────────────
+  const pctTok = pct > 0 ? <Tok pct>+{pct}%</Tok> : <Tok empty>a %</Tok>;
+  const title = isAll ? (
+    <>
+      Mark up <Tok>all products</Tok> by {pctTok}
+      {replaceOn && step !== "done" ? ", and turn off the other markups" : ""}
+    </>
+  ) : isItemScope ? (
+    <>
+      Mark up <Tok empty={!product}>{product?.name ?? "one product"}</Tok> by {pctTok}
+    </>
+  ) : category || brand ? (
+    <>
+      Mark up <Tok>{categoryName ?? "all categories"}</Tok>,{" "}
+      <Tok>{brandName ?? "all brands"}</Tok>, by {pctTok}
+    </>
+  ) : (
+    <>
+      Mark up <Tok empty>a category</Tok>, <Tok empty>a brand</Tok>, by {pctTok}
+    </>
+  );
+  const description =
+    step === "done"
+      ? "Saved. It is now the only standing markup for products."
+      : initial
+        ? `Editing ${initial.ruleId}. Nothing changes until you update it.`
+        : "New markup rule. Nothing changes until you create it.";
+
+  // ── Save ────────────────────────────────────────────────────────────
+  const buildValues = (): MarkupRuleFormValues | null => {
+    if (!isEditing && !scopeReady) {
       setError(
         isItemScope
-          ? "Pick a product to preview."
-          : "Pick a category or brand to preview.",
+          ? "Pick a product."
+          : "Pick a category or a brand, or choose All products.",
       );
-      return;
+      return null;
     }
-    if (!percentageValue) {
-      setError("Enter a percentage to preview.");
-      return;
-    }
-    setError(null);
-    preview.mutate({
-      categoryId: category,
-      brandId: brand,
-      scopeProductId,
-      markupPercentage: percentageValue,
-      applyTo,
-    });
-  };
-
-  const previewError = preview.error as ApiError | null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const values = {
+    const parsed = markupRuleFormSchema.safeParse({
       categoryId: category,
       brandId: brand,
       productId: scopeProductId,
       markupPercentage: Number(percentage),
-      applyTo,
+      applyTo: APPLY_TO,
       notes: notes.trim() || undefined,
       isActive,
-    };
-
-    const parsed = markupRuleFormSchema.safeParse(values);
+      replaceExisting: replaceOn || undefined,
+    });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Please check your input.");
-      return;
+      return null;
     }
     setError(null);
-    onSubmit(parsed.data);
+    return parsed.data;
   };
+
+  const save = (values: MarkupRuleFormValues) => {
+    // The list refetches straight after a replace, with these rules inactive,
+    // so match the result against the list as it is now.
+    const before = toReplace;
+    onSubmit(values)
+      .then((saved) => {
+        if (values.replaceExisting && saved.replaced) {
+          setResult({
+            replaced: saved.replaced,
+            rows: replacedRuleRows(saved.replaced.rulesReplaced, before),
+          });
+          setStep("done");
+        } else {
+          onOpenChange(false);
+        }
+      })
+      .catch(() => setStep("form"));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const values = buildValues();
+    if (!values) return;
+    if (values.replaceExisting) {
+      setStep("confirm");
+      return;
+    }
+    save(values);
+  };
+
+  const confirmReplace = () => {
+    const values = buildValues();
+    if (values) save(values);
+  };
+
+  const close = () => onOpenChange(false);
+  const impactId = `${ids}-impact`;
+  const changing = shownSummary ? shownSummary.up + shownSummary.down : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-lg p-0 border-none overflow-hidden">
-        <div className="bg-primary p-6 text-primary-foreground">
-          <DialogTitle className="text-xl font-semibold tracking-tight">
-            {isEditing ? "Edit Markup Rule" : "New Markup Rule"}
-          </DialogTitle>
-          <MetaLabel tone="pinned" className="block mt-1">
-            Product, category &amp; brand pricing
-          </MetaLabel>
-        </div>
+      <MarkupDialogContent>
+        <MarkupDialogHead title={title} description={description} onClose={close} />
 
-        {/* min-w-0: DialogContent is a CSS grid, so this form is a grid item
-            with default min-width:auto. Without it, a long non-wrapping value
-            (a selected product's full name) sets the item's min-content and
-            blows the dialog past its max-width — the leaf `truncate` cannot
-            take effect until this ancestor is allowed to shrink. */}
-        <form onSubmit={handleSubmit} className="min-w-0 p-6 space-y-5">
-          {isEditing ? (
-            // Scope is immutable once a rule exists — show it, don't offer edits.
-            <Field label="Scope">
-              {/* overflow-x-auto does two jobs: a long exact-product name
-                  scrolls inside the box instead of running past it, and a
-                  scroll container's automatic minimum size is 0, so this box
-                  can shrink to the dialog's width no matter what its
-                  ancestors' min-width resolves to. */}
-              <div className="flex h-9 items-center gap-2 overflow-x-auto rounded-md border border-border bg-muted/40 px-3 text-sm font-semibold text-foreground">
-                <span
-                  className="whitespace-nowrap"
-                  title={ruleScopeLabel(initial)}
-                >
-                  {ruleScopeLabel(initial)}
-                </span>
-              </div>
-            </Field>
-          ) : (
-            <>
-              {/* A rule targets one exact product or a category/brand slice —
-                  mutually exclusive, so offer a mode switch. */}
-              <ScopeModeToggle
-                taxonomyLabel="Category / Brand"
-                itemLabel="Specific product"
-                mode={scopeMode}
-                onChange={setScopeMode}
-              />
+        {step === "done" && result ? (
+          <>
+            <ReplaceResult
+              facts={[
+                { value: result.replaced.variantsRepriced, label: "variants repriced" },
+                { value: result.replaced.variantsReset, label: "set to base price" },
+                { value: result.replaced.rulesReplaced.length, label: "markups turned off" },
+              ]}
+              rows={result.rows}
+            />
+            <MarkupDialogFooter>
+              <FooterNote>Deals, hunts and flash sales kept running.</FooterNote>
+              <FooterButtons>
+                <Button type="button" onClick={close} className="h-10 rounded-lg px-5 font-semibold">
+                  Done
+                </Button>
+              </FooterButtons>
+            </MarkupDialogFooter>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <MarkupDialogBody
+              form={
+                <>
+                  <FormGroup title="Scope">
+                    {initial ? (
+                      <FixedScope
+                        tier={PRODUCT_TIER_LABEL[tierOf(initial)]}
+                        scope={ruleScopeLabel(initial)}
+                      />
+                    ) : (
+                      <>
+                        <ChoiceCardGroup
+                          label="Scope"
+                          value={scopeMode}
+                          onChange={(v) => {
+                            setScopeMode(v);
+                            setError(null);
+                          }}
+                          options={SCOPE_OPTIONS}
+                          className="grid gap-2 sm:grid-cols-3 max-sm:gap-1.5"
+                          cardClassName="rounded-[11px] max-sm:py-2.5"
+                        />
+                        {isAll && <AllScopeNote noun="product" label="All products" />}
+                        {isItemScope && (
+                          <ItemScopePicker
+                            label="Product"
+                            noun="products"
+                            selected={product}
+                            onSelect={setProduct}
+                            onClear={() => setProduct(null)}
+                            onTermChange={setProductTerm}
+                            results={productResults}
+                            isFetching={isSearchingProducts}
+                            hint="This percentage applies to the exact product, overriding any category or brand rule."
+                          />
+                        )}
+                        {isTaxonomy && (
+                          <div className="grid gap-3 sm:grid-cols-2 max-sm:gap-2.5">
+                            <Field label="Category">
+                              <Select value={categoryId} onValueChange={setCategoryId}>
+                                <SelectTrigger className="h-10 w-full">
+                                  <SelectValue placeholder="All categories" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={ALL}>All categories</SelectItem>
+                                  {categories.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                            <Field label="Brand">
+                              <Select value={brandId} onValueChange={setBrandId}>
+                                <SelectTrigger className="h-10 w-full">
+                                  <SelectValue placeholder="All brands" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={ALL}>All brands</SelectItem>
+                                  {brands.map((b) => (
+                                    <SelectItem key={b.id} value={b.id}>
+                                      {b.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </FormGroup>
 
-              {/* Reserve a stable height so switching modes doesn't jump the
-                  fields below — both branches fit within this min-height. */}
-              <div className="min-h-[5.5rem]">
-                {isItemScope ? (
-                  <ItemScopePicker
-                    label="Product"
-                    noun="products"
-                    selected={product}
-                    onSelect={setProduct}
-                    onClear={() => setProduct(null)}
-                    onTermChange={setProductTerm}
-                    results={productResults}
-                    isFetching={isSearchingProducts}
-                    hint="This percentage applies to the exact product, overriding any category or brand rule."
+                  <FormGroup title="Markup" htmlFor={`${ids}-pct`}>
+                    <MarkupPercentField
+                      id={`${ids}-pct`}
+                      value={percentage}
+                      onChange={setPercentage}
+                      min={MARKUP_MIN_PERCENT}
+                      max={MARKUP_MAX_PERCENT}
+                      note={`Applies to the selling price, ${MARKUP_MIN_PERCENT} to ${MARKUP_MAX_PERCENT}%.`}
+                    />
+                  </FormGroup>
+
+                  {canReplace && (
+                    <ReplaceOption
+                      id={`${ids}-replace`}
+                      checked={replace && isActive}
+                      onChange={setReplace}
+                      count={toReplace.length}
+                      disabled={!isActive}
+                      keepsRunning={KEEPS_RUNNING}
+                    />
+                  )}
+
+                  <DetailsGroup>
+                    <Field label="Notes (optional)" htmlFor={`${ids}-notes`}>
+                      <Input
+                        id={`${ids}-notes`}
+                        placeholder="Why this rule exists"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        maxLength={500}
+                        className="h-10"
+                      />
+                    </Field>
+                    <div className="flex items-center justify-between gap-4 rounded-[11px] border border-border px-3.5 py-3">
+                      <label htmlFor={`${ids}-active`}>
+                        <span className="block text-sm font-semibold text-foreground">Active</span>
+                        <span className="block text-xs text-muted-foreground">
+                          New and edited products get this price at once.
+                        </span>
+                      </label>
+                      <Switch
+                        id={`${ids}-active`}
+                        checked={isActive}
+                        onCheckedChange={setIsActive}
+                      />
+                    </div>
+                  </DetailsGroup>
+
+                  {error && (
+                    <p role="alert" className="text-xs font-medium text-destructive-ink">
+                      {error}
+                    </p>
+                  )}
+                </>
+              }
+              side={
+                <>
+                  {/* What already sits on this exact scope. A deal is the same
+                      backend row at the same target, so saving over one ends
+                      it, and this screen never lists it. */}
+                  {ruleAtTarget && clashType && (
+                    <div className="px-5 pt-4.5 max-sm:px-4 max-sm:pt-4">
+                      <ClashNotice
+                        rule={ruleAtTarget}
+                        type={clashType}
+                        percentage={pct}
+                        isAll={isAll}
+                      />
+                    </div>
+                  )}
+                  {selfTier ? (
+                    <PriorityLadder
+                      id={`${ids}-ladder`}
+                      rows={ladder}
+                      selfDetail={selfDetail}
+                      replace={replaceOn}
+                    />
+                  ) : (
+                    <section>
+                      <h3 className="text-sm font-semibold text-foreground">Where it sits</h3>
+                      <p className="mt-2.5 text-sm text-muted-foreground">
+                        Pick a category or a brand to see where this rule sits.
+                      </p>
+                    </section>
+                  )}
+                  <ImpactSection
+                    id={impactId}
+                    status={impactStatus}
+                    updating={previewKey !== debouncedKey || impact.isFetching}
+                    errorMessage={impactError?.message}
+                    missingMessage="No active products match this scope yet."
+                    summary={summary}
+                    rows={impactRows}
+                    replace={replaceOn}
+                    noun={NOUN}
                   />
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Category">
-                      <Select value={categoryId} onValueChange={setCategoryId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ALL}>All categories</SelectItem>
-                          {categories.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="Brand">
-                      <Select value={brandId} onValueChange={setBrandId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All brands" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ALL}>All brands</SelectItem>
-                          {brands.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>
-                              {b.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* What is already sitting on this exact scope. A deal is the same
-              backend row at the same target, so saving over one ends it — and
-              this screen never lists it. */}
-          {ruleAtTarget && clashType && (
-            <ClashNotice
-              rule={ruleAtTarget}
-              type={clashType}
-              percentage={percentageValue}
+                </>
+              }
             />
-          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label={`Markup % (${MARKUP_MIN_PERCENT}–${MARKUP_MAX_PERCENT})`}>
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={MARKUP_MIN_PERCENT}
-                max={MARKUP_MAX_PERCENT}
-                step="0.1"
-                placeholder="e.g. 15"
-                value={percentage}
-                // A negative percentage is a deal, not a markup — block the
-                // sign keys rather than let one be typed here.
-                onKeyDown={(e) => {
-                  if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault();
-                }}
-                onChange={(e) =>
-                  setPercentage(e.target.value.replace(/[^0-9.]/g, ""))
-                }
-                required
-              />
-            </Field>
-            <Field label="Apply to">
-              <Select value={applyTo} onValueChange={setApplyTo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APPLY_TO_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-
-          {/* Ad-hoc dry-run — what this percentage does, before saving. */}
-          <div className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                See how many active products this would reprice — nothing is
-                saved.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePreview}
-                disabled={preview.isPending}
-                className="h-8 shrink-0 rounded-lg text-xs font-medium"
-              >
-                {preview.isPending ? "Checking…" : "Preview"}
-              </Button>
-            </div>
-
-            {preview.isPending && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <AppIcon
-                  icon="solar:refresh-linear"
-                  className="size-4 animate-spin"
+            {step === "confirm" && replaceOn ? (
+              <MarkupDialogFooter confirm>
+                <ReplaceConfirm
+                  title={`Turn off ${toReplace.length} markup${toReplace.length === 1 ? "" : "s"} and reprice ${
+                    changing != null ? `${changing.toLocaleString("en-NG")} variant${changing === 1 ? "" : "s"}` : "their variants"
+                  } now?`}
+                  detail={KEEPS_RUNNING}
+                  holdLabel={`Hold to turn off ${toReplace.length} and save`}
+                  onBack={() => setStep("form")}
+                  onConfirm={confirmReplace}
+                  pending={isSubmitting}
                 />
-                Calculating projected prices…
-              </div>
+              </MarkupDialogFooter>
+            ) : (
+              <MarkupDialogFooter>
+                <FooterNote>Esc closes without saving.</FooterNote>
+                <MiniImpact summary={shownSummary} targetId={impactId} />
+                <FooterButtons>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={close}
+                    className="h-10 rounded-lg font-medium text-muted-foreground"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || isCheckingTarget || blockedByMarkup}
+                    className="h-10 rounded-lg px-5 font-semibold"
+                  >
+                    {isSubmitting
+                      ? "Saving…"
+                      : isEditing
+                        ? "Update rule"
+                        : clashType === "DISCOUNT"
+                          ? `End the deal and set +${pct}%`
+                          : "Create rule"}
+                  </Button>
+                </FooterButtons>
+              </MarkupDialogFooter>
             )}
-
-            {previewError && (
-              <p className="text-xs font-medium text-muted-foreground">
-                {previewError.status === 404
-                  ? "No active products match this scope yet."
-                  : previewError.message || "Couldn’t build a preview."}
-              </p>
-            )}
-
-            {preview.data && !preview.isPending && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-foreground">
-                  Affects {preview.data.totalProducts} product
-                  {preview.data.totalProducts === 1 ? "" : "s"} ·{" "}
-                  {preview.data.totalVariants} variant
-                  {preview.data.totalVariants === 1 ? "" : "s"}
-                </p>
-                {preview.data.variants.length > 0 && (
-                  <div className="max-h-32 overflow-y-auto rounded-md border border-border/60 divide-y divide-border/40">
-                    {preview.data.variants.slice(0, 8).map((v) => (
-                      <div
-                        key={v.variantId}
-                        className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs"
-                      >
-                        <span className="truncate text-muted-foreground">
-                          {v.productName}
-                        </span>
-                        <span className="shrink-0 font-mono tabular-nums">
-                          <span className="text-muted-foreground line-through mr-1.5">
-                            {formatPrice(v.currentPrice)}
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {formatPrice(v.projectedPrice)}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <Field label="Notes (optional)">
-            <Input
-              placeholder="Why this rule exists"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              maxLength={500}
-            />
-          </Field>
-
-          <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/10">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Active</p>
-              <p className="text-xs text-muted-foreground">
-                Applied to future product &amp; variant pricing
-              </p>
-            </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
-          </div>
-
-          {error && (
-            <p className="text-xs font-medium text-destructive-ink">{error}</p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              className="flex-1 rounded-lg font-medium text-muted-foreground h-11"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || isCheckingTarget || blockedByMarkup}
-              className="flex-[2] rounded-lg bg-primary text-primary-foreground font-semibold h-11"
-            >
-              {isSubmitting
-                ? "Saving…"
-                : isEditing
-                  ? "Update Rule"
-                  : clashType === "DISCOUNT"
-                    ? `End the deal and set +${percentageValue || 0}%`
-                    : "Create Rule"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
+          </form>
+        )}
+      </MarkupDialogContent>
     </Dialog>
   );
 }
@@ -463,11 +619,11 @@ export function MarkupRuleFormDialog({
  *
  * - A **deal** is destroyed by the save. The backend overwrites the row rather
  *   than refusing, so this warning is the only thing between staff and a sale
- *   that ends without warning. (The Deals screen gets a typed 409 as a second
- *   line; ask 27 means this side gets an untyped 500 instead, so there is
- *   nothing to catch afterwards.)
+ *   that ends without warning.
  * - A **markup** blocks the save outright. Editing that rule is the only way to
- *   change it — the server refuses a second one at the same scope.
+ *   change it — the server refuses a second one at the same scope with a 409.
+ *   For the "All products" scope that means the store already has its one
+ *   fallback rule.
  *
  * Inactive rules count. The backend's duplicate check ignores `isActive`, so a
  * switched-off rule still occupies the scope.
@@ -476,10 +632,12 @@ function ClashNotice({
   rule,
   type,
   percentage,
+  isAll,
 }: {
   rule: MarkupRule;
   type: "MARKUP" | "DISCOUNT";
   percentage: number;
+  isAll: boolean;
 }) {
   const isDeal = type === "DISCOUNT";
   const expiry = markupRuleExpiry(rule.expiresAt);
@@ -503,7 +661,9 @@ function ClashNotice({
       >
         {isDeal
           ? `A deal is on this scope: ${name || ruleScopeLabel(rule)}, −${Math.abs(rule.markupPercentage)}%`
-          : `A markup rule already covers this scope: +${rule.markupPercentage}%`}
+          : isAll
+            ? `An “All products” rule already exists: +${rule.markupPercentage}%`
+            : `A markup rule already covers this scope: +${rule.markupPercentage}%`}
       </p>
       <p className="text-xs font-medium text-muted-foreground">
         {isDeal
@@ -514,7 +674,9 @@ function ClashNotice({
                   ? `Its end time (${formatExpiry(expiry.at)}) has passed, but prices only revert on the next five-minute sweep.`
                   : "It runs until someone cancels it."
             }${rule.isActive ? "" : " It is switched off, and still occupies the scope."}`
-          : `Only one rule can sit on a scope, active or not (${rule.ruleId}). Edit that rule to change it, or pick a more specific scope.`}
+          : isAll
+            ? `Only one can exist, active or not (${rule.ruleId}). Edit that rule to change it.`
+            : `Only one rule can sit on a scope, active or not (${rule.ruleId}). Edit that rule to change it, or pick a more specific scope.`}
       </p>
       {isDeal && percentage > 0 && (
         <p className="text-xs font-medium text-muted-foreground">
@@ -528,14 +690,16 @@ function ClashNotice({
 
 function Field({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-muted-foreground ml-1">
+      <Label htmlFor={htmlFor} className="ml-0.5 text-xs font-medium text-muted-foreground">
         {label}
       </Label>
       {children}

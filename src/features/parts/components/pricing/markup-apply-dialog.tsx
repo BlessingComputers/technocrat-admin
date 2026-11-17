@@ -22,7 +22,7 @@ import type {
   PartMarkupPreviewResult,
   PartMarkupRule,
 } from "../../types/pricing";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import { applySummary, ruleScopeLabel } from "./markup-rule-utils";
 
 interface MarkupApplyDialogProps {
   rule: PartMarkupRule | null;
@@ -59,7 +59,7 @@ export function MarkupApplyDialog({ rule, onClose }: MarkupApplyDialogProps) {
     const promise = apply.mutateAsync({ ruleId: rule.id });
     toast.promise(promise, {
       loading: "Applying markup…",
-      success: (r) => `Markup applied to ${r.updated} part(s).`,
+      success: (r) => applySummary(r),
       error: (err) => getErrorMessage(err, "Failed to apply markup."),
     });
     promise.then(() => onClose()).catch(() => {});

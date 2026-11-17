@@ -11,6 +11,8 @@ import { UploaderAnalyticsSection } from "./uploader-analytics-section";
 import { SuperAdminAnalyticsSection } from "./super-admin-analytics-section";
 import { StaffSnapshotSection } from "./staff-snapshot-section";
 import { QuickLinksGrid } from "./quick-links-grid";
+import { PriceAgeCard } from "./price-age-card";
+import { usePermissions } from "@/lib/auth/use-permissions";
 import { useDashboardData } from "../hooks/use-dashboard-data";
 import type { StaffDashboardData } from "../types/analytics";
 import PageContainer from "@/components/layouts/page-container";
@@ -30,6 +32,7 @@ export function DashboardView() {
     handleApplyCustomRange,
     handleRefresh,
   } = useDashboardData();
+  const { can } = usePermissions();
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -66,6 +69,7 @@ export function DashboardView() {
           dashboardData={dashboardData}
         />
       </div>
+      {can("products:read") && <PriceAgeCard />}
       {isSuperAdmin && <SuperAdminAnalyticsSection />}
       {isSuperAdmin && (
         <UploaderAnalyticsSection

@@ -17,7 +17,7 @@
  * DRAFT      no startsAt. No rules exist. Started by hand only.
  * SCHEDULED  a future startsAt. No rules yet. The sweep starts it.
  * ACTIVE     every target that took is a live rule.
- * ENDED      every rule reset to base. Terminal.
+ * ENDED      every rule cancelled; items back on their next rule or base. Terminal.
  * ```
  *
  * This UI only ever creates DRAFTs — a SCHEDULED deal cannot be edited,
@@ -170,7 +170,10 @@ export interface DealStartResponse extends Deal {
   targetsFailed: number;
 }
 
-/** The end response: how many prices went back to base. */
+/**
+ * The end response: how many prices went back to base. Items that moved to a
+ * standing markup rule instead are not counted (backend sums only the resets).
+ */
 export interface DealEndResponse extends Deal {
   variantsReset: number;
   partsReset: number;

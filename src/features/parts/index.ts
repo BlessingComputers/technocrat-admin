@@ -20,7 +20,6 @@ export {
   PartsTableSkeleton,
   PartDetailSkeleton,
   PartFormSkeleton,
-  PartsMarkupTableSkeleton,
 } from "./components/parts-skeletons";
 // export { PartDetailView } from "./components/part-detail-view";
 // export { PartTypesPanel } from "./components/part-types-panel";

@@ -1842,7 +1842,8 @@ export interface paths {
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    priceCheckedBefore?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
                     };
@@ -1969,7 +1970,8 @@ export interface paths {
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    priceCheckedBefore?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
                     };
@@ -2122,7 +2124,8 @@ export interface paths {
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    priceCheckedBefore?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
                     };
@@ -2284,6 +2287,8 @@ export interface paths {
          *
          *     **Primary use case:** Internal admin dashboard — product browsing, filtering by category+brand, and selecting products for operations like markup rule application.
          *
+         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`. Use this endpoint for the price-age list: the OpenSearch-backed `GET /products` doesn't have `priceCheckedAt` and ignores `priceCheckedBefore` (as it does `createdFrom`/`createdTo`).
+         *
          *     **Frontend workflow for markup rules:**
          *     1. Staff navigates to the markup rules page
          *     2. Staff selects a category from a dropdown (populated by GET /categories)
@@ -2342,7 +2347,8 @@ export interface paths {
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    priceCheckedBefore?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
                     };
@@ -4493,7 +4499,7 @@ export interface paths {
          * Update variant pricing
          * @description Requires products:write permission.
          *
-         *     **Markup rules interaction:** the `price`/`compareAtPrice` you send are treated as the new base and automatically marked up server-side if a rule matches this variant's product, in priority order: (1) NEW — an exact product-scoped `PriceMarkupRule` for this product, (2) category+brand, (3) brand-only, (4) category-only. Unlike product *creation*, this endpoint always has the product's id available, so a product-specific markup rule created after the product existed will now be picked up here.
+         *     **Markup rules interaction:** the `price`/`compareAtPrice` you send are treated as the new base and automatically marked up server-side if a rule matches this variant's product, in priority order: (1) NEW — an exact product-scoped `PriceMarkupRule` for this product, (2) category+brand, (3) brand-only, (4) category-only, (5) all products. Unlike product *creation*, this endpoint always has the product's id available, so a product-specific markup rule created after the product existed will now be picked up here.
          */
         patch: {
             parameters: {
@@ -6450,7 +6456,7 @@ export interface paths {
          * Why flash sales reuse the markup-rule system (read me first)
          * @description ## A flash sale is a markup rule with a negative percentage — not a separate feature
          *
-         *     There is no `FlashSale` table, no separate flash-sale service, no parallel pricing path. `POST /flash-sales` creates (or updates) the exact same `PriceMarkupRule`/`PartMarkupRule` row that `POST /pricing/markup-rules` does — the only thing that makes a rule "a flash sale" instead of "a pricing policy" is that `markupPercentage` is negative. Every product and part in this catalogue already goes through this rule engine for **every** price it shows (`price = basePrice × (1 + markupPercentage / 100)`, resolved by specificity: exact product/part → category+brand(+type) → brand-only → category-only). A flash sale is that same computation with a negative number.
+         *     There is no `FlashSale` table, no separate flash-sale service, no parallel pricing path. `POST /flash-sales` creates (or updates) the exact same `PriceMarkupRule`/`PartMarkupRule` row that `POST /pricing/markup-rules` does — the only thing that makes a rule "a flash sale" instead of "a pricing policy" is that `markupPercentage` is negative. Every product and part in this catalogue already goes through this rule engine for **every** price it shows (`price = basePrice × (1 + markupPercentage / 100)`, resolved by specificity: exact product/part → category+brand(+type) → brand-only → category-only → all products/parts). A flash sale is that same computation with a negative number.
          *
          *     ### Why we built it this way instead of a separate system
          *
@@ -7226,11 +7232,16 @@ export interface paths {
          *     ```
          *     `productId` is **mutually exclusive** with `categoryId`/`brandId` — sending both is a 422 validation error, since the product already implies its own category/brand and mixing them would be ambiguous about which one drives resolution. A product must already exist before you can create a rule for it (this is an edit-time action on an existing product, not part of the product-creation form).
          *
+         *     **All products:** send no `productId`, `categoryId` or `brandId` to make a store-wide rule, e.g. `{ "markupPercentage": 10 }`. It is the last rule a product falls back to: every more specific rule still wins. Show it in the admin as "All products" (all three scope fields are `null`). Only one can exist.
+         *
+         *     **`replaceExisting: true`** (all-products rules only) makes the % apply to every product: it switches off every other **standing markup** (a positive rule not linked to a deal) and reprices their products straight away, in this call. **Deals, hunts and flash sales keep running**; when one ends, its products fall back to the all-products rule. Switched-off rules are kept (inactive), so they can be turned back on. The response then includes `replaced: { rulesReplaced: ["MKP-…"], variantsRepriced, variantsReset }`. Parts are never affected — they have their own rules. Sending `replaceExisting` with a scope, or on an inactive rule, is a 400.
+         *
          *     **Rule specificity (when multiple rules could match), most specific first:**
          *     1. **Exact product** (`productId`) — NEW, highest priority. Checked and returned before category/brand tiers are evaluated at all, so a product-specific rule can never conflict with your existing category/brand rules.
          *     2. Exact match (categoryId + brandId)
          *     3. Brand-only (categoryId is null) — matches all categories for that brand
          *     4. Category-only (brandId is null) — matches all brands in that category
+         *     5. **All products** (no productId, categoryId or brandId) — NEW, the store-wide default
          *
          *     **Category hierarchy:** If a product is in a subcategory and no rule exists for that subcategory, the system walks up to the parent category automatically. (Not applicable to product-scoped rules — there's no hierarchy to walk for a single product.)
          *
@@ -7261,7 +7272,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Validation error — at least one of productId, categoryId or brandId is required, and productId cannot be combined with categoryId/brandId */
+                /** @description Validation error — productId cannot be combined with categoryId/brandId; replaceExisting is only allowed on an active all-products rule */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -7409,6 +7420,10 @@ export interface paths {
          *     You cannot change a rule's scope (`productId`/`categoryId`/`brandId`) via this endpoint — delete and recreate the rule instead.
          *
          *     **Partial update:** Only include the fields you want to change. Changing only notes or isActive does not trigger a recompute.
+         *
+         *     **`replaceExisting: true`** (all-products rule only): switches off every other standing markup and reprices — see Create. Deals, hunts and flash sales keep running. The response includes `replaced`.
+         *
+         *     **Only products this rule prices are recomputed.** A product priced by a more specific rule (its own product rule, a deal or hunt, a brand or category rule) keeps that rule's price.
          */
         patch: {
             parameters: {
@@ -7469,7 +7484,7 @@ export interface paths {
          * @description The primary "undo" action for a markup rule. Does two things atomically in a single operation:
          *
          *     1. **Deactivates the rule** — sets `isActive = false` so future product creations, variant additions, and price edits in this category+brand (or, NEW, exact-product) scope no longer have the markup applied automatically.
-         *     2. **Resets all prices to base** — walks every active variant and part in the rule's scope and writes `price = basePrice`, `compareAtPrice = baseCompareAtPrice`.
+         *     2. **Moves the rule's products to their next rule** — every product this rule was pricing is repriced by the next rule that matches it (for example a brand rule, or the all-products rule), or goes back to `basePrice` when no other rule matches. Products priced by a different rule (a deal, hunt, flash sale or more specific rule) are not touched. Returns `{ variantsReset, variantsRepriced, partsReset: 0 }`: variants sent to base, and variants moved to another rule. The flash-sale expiry worker uses the same path when a sale ends.
          *
          *     After this call, prices are back at the values staff originally entered — the markup is fully undone. The rule record stays in the database for audit purposes (who created it, what percentage, when it ran, when it was cancelled).
          *
@@ -7662,7 +7677,7 @@ export interface paths {
         put?: never;
         /**
          * Reset prices to base (keep rule active)
-         * @description Resets all prices in the rule's scope back to `basePrice` without deactivating the rule.
+         * @description Resets the prices this rule sets back to `basePrice` without deactivating the rule. Products in its scope that a more specific rule prices (a deal, hunt, product, brand or category rule) are left alone. Works for an all-products rule too.
          *
          *     **Use this only when** you want prices at base temporarily but plan to re-apply the rule later. Because the rule stays active, any new product created or any variant price edited after this call will immediately have the markup re-applied. Prices will slowly drift back to marked-up values one edit at a time.
          *
@@ -7836,6 +7851,9 @@ export interface paths {
          *     ```json
          *     { "scopeProductId": "<uuid>", "markupPercentage": 15, "applyTo": "PRICE" }
          *     ```
+         *     Send only `markupPercentage` to preview an **all products** rule: every visible product is listed.
+         *
+         *     **NEW — `coveredByOtherRule`:** each variant says whether a more specific rule prices it (its own product rule, a deal or hunt, a brand or category rule). Apply leaves those alone, so `projectedPrice` only takes effect where `coveredByOtherRule` is `false`. `coveredByOtherRuleCount` gives the total.
          */
         post: {
             parameters: {
@@ -7926,6 +7944,7 @@ export interface paths {
          *     - compareAtPrice is nulled if it would fall at or below the new price
          *     - price is floored at costPrice (never creates negative margin)
          *     - Only active variants of active products are affected
+         *     - **NEW — only products this rule prices are changed.** A product priced by a more specific rule (its own product rule, a deal or hunt, a brand or category rule) keeps that price. The response's `skippedByOtherRule` counts them. If every product in scope is priced by another rule, Apply returns 400 saying so.
          *
          *     **NEW — product-scoped rules:** for a rule with `productId` set, the rule's own scope is already exactly one product. `productIds`/`variantIds` still narrow *within* that scope — passing a different product's id in `productIds` returns 0 updated rather than expanding the scope to that other product.
          */
@@ -8177,6 +8196,76 @@ export interface paths {
                 };
                 /** @description Too many concurrent uploads in progress — try again in a moment */
                 503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/price-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm product prices are still correct
+         * @description Sets `priceCheckedAt` to now on each product and changes nothing else. Use it for the "Still correct" row action, bulk action and edit-page button.
+         *
+         *     - 1 to 200 product ids per call. Unknown ids are skipped, not an error.
+         *     - Logs one edit-log row per product with `changedFields: ["priceConfirmed"]` (`SINGLE` for one product, `BULK` for more), as an audit trail of who confirmed what.
+         *     - Gives **no uploader credit**: a confirmation doesn't count toward the daily target.
+         *
+         *     **Permission required:** `products:write`
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PriceCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description Prices confirmed. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PriceCheckResponse"];
+                    };
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller does not have the `products:write` permission. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description ids missing, empty, over 200, or not UUIDs. */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -21179,6 +21268,8 @@ export interface paths {
          *
          *     Every item includes a **`createdBy`** field (id, staffId, name, avatarUrl). Use `createdByStaffId` + `createdFrom`/`createdTo` to pull one uploader's parts within a specific day or week — the counts will match `GET /analytics/uploaders`.
          *
+         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`.
+         *
          *     **Query params:**
          *
          *     | Param | Description |
@@ -21212,7 +21303,8 @@ export interface paths {
                     createdByStaffId?: string;
                     createdFrom?: string;
                     createdTo?: string;
-                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc";
+                    priceCheckedBefore?: string;
+                    sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     page?: number;
                     limit?: number;
                 };
@@ -21619,7 +21711,7 @@ export interface paths {
         head?: never;
         /**
          * Update a part
-         * @description Partial update. If `specifications` is provided it **fully replaces** the existing set (same behaviour as product specifications). When `price`/`compareAtPrice` changes, the new price is derived through this part's markup rule, in priority order: (1) NEW — an exact part-scoped `PartMarkupRule` for this part, (2) category+brand+type, (3) category+brand, (4) brand+type, (5) category+type, (6) brand-only, (7) category-only, (8) type-only. Unlike part *creation*, this endpoint always has the part's id available, so a part-specific markup rule created after the part existed will now be picked up here.
+         * @description Partial update. If `specifications` is provided it **fully replaces** the existing set (same behaviour as product specifications). When `price`/`compareAtPrice` changes, the new price is derived through this part's markup rule, in priority order: (1) NEW — an exact part-scoped `PartMarkupRule` for this part, (2) category+brand+type, (3) category+brand, (4) brand+type, (5) category+type, (6) brand-only, (7) category-only, (8) type-only, (9) all parts. Unlike part *creation*, this endpoint always has the part's id available, so a part-specific markup rule created after the part existed will now be picked up here.
          */
         patch: {
             parameters: {
@@ -23015,7 +23107,7 @@ export interface paths {
         put?: never;
         /**
          * Create a part markup rule
-         * @description At least one of partId/categoryId/brandId/partTypeId is required. NEW: `partId` pins the rule to one exact part and is mutually exclusive with categoryId/brandId/partTypeId (422 if combined) — e.g. `{ "partId": "<uuid>", "markupPercentage": 20 }`. `markupPercentage` is signed: **positive = increase, negative = reduction** (min 2% either way, max +500% / −99%). Applied to parts on create/bulk and via /apply. Duplicate scope (same categoryId+brandId+partTypeId+partId combination, including a second rule for the same partId) returns `409 MARKUP_RULE_SCOPE_CONFLICT` naming the existing rule — same error code the flash-sale scope-conflict guard uses. Permission: `products:write`.
+         * @description NEW — **all parts:** send no partId/categoryId/brandId/partTypeId (e.g. `{ "markupPercentage": 10 }`) for a store-wide part rule. It is the last rule a part falls back to (after type-only), so every more specific rule still wins; show it as "All parts" (all four scope fields `null`). Only one can exist. **`replaceExisting: true`** (all-parts rules only) switches off every other standing part markup (positive, not linked to a deal) and reprices their parts straight away; deals and flash sales keep running, and products are never affected. The response then includes `replaced: { rulesReplaced, partsRepriced, partsReset }`. Sending it with a scope, or on an inactive rule, is a 400. `partId` pins the rule to one exact part and is mutually exclusive with categoryId/brandId/partTypeId (422 if combined) — e.g. `{ "partId": "<uuid>", "markupPercentage": 20 }`. `markupPercentage` is signed: **positive = increase, negative = reduction** (min 2% either way, max +500% / −99%). Applied to parts on create/bulk and via /apply. Duplicate scope (same categoryId+brandId+partTypeId+partId combination, including a second rule for the same partId) returns `409 MARKUP_RULE_SCOPE_CONFLICT` naming the existing rule — same error code the flash-sale scope-conflict guard uses. Permission: `products:write`.
          */
         post: {
             parameters: {
@@ -23047,12 +23139,20 @@ export interface paths {
                         /** @default false */
                         allowCouponStacking?: boolean;
                         expiresAt?: string;
+                        replaceExisting?: boolean;
                     };
                 };
             };
             responses: {
                 /** @description Rule created */
                 201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description replaceExisting sent with a scope or on an inactive rule */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -23091,7 +23191,7 @@ export interface paths {
         put?: never;
         /**
          * Apply a part markup rule to existing parts
-         * @description Recomputes prices from base for parts in the rule's scope (optionally narrowed by partIds). For a NEW exact-part rule, the scope is already exactly one part — partIds narrows within that (a different part's id returns 0 updated). Permission: `products:write`.
+         * @description Recomputes prices from base for parts in the rule's scope (optionally narrowed by partIds). For a NEW exact-part rule, the scope is already exactly one part — partIds narrows within that (a different part's id returns 0 updated). NEW: only parts this rule prices are changed; a part priced by a more specific rule (its own part rule, a deal, a brand/category/type rule) keeps its price. The response is `{ updated, skippedByOtherRule }`, and a 400 explains when every part in scope belongs to another rule. Permission: `products:write`.
          */
         post: {
             parameters: {
@@ -23143,7 +23243,7 @@ export interface paths {
         put?: never;
         /**
          * Preview a part markup application (dry-run)
-         * @description Projects new part prices without writing. Provide ruleId, or markupPercentage + one of categoryId/brandId/partTypeId, or (NEW) markupPercentage + `scopePartId` to preview an exact-part markup before saving a rule: `{ "scopePartId": "<uuid>", "markupPercentage": 20 }`. Permission: `products:read`.
+         * @description Projects new part prices without writing. Provide ruleId, or markupPercentage + one of categoryId/brandId/partTypeId, or (NEW) markupPercentage + `scopePartId` to preview an exact-part markup before saving a rule: `{ "scopePartId": "<uuid>", "markupPercentage": 20 }`. NEW: markupPercentage alone previews an **all parts** rule (every active part with a base price). Each part carries `coveredByOtherRule` — true when a more specific rule prices it, so Apply would leave it alone — and the response has `coveredByOtherRuleCount`. Permission: `products:read`.
          */
         post: {
             parameters: {
@@ -23240,7 +23340,7 @@ export interface paths {
         head?: never;
         /**
          * Update a part markup rule
-         * @description Changing % / applyTo (while active) recomputes in-scope parts from base — including a single part for a NEW exact-part rule. Cannot change scope (partId/categoryId/brandId/partTypeId) via this endpoint — delete and recreate instead. Permission: `products:write`.
+         * @description Changing % / applyTo (while active) recomputes in-scope parts from base — including a single part for a NEW exact-part rule. Cannot change scope (partId/categoryId/brandId/partTypeId) via this endpoint — delete and recreate instead. NEW: only parts this rule prices are recomputed. `replaceExisting: true` (all-parts rule only) switches off every other standing part markup and reprices, as on create. Permission: `products:write`.
          */
         patch: {
             parameters: {
@@ -23261,6 +23361,7 @@ export interface paths {
                         isActive?: boolean;
                         allowCouponStacking?: boolean;
                         expiresAt?: string | null;
+                        replaceExisting?: boolean;
                     };
                 };
             };
@@ -23294,7 +23395,7 @@ export interface paths {
         put?: never;
         /**
          * Reset a rule's part scope to base price (rule stays active)
-         * @description Sets `price = basePrice` for all parts in the rule's scope, but does NOT deactivate the rule. Because the rule stays active, the next time a part's price is edited the markup is re-applied. For a permanent revert use `/cancel` instead. Returns `{ partsReset }`. Permission: `products:write`.
+         * @description Sets `price = basePrice` for the parts this rule prices (parts a more specific rule prices are left alone), but does NOT deactivate the rule. Works for an all-parts rule too. Because the rule stays active, the next time a part's price is edited the markup is re-applied. For a permanent revert use `/cancel` instead. Returns `{ partsReset }`. Permission: `products:write`.
          */
         post: {
             parameters: {
@@ -23340,7 +23441,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel a part markup rule (reset to base + deactivate)
-         * @description Permanent "undo this markup": sets `price = basePrice` for every part in the rule's scope AND deactivates the rule (`isActive = false`) in one call, so prices stay at base and are not re-applied on later edits. Works for any scope (category-only, brand-only, type-only, or NEW exact-part). Returns `{ partsReset, ruleDeactivated: true }`. Permission: `products:write`.
+         * @description Permanent "undo this markup": deactivates the rule (`isActive = false`) and moves every part it was pricing to the next rule that matches it (e.g. a brand rule, or the all-parts rule), or to `basePrice` when none does. Parts priced by a different rule (a deal, flash sale or more specific rule) are not touched. Works for any scope, including all parts. The flash-sale expiry worker uses the same path. Returns `{ partsReset, partsRepriced, ruleDeactivated: true }`: parts sent to base, and parts moved to another rule. Permission: `products:write`.
          */
         post: {
             parameters: {
@@ -23548,6 +23649,63 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/parts/price-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm part prices are still correct
+         * @description NEW (ask 42). Sets `priceCheckedAt` to now on each part and changes nothing else. 1 to 200 part ids per call; unknown ids are skipped, not an error. Logs one edit-log row per part with `changedFields: ["priceConfirmed"]` (`SINGLE` for one part, `BULK` for more). Gives no uploader credit. Returns `{ updated, priceCheckedAt }`. Same body and response as `POST /products/price-check`. Permission: `products:write`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Prices confirmed: { updated, priceCheckedAt } */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permission */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description ids missing, empty, over 200, or not UUIDs. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -26180,6 +26338,70 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/analytics/price-age": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many prices have not been checked for a while
+         * @description Counts active products and active parts whose `priceCheckedAt` is older than `days` days, for the dashboard card. Hidden products (the backing products behind priced parts) are not counted; the part is. To open the matching list, call `GET /products/all` or `GET /products/parts` with `priceCheckedBefore` set to the `before` value returned here.
+         *
+         *     **Permission required:** `products:read`
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Counts returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PriceAgeResponse"];
+                    };
+                };
+                /** @description No valid staff JWT provided. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Caller does not have the `products:read` permission. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description days is not a whole number between 1 and 3650. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/all-orders": {
@@ -31183,6 +31405,7 @@ export interface components {
             /** @default false */
             allowCouponStacking: boolean;
             expiresAt?: string;
+            replaceExisting?: boolean;
         };
         UpdateMarkupRuleRequest: {
             markupPercentage?: number;
@@ -31192,6 +31415,7 @@ export interface components {
             isActive?: boolean;
             allowCouponStacking?: boolean;
             expiresAt?: string | null;
+            replaceExisting?: boolean;
         };
         PreviewVariant: {
             /** Format: uuid */
@@ -31246,6 +31470,30 @@ export interface components {
             ruleId: string;
             productIds?: string[];
             variantIds?: string[];
+        };
+        PriceCheckResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                /**
+                 * @description Products confirmed (unknown ids are not counted).
+                 * @example 3
+                 */
+                updated: number;
+                /**
+                 * Format: date-time
+                 * @example 2026-11-12T10:21:00.000Z
+                 */
+                priceCheckedAt: string;
+            };
+        };
+        PriceCheckRequest: {
+            /**
+             * @example [
+             *       "8f14e45f-ceea-467a-9c2b-1f0e8f5b7c11"
+             *     ]
+             */
+            ids: string[];
         };
         CreateOrderRequest: {
             /**
@@ -34363,6 +34611,24 @@ export interface components {
              * @example 2026-10-29T09:00:00.000Z
              */
             updatedAt: string;
+        };
+        PriceAgeResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                /** @example 30 */
+                days: number;
+                /**
+                 * Format: date-time
+                 * @description The cut-off: now minus days.
+                 * @example 2026-10-13T10:21:00.000Z
+                 */
+                before: string;
+                /** @example 214 */
+                products: number;
+                /** @example 57 */
+                parts: number;
+            };
         };
         AdminOrderRow: {
             /**

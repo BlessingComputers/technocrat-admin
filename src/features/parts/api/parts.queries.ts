@@ -4,6 +4,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
+import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
 import { partsService } from "./parts.service";
 import { partTaxonomyService } from "./taxonomy.service";
 import type {
@@ -140,6 +141,21 @@ export function useBulkEditParts() {
     mutationFn: (data: BulkEditPartsInput) => partsService.bulkEditParts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: partKeys.lists() });
+    },
+  });
+}
+
+/**
+ * "Price still correct" for parts. Refreshes lists and details (their
+ * `priceCheckedAt` moved) and the dashboard's stale-price count.
+ */
+export function useConfirmPartPrices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => partsService.confirmPrices(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: partKeys.all });
+      queryClient.invalidateQueries({ queryKey: PRICE_AGE_QUERY_KEY });
     },
   });
 }

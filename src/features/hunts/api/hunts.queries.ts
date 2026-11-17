@@ -158,6 +158,44 @@ export function useCreateHuntCampaign() {
   });
 }
 
+/** Release a drop. The detail row shows the stored reason afterwards. */
+export function useReleaseHuntDeal(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ huntDealId, reason }: { huntDealId: string; reason: string }) =>
+      huntsService.releaseHuntDeal(campaignId, huntDealId, reason),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: huntKeys.detail(campaignId) });
+      queryClient.invalidateQueries({ queryKey: huntKeys.list() });
+    },
+  });
+}
+
+/** Delete a whole campaign. The caller leaves the detail page on success. */
+export function useDeleteHuntCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => huntsService.deleteCampaign(id),
+    onSuccess: (_data, id) => {
+      queryClient.removeQueries({ queryKey: huntKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: huntKeys.list() });
+    },
+  });
+}
+
+/** Remove one drop from a scheduled campaign. */
+export function useDeleteHuntDeal(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (huntDealId: string) =>
+      huntsService.deleteHuntDeal(campaignId, huntDealId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: huntKeys.detail(campaignId) });
+      queryClient.invalidateQueries({ queryKey: huntKeys.list() });
+    },
+  });
+}
+
 export interface HuntEditResult {
   /** The campaign after the last request that worked, or null if none ran. */
   campaign: HuntCampaign | null;

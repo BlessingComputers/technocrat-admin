@@ -7,12 +7,17 @@
 // own managed entity (PartTypeResponse).
 
 import type { components } from "@/types/api";
+import type { PriceAgeDays } from "@/lib/utils/price-age";
 
 type Schemas = components["schemas"];
 
 // ── Response shapes ────────────────────────────────────────────────────
 
-export type Part = Schemas["PartResponse"];
+/**
+ * `priceCheckedAt` (ask 42) is on every part response but not in the spec's
+ * `PartResponse`, so it is added here by hand.
+ */
+export type Part = Schemas["PartResponse"] & { priceCheckedAt: string };
 export type PartType = Schemas["PartTypeResponse"];
 /** Taxonomy reused by the part form/filters (parts can't import the products feature). */
 export type Category = Schemas["Category"];
@@ -95,6 +100,10 @@ export interface PartsListParams {
   partTypeId?: string;
   isActive?: boolean;
   isInStock?: boolean;
+  /** Price not checked for this many days or more (30 / 60 / 90). */
+  priceAge?: PriceAgeDays;
+  /** `priceChecked` = oldest check first; absent = the backend's newest. */
+  sort?: "priceChecked";
 }
 
 export interface PartsListMeta {

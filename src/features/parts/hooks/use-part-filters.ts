@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toPriceAgeDays } from "@/lib/utils/price-age";
 import type { PartsListParams } from "../types/parts";
 
 /**
  * URL-state for the parts list (`/catalogues/parts`). Per ADR-0005, filter and
  * pagination state live in the URL — deep-linkable, reload-safe, back/forward
- * aware. Mirrors the product browse filters, minus sort (the parts list endpoint
- * has no sort param). Search updates the URL with `replace` (debounced); every
+ * aware. Mirrors the product browse filters. The only sort is price age
+ * (oldest check first); otherwise the backend's newest-first order. Search updates the URL with `replace` (debounced); every
  * other change uses `push` and resets to page 1.
  */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -37,6 +38,8 @@ function parseParams(sp: URLSearchParams): PartsListParams {
     isActive:
       status === "active" ? true : status === "inactive" ? false : undefined,
     isInStock: stock === "in" ? true : stock === "out" ? false : undefined,
+    priceAge: toPriceAgeDays(toInt(sp.get("priceAge"))),
+    sort: sp.get("sort") === "priceChecked" ? "priceChecked" : undefined,
   };
 }
 
@@ -50,6 +53,8 @@ function toQueryString(params: PartsListParams): string {
   else if (params.isActive === false) sp.set("status", "inactive");
   if (params.isInStock === true) sp.set("stock", "in");
   else if (params.isInStock === false) sp.set("stock", "out");
+  if (params.priceAge) sp.set("priceAge", String(params.priceAge));
+  if (params.sort) sp.set("sort", params.sort);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   return sp.toString();
 }

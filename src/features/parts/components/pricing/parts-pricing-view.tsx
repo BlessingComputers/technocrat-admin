@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
@@ -9,9 +9,20 @@ import { RefreshButton } from "@/components/shared/refresh-button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ApiError } from "@/lib/api/error";
 import { getErrorMessage } from "@/lib/api/error-message";
+import {
+  flattenCategoryTree,
+  type CoverageRule,
+  type PreviewItem,
+} from "@/lib/utils/markup-coverage";
+import {
+  CellItemsList,
+  MarkupCoverageView,
+  RuleItemsLine,
+  type CellQuery,
+  type RuleAction,
+} from "@/components/shared/markup-coverage/markup-coverage-view";
 
 import {
   usePartCategories,
@@ -25,13 +36,25 @@ import {
   useDeletePartMarkupRule,
   useResetPartMarkupRule,
   useCancelPartMarkupRule,
+  usePartMarkupImpact,
 } from "../../api/pricing.queries";
-import type { PartMarkupRule } from "../../types/pricing";
+import {
+  partRuleTypeOf,
+  type PartMarkupPreviewRow,
+  type PartMarkupRule,
+} from "../../types/pricing";
 import type { PartMarkupRuleFormValues } from "../../schemas/markup-rule-form";
-import { MarkupRulesTable } from "./markup-rules-table";
 import { MarkupRuleFormDialog } from "./markup-rule-form-dialog";
 import { MarkupApplyDialog } from "./markup-apply-dialog";
-import { ruleScopeLabel } from "./markup-rule-utils";
+import {
+  PART_TIERS,
+  cancelSummary,
+  replaceSummary,
+  resetSummary,
+  ruleScopeLabel,
+  toCoverageRule,
+} from "./markup-rule-utils";
+import { formatExpiry } from "./sale-timing";
 
 /**
  * Why a create failed, when the server will not say.
@@ -65,11 +88,23 @@ function createErrorMessage(err: unknown): string {
 
 /** Part markup-rules management (Parts half of `/pricing/markup`). */
 export function PartsPricingView() {
-  // MARKUP only. Deals are the same rows with a negative percentage and they
-  // live on /pricing/deals; an existing one does not appear here any more.
-  const { data: rules = [], isLoading, isError, isFetching, refetch } =
-    usePartMarkupRules("MARKUP");
+  // Every rule, deals included: deals are negative rules in the same tiers,
+  // so the coverage map must see them (a deal can lose to a stronger markup).
+  // Deals are still managed on /pricing/deals; their rows link there.
+  const { data: allRules, isLoading, isError, isFetching, refetch } =
+    usePartMarkupRules();
   const { data: categories = [] } = usePartCategories();
+  // The form dialog's ladder and replace list keep the MARKUP-only list.
+  const rules = useMemo(
+    () => (allRules ?? []).filter((r) => partRuleTypeOf(r) === "MARKUP"),
+    [allRules],
+  );
+  const byId = useMemo(() => new Map((allRules ?? []).map((r) => [r.id, r])), [allRules]);
+  const coverageRules = useMemo(() => (allRules ?? []).map(toCoverageRule), [allRules]);
+  const rows = useMemo(
+    () => flattenCategoryTree(categories, (c) => c.partCount ?? 0),
+    [categories],
+  );
   const { data: brands = [] } = usePartBrands();
   const { data: partTypes = [] } = usePartTypes();
 
@@ -86,12 +121,22 @@ export function PartsPricingView() {
   const [resetTarget, setResetTarget] = useState<PartMarkupRule | null>(null);
   const [cancelTarget, setCancelTarget] = useState<PartMarkupRule | null>(null);
 
+  // Bumped on every open so the dialog remounts with fresh seed state (the
+  // codebase's form-dialog reset pattern, no setState-in-effect sync).
+  const [formKey, setFormKey] = useState(0);
+
   const openCreate = () => {
     setEditTarget(null);
+    setFormKey((k) => k + 1);
     setFormOpen(true);
   };
 
-  const handleSubmit = (values: PartMarkupRuleFormValues) => {
+  // Returns the save so the dialog can close itself, or show what a replace
+  // turned off. A rejection keeps it open; the toast says why.
+  const handleSubmit = (
+    values: PartMarkupRuleFormValues,
+  ): Promise<PartMarkupRule> => {
+    const replaceExisting = values.replaceExisting || undefined;
     if (editTarget) {
       const promise = updateRule.mutateAsync({
         id: editTarget.id,
@@ -100,6 +145,7 @@ export function PartsPricingView() {
           applyTo: values.applyTo,
           notes: values.notes || undefined,
           isActive: values.isActive,
+          replaceExisting,
           // No `expiresAt` or `allowCouponStacking`. Omitting `expiresAt` does
           // clear it server-side, but only on the row being edited, and that
           // row is a markup — the backend ignores both fields on a positive
@@ -108,11 +154,11 @@ export function PartsPricingView() {
       });
       toast.promise(promise, {
         loading: "Updating rule…",
-        success: "Rule updated.",
+        success: (rule) =>
+          rule.replaced ? `Rule updated. ${replaceSummary(rule.replaced)}` : "Rule updated.",
         error: (err) => getErrorMessage(err, "Failed to update rule."),
       });
-      promise.then(() => setFormOpen(false)).catch(() => {});
-      return;
+      return promise;
     }
     const promise = createRule.mutateAsync({
       categoryId: values.categoryId || undefined,
@@ -123,13 +169,34 @@ export function PartsPricingView() {
       applyTo: values.applyTo,
       notes: values.notes || undefined,
       isActive: values.isActive,
+      replaceExisting,
     });
     toast.promise(promise, {
-      loading: "Creating rule…",
-      success: "Rule created. Use Preview & Apply to reprice existing parts.",
+      loading: replaceExisting ? "Creating rule and repricing…" : "Creating rule…",
+      success: (rule) =>
+        rule.replaced
+          ? `Rule created. ${replaceSummary(rule.replaced)}`
+          : "Rule created. Use Preview & Apply to reprice existing parts.",
       error: createErrorMessage,
     });
-    promise.then(() => setFormOpen(false)).catch(() => refetch());
+    promise.catch(() => refetch());
+    return promise;
+  };
+
+  const openEdit = (rule: PartMarkupRule) => {
+    setEditTarget(rule);
+    setFormKey((k) => k + 1);
+    setFormOpen(true);
+  };
+
+  const onAction = (action: RuleAction, { id }: { id: string }) => {
+    const rule = byId.get(id);
+    if (!rule) return;
+    if (action === "apply") setApplyTarget(rule);
+    else if (action === "edit") openEdit(rule);
+    else if (action === "reset") setResetTarget(rule);
+    else if (action === "cancel") setCancelTarget(rule);
+    else setDeleteTarget(rule);
   };
 
   const confirmDelete = () => {
@@ -143,16 +210,13 @@ export function PartsPricingView() {
     promise.then(() => setDeleteTarget(null)).catch(() => {});
   };
 
-  const resetMsg = (n: number) =>
-    `${n} part${n === 1 ? "" : "s"} reset to base price.`;
-
   const confirmReset = () => {
     if (!resetTarget) return;
     const promise = resetRule.mutateAsync(resetTarget.id);
     toast.promise(promise, {
       loading: "Resetting prices to base…",
       success: ({ partsReset }) =>
-        `Prices reset (rule still active) — ${resetMsg(partsReset)}`,
+        `Prices reset (rule still active) — ${resetSummary(partsReset)}`,
       error: (err) => getErrorMessage(err, "Failed to reset prices."),
     });
     promise.then(() => setResetTarget(null)).catch(() => {});
@@ -162,21 +226,21 @@ export function PartsPricingView() {
     if (!cancelTarget) return;
     const promise = cancelRule.mutateAsync(cancelTarget.id);
     toast.promise(promise, {
-      loading: "Cancelling rule & resetting prices…",
-      success: ({ partsReset }) => `Rule cancelled — ${resetMsg(partsReset)}`,
+      loading: "Cancelling rule…",
+      success: (res) => `Rule cancelled — ${cancelSummary(res)}`,
       error: (err) => getErrorMessage(err, "Failed to cancel rule."),
     });
     promise.then(() => setCancelTarget(null)).catch(() => {});
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
-        title="Parts Markup"
-        description="Standing markup rules, scoped by part, category, brand and type. Sales live under Deals."
+        title="Parts markup"
+        description="Standing markup rules, strongest first, and what each part sells at. Sales live under Deals."
       >
         <RefreshButton onRefresh={() => refetch()} isRefreshing={isFetching} />
-        <Button asChild variant="outline" className="h-10 rounded-lg font-medium">
+        <Button asChild variant="outline" className="h-10 rounded-lg font-medium max-sm:hidden">
           <Link href="/catalogues/parts">
             <AppIcon icon="solar:alt-arrow-left-linear" className="mr-2 size-4" />
             Parts
@@ -184,37 +248,37 @@ export function PartsPricingView() {
         </Button>
         <Button
           onClick={openCreate}
-          className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground"
+          className="h-10 rounded-lg bg-primary px-5 font-semibold text-primary-foreground max-sm:flex-1"
         >
           <AppIcon icon="solar:add-circle-linear" className="mr-2 size-5" />
-          New Rule
+          New rule
         </Button>
       </PageHeader>
 
-      <Card className="gap-0 overflow-hidden p-0">
-        <MarkupRulesTable
-          rules={rules}
-          isLoading={isLoading}
-          isError={isError}
-          onRetry={() => refetch()}
-          onEdit={(r) => {
-            setEditTarget(r);
-            setFormOpen(true);
-          }}
-          onApply={setApplyTarget}
-          onResetKeepActive={setResetTarget}
-          onCancel={setCancelTarget}
-          onDelete={setDeleteTarget}
-        />
-      </Card>
+      <MarkupCoverageView
+        kind="parts"
+        rules={coverageRules}
+        rows={rows}
+        tiers={PART_TIERS}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        renderItems={(r) => <RuleItems rule={r} />}
+        renderCellItems={(q) => <CellItems query={q} />}
+        onAction={onAction}
+        onCreate={openCreate}
+        formatExpiry={formatExpiry}
+      />
 
       <MarkupRuleFormDialog
+        key={formKey}
         isOpen={formOpen}
         onOpenChange={setFormOpen}
         initial={editTarget}
         categories={categories}
         brands={brands}
         partTypes={partTypes}
+        rules={rules}
         onSubmit={handleSubmit}
         isSubmitting={createRule.isPending || updateRule.isPending}
       />
@@ -237,7 +301,7 @@ export function PartsPricingView() {
         onClose={() => setResetTarget(null)}
         onConfirm={confirmReset}
         title="Reset prices (keep rule active)?"
-        description={`Resets every part for “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” to base price, but leaves the rule ACTIVE — new/edited parts get the markup re-applied. For a permanent undo, use “Cancel & reset”.`}
+        description={`Sets the parts that “${resetTarget ? ruleScopeLabel(resetTarget) : ""}” prices to base price, but leaves the rule ACTIVE — new/edited parts get the markup re-applied. Parts priced by a deal or a more specific rule are not touched. For a permanent undo, use “Cancel rule”.`}
         confirmText="Reset prices"
         isPending={resetRule.isPending}
       />
@@ -246,11 +310,62 @@ export function PartsPricingView() {
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
         onConfirm={confirmCancel}
-        title="Cancel rule & reset to base?"
-        description={`Deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}” and resets every affected part back to base price. The rule is kept for audit.`}
-        confirmText="Cancel & reset"
+        title="Cancel this rule?"
+        description={`Deactivates the rule for “${cancelTarget ? ruleScopeLabel(cancelTarget) : ""}”. Each part it prices moves to the next rule that matches it (for example a brand rule or the all-parts rule), or back to base price when no other rule matches. Parts priced by a deal or a more specific rule are not touched. The rule is kept for audit.`}
+        confirmText="Cancel rule"
         isPending={cancelRule.isPending}
       />
     </div>
+  );
+}
+
+/** "Prices N parts now" and the list behind it, loaded when the rule opens. */
+function RuleItems({ rule }: { rule: CoverageRule }) {
+  const { data, isLoading, isError } = usePartMarkupImpact({ ruleId: rule.id });
+  if (isError) return null;
+  return (
+    <RuleItemsLine
+      loading={isLoading}
+      count={data?.totalParts}
+      other={data?.coveredByOtherRuleCount}
+      noun="part"
+      rule={rule}
+      rows={data?.parts.map(toPreviewItem)}
+    />
+  );
+}
+
+const toPreviewItem = (p: PartMarkupPreviewRow): PreviewItem => ({
+  id: p.partId,
+  name: p.name,
+  detail: p.partNumber ?? null,
+  current: p.currentPrice,
+  projected: p.projectedPrice,
+  cost: p.costPrice ?? null,
+  covered: !!p.coveredByOtherRule,
+});
+
+/**
+ * The clicked cell's parts: a dry run at the cell's scope (and part type)
+ * and winning %. Rows a stronger rule prices come back flagged and are left out.
+ */
+function CellItems({ query }: { query: CellQuery }) {
+  const { data, isLoading, isPlaceholderData, isError } = usePartMarkupImpact({
+    categoryId: query.categoryId,
+    brandId: query.brandId ?? undefined,
+    partTypeId: query.typeId ?? undefined,
+    markupPercentage: query.previewPct,
+    applyTo: "PRICE",
+  });
+  return (
+    <CellItemsList
+      loading={isLoading || isPlaceholderData}
+      failed={isError}
+      rows={data?.parts.map(toPreviewItem)}
+      previewPct={query.previewPct}
+      winner={query.winner}
+      hasChildren={query.hasChildren}
+      noun="part"
+    />
   );
 }

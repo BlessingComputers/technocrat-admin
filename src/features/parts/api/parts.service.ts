@@ -1,5 +1,10 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import {
+  confirmPricesInBatches,
+  priceCheckedBefore,
+  type PriceCheckResult,
+} from "@/lib/utils/price-age";
 import type {
   BulkCreatePartsDto,
   BulkCreatePartsResult,
@@ -50,6 +55,10 @@ function buildListParams(params?: PartsListParams): QueryParams {
       params?.isActive !== undefined ? String(params.isActive) : undefined,
     isInStock:
       params?.isInStock !== undefined ? String(params.isInStock) : undefined,
+    priceCheckedBefore: params?.priceAge
+      ? priceCheckedBefore(params.priceAge)
+      : undefined,
+    sortBy: params?.sort === "priceChecked" ? "price_checked_oldest" : undefined,
   };
 }
 
@@ -95,6 +104,15 @@ export const partsService = {
   /** Multi-select soft-delete (deactivate) — mirrors DELETE /:id, not /permanent. */
   bulkDeleteParts: (partIds: string[]) =>
     api.post<BulkDeletePartsResult>(parts.bulkDelete, { partIds }),
+
+  /**
+   * "Price still correct" for parts, sent 200 at a time. Moves
+   * `priceCheckedAt` only; no uploader credit. Unknown ids are skipped.
+   */
+  confirmPrices: (ids: string[]) =>
+    confirmPricesInBatches(ids, (batch) =>
+      api.post<PriceCheckResult>(parts.priceCheck, { ids: batch }),
+    ),
 
   // ── Part images ────────────────────────────────────────────────────
   // ONE image per request through the same-origin Node handler, mirroring

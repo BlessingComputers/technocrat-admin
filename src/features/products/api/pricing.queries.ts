@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { pricingService } from "./pricing.service";
 import { productKeys } from "./products.queries";
 import {
@@ -78,12 +83,12 @@ export function useMarkupRules(type?: MarkupRuleType) {
  *
  * Scope-only, and matched exactly — an inactive rule counts, because the
  * backend's duplicate check ignores `isActive` too.
+ *
+ * Pass `null` to skip the check. An empty target `{}` is a real scope: the
+ * "All products" rule (ask 41), of which only one can exist.
  */
 export function useRuleAtTarget(target: MarkupRuleTarget | null) {
-  const hasTarget = !!(
-    target &&
-    (target.productId || target.categoryId || target.brandId)
-  );
+  const hasTarget = target !== null;
   const { data: rules, isFetching } = useQuery({
     queryKey: markupRuleKeys.list(),
     queryFn: () => pricingService.getMarkupRules(),
@@ -129,8 +134,12 @@ export function useCreateMarkupRule() {
   return useMutation({
     mutationFn: (data: MarkupRuleInput) =>
       pricingService.createMarkupRule(data),
-    onSuccess: () => {
+    onSuccess: (rule) => {
       queryClient.invalidateQueries({ queryKey: markupRuleKeys.lists() });
+      // A create with `replaceExisting` reprices at once.
+      if (rule.replaced) {
+        queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      }
     },
   });
 }
@@ -170,6 +179,25 @@ export function usePreviewMarkupRule() {
   return useMutation({
     mutationFn: (input: MarkupPreviewInput) =>
       pricingService.previewMarkup(input),
+  });
+}
+
+/**
+ * The rule dialog's live Impact: the same dry run as a query, keyed on its
+ * input, so a fast typist only ever sees the answer for the latest input and
+ * going back to an earlier one is instant. `null` turns it off. The caller
+ * debounces the input. Lives under `markupRuleKeys.all`, not `lists()`, so a
+ * rule write does not refetch it behind a closed dialog.
+ */
+export function useMarkupImpact(input: MarkupPreviewInput | null) {
+  return useQuery({
+    queryKey: [...markupRuleKeys.all, "impact", input] as const,
+    queryFn: () => pricingService.previewMarkup(input!),
+    enabled: input !== null,
+    placeholderData: keepPreviousData,
+    // A 404 ("nothing matches") is an answer, not a blip.
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { HuntCampaign, HuntDeal } from "../types/hunts";
 import {
+  canDeleteCampaign,
+  canRemoveDrop,
   claimCounts,
   claimLine,
   currentSlot,
   discountNeverApplied,
   isMonitorLive,
+  isStaleCampaign,
   isUnpaidClaim,
   nextDrop,
   paymentLabel,
+  releaseConsequence,
   releaseNote,
   slotPhase,
   sortForWinners,
@@ -278,6 +282,61 @@ describe("isMonitorLive", () => {
     expect(
       isMonitorLive(campaign({ status: "ENDED", huntDeals: [huntDeal(HELD)] }), inWindow),
     ).toBe(true);
+  });
+});
+
+describe("isStaleCampaign", () => {
+  const after = at("2026-09-12T15:00:00.000Z");
+
+  it("flags only a SCHEDULED campaign past its window", () => {
+    expect(isStaleCampaign(campaign(), after)).toBe(true);
+    expect(isStaleCampaign(campaign(), after - 1)).toBe(false);
+    expect(isStaleCampaign(campaign({ status: "ENDED" }), after)).toBe(false);
+  });
+});
+
+describe("canDeleteCampaign", () => {
+  it("allows a SCHEDULED campaign with no holder", () => {
+    expect(canDeleteCampaign(campaign({ huntDeals: [huntDeal()] }))).toBe(true);
+  });
+
+  it("refuses once ACTIVE", () => {
+    expect(canDeleteCampaign(campaign({ status: "ACTIVE" }))).toBe(false);
+  });
+
+  it("keeps a campaign that reads SCHEDULED but has a winner", () => {
+    const held = campaign({ huntDeals: [huntDeal(), huntDeal(HELD)] });
+    expect(canDeleteCampaign(held)).toBe(false);
+  });
+});
+
+describe("canRemoveDrop", () => {
+  const before = at("2026-09-12T12:39:00.000Z");
+  const two = campaign({ huntDeals: [huntDeal(), huntDeal({ id: "hd-2" })] });
+
+  it("allows an open drop before its slot", () => {
+    expect(canRemoveDrop(two, huntDeal(), before)).toBe(true);
+  });
+
+  it("refuses the last drop", () => {
+    const one = campaign({ huntDeals: [huntDeal()] });
+    expect(canRemoveDrop(one, huntDeal(), before)).toBe(false);
+  });
+
+  it("refuses once the slot has opened", () => {
+    expect(canRemoveDrop(two, huntDeal(), at("2026-09-12T12:40:00.000Z"))).toBe(false);
+  });
+
+  it("refuses a held drop", () => {
+    expect(canRemoveDrop(two, huntDeal(HELD), before)).toBe(false);
+  });
+});
+
+describe("releaseConsequence", () => {
+  it("says what happens inside and after the slot", () => {
+    const deal = huntDeal(HELD);
+    expect(releaseConsequence(deal, at("2026-09-12T12:44:00.000Z"))).toMatch(/live again/);
+    expect(releaseConsequence(deal, at("2026-09-12T12:45:00.000Z"))).toMatch(/not drop again/);
   });
 });
 

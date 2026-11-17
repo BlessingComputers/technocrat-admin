@@ -74,7 +74,8 @@ export const dealsService = {
   startDeal: (id: string) => api.post<DealStartResponse>(deals.start(id)),
 
   /**
-   * Reset every rule this deal started back to base price and mark it ENDED.
+   * Cancel every rule this deal started (items go back to their next rule, or
+   * base price) and mark it ENDED.
    * Terminal: to run the same sale again, create another deal.
    *
    * Safe to call after the expiry sweep has already reset the rules — resetting

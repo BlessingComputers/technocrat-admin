@@ -117,7 +117,7 @@ function EditLoader({ campaignId }: { campaignId: string }) {
         body={`It is ${campaign.status.toLowerCase()}. A campaign can be edited only while it is scheduled, which ends when its window opens.`}
       >
         <Button asChild variant="outline">
-          <Link href={`/pricing/hunts/${campaign.id}`}>Back to the campaign</Link>
+          <Link href={`/pricing/hunts?campaign=${campaign.id}`}>Back to the campaign</Link>
         </Button>
       </Notice>
     );
@@ -163,7 +163,7 @@ function HuntCampaignForm({ init, edit }: HuntCampaignFormProps) {
   const pending = createCampaign.isPending || saveEdits.isPending;
   const anyLocked = state.drops.some((d) => d.lockedReason !== null);
   const atCap = state.drops.length >= HUNT_MAX_DROPS;
-  const detailHref = edit ? `/pricing/hunts/${edit.campaign.id}` : "/pricing/hunts";
+  const detailHref = edit ? `/pricing/hunts?campaign=${edit.campaign.id}` : "/pricing/hunts";
 
   const setField = (patch: Partial<HuntFormState>) =>
     setState((s) => ({ ...s, ...patch }));
@@ -210,7 +210,7 @@ function HuntCampaignForm({ init, edit }: HuntCampaignFormProps) {
       success: "Campaign created. Every drop is scheduled.",
       error: (err) => getErrorMessage(err, "Couldn’t create the campaign."),
     });
-    promise.then((c) => router.push(`/pricing/hunts/${c.id}`)).catch(() => {});
+    promise.then((c) => router.push(`/pricing/hunts?campaign=${c.id}`)).catch(() => {});
   };
 
   const submitEdit = (

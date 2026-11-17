@@ -13,11 +13,11 @@ import { MARKUP_MAX_PERCENT, MARKUP_MIN_PERCENT } from "../types/pricing";
  * server-side on a positive rule, so a standing pricing policy has no use for
  * either.
  *
- * Scope is EITHER one exact product (`productId`) OR a category/brand slice —
- * at least one must be set so the rule targets something, and the two sides are
- * mutually exclusive because a product already implies its own category and
- * brand (mirrors the backend's `createMarkupRuleSchema` refines, and
- * `tax-rule-form.ts` on the tax side).
+ * Scope is EITHER one exact product (`productId`) OR a category/brand slice,
+ * and the two sides are mutually exclusive because a product already implies
+ * its own category and brand (mirrors the backend's `createMarkupRuleSchema`
+ * refines). No scope at all is the "All products" rule (ask 41), and only that
+ * rule, while active, may send `replaceExisting`.
  */
 export const markupRuleFormSchema = z
   .object({
@@ -31,18 +31,22 @@ export const markupRuleFormSchema = z
     applyTo: z.string().min(1, "Select what to apply the markup to"),
     notes: z.string().max(500, "Notes are too long").optional(),
     isActive: z.boolean(),
+    replaceExisting: z.boolean().optional(),
   })
-  .refine(
-    (v) => Boolean(v.productId) || Boolean(v.categoryId) || Boolean(v.brandId),
-    {
-      message: "Pick a product, or a category and/or brand",
-      path: ["productId"],
-    },
-  )
   .refine((v) => !(v.productId && (v.categoryId || v.brandId)), {
     message:
       "A product rule stands alone — it can’t also carry a category or brand",
     path: ["productId"],
-  });
+  })
+  .refine(
+    (v) =>
+      !v.replaceExisting ||
+      (!v.productId && !v.categoryId && !v.brandId && v.isActive),
+    {
+      message:
+        "Only an active “All products” rule can turn off the other markups",
+      path: ["replaceExisting"],
+    },
+  );
 
 export type MarkupRuleFormValues = z.infer<typeof markupRuleFormSchema>;

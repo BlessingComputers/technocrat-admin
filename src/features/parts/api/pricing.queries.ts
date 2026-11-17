@@ -1,9 +1,11 @@
 import {
+  keepPreviousData,
   useQuery,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import { partsPricingService } from "./pricing.service";
+import { partKeys } from "./parts.queries";
 import {
   isPartRuleAtTarget,
   partRuleTypeOf,
@@ -75,12 +77,12 @@ export function usePartMarkupRules(type?: PartMarkupRuleType) {
  *
  * Scope-only, and matched exactly — an inactive rule counts, because the
  * backend's duplicate check ignores `isActive` too.
+ *
+ * Pass `null` to skip the check. An empty target `{}` is a real scope: the
+ * "All parts" rule (ask 41), of which only one can exist.
  */
 export function usePartRuleAtTarget(target: PartMarkupRuleTarget | null) {
-  const hasTarget = !!(
-    target &&
-    (target.partId || target.categoryId || target.brandId || target.partTypeId)
-  );
+  const hasTarget = target !== null;
   const { data: rules, isFetching } = useQuery({
     queryKey: partPricingKeys.list(),
     queryFn: () => partsPricingService.getMarkupRules(),
@@ -116,8 +118,13 @@ export function useCreatePartMarkupRule() {
   return useMutation({
     mutationFn: (data: PartMarkupRuleInput) =>
       partsPricingService.createMarkupRule(data),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: partPricingKeys.rules }),
+    onSuccess: (rule) => {
+      queryClient.invalidateQueries({ queryKey: partPricingKeys.rules });
+      // A create with `replaceExisting` reprices at once.
+      if (rule.replaced) {
+        queryClient.invalidateQueries({ queryKey: partKeys.lists() });
+      }
+    },
   });
 }
 
@@ -131,8 +138,13 @@ export function useUpdatePartMarkupRule() {
       id: string;
       data: PartMarkupRuleUpdateInput;
     }) => partsPricingService.updateMarkupRule(id, data),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: partPricingKeys.rules }),
+    onSuccess: (rule) => {
+      queryClient.invalidateQueries({ queryKey: partPricingKeys.rules });
+      // A % change recomputes prices; `replaceExisting` reprices too.
+      if (rule.replaced || rule.partsRecomputed) {
+        queryClient.invalidateQueries({ queryKey: partKeys.lists() });
+      }
+    },
   });
 }
 
@@ -149,6 +161,24 @@ export function usePreviewPartMarkup() {
   return useMutation({
     mutationFn: (input: PartMarkupPreviewInput) =>
       partsPricingService.previewMarkup(input),
+  });
+}
+
+/**
+ * The rule dialog's live Impact: the same dry run as a query, keyed on its
+ * input, so only the answer for the latest input shows. `null` turns it off;
+ * the caller debounces. Its own key, outside `partPricingKeys.rules`, so a
+ * rule write does not refetch it behind a closed dialog.
+ */
+export function usePartMarkupImpact(input: PartMarkupPreviewInput | null) {
+  return useQuery({
+    queryKey: ["part-markup-impact", input] as const,
+    queryFn: () => partsPricingService.previewMarkup(input!),
+    enabled: input !== null,
+    placeholderData: keepPreviousData,
+    // A 404 ("nothing matches") is an answer, not a blip.
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

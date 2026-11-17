@@ -1,15 +1,14 @@
-import { Card } from "@/components/ui/card";
-import { MarkupRulesTableSkeleton } from "@/features/products";
+import { MarkupCoverageSkeleton } from "@/components/shared/markup-coverage/markup-coverage-view";
 
 /**
  * Loading state for `/pricing/markup`. Mirrors the loaded default (Products)
- * exactly — centered `max-w-6xl` column, the Products/Parts toggle, a
- * `PageHeader`-shaped title/actions block, then the table Card — so the page
- * does not reflow when the client shell hydrates.
+ * exactly — centered `max-w-[1600px]` column, the Products/Parts toggle, a
+ * `PageHeader`-shaped title/actions block, then the facts, toolbar, lanes and
+ * map shape — so the page does not reflow when the client shell hydrates.
  */
 export default function MarkupLoading() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6">
       {/* Products / Parts toggle */}
       <div className="h-10 w-[212px] max-w-full animate-pulse rounded-lg bg-muted" />
 
@@ -28,9 +27,7 @@ export default function MarkupLoading() {
         </div>
       </div>
 
-      <Card className="gap-0 overflow-hidden p-0">
-        <MarkupRulesTableSkeleton />
-      </Card>
+      <MarkupCoverageSkeleton />
     </div>
   );
 }
