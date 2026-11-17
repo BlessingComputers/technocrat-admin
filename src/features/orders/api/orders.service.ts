@@ -8,6 +8,7 @@ import type {
   CheckoutStats,
   GatewayOrder,
   GatewayOrderListResponse,
+  GatewayOrderPayment,
   GatewayStatusHistoryEntry,
   ManualOrder,
   OrdersEnvelope,
@@ -218,6 +219,13 @@ export const ordersService = {
 
   getGatewayOrderDetail: (orderId: string) =>
     api.get<GatewayOrder>(API_ENDPOINTS.gatewayOrders.detail(orderId)),
+
+  // SUPER_ADMIN only. `/admin/transactions` nests the rows inside `data`.
+  getGatewayOrderPayments: (orderNumber: string) =>
+    api.get<{ data: GatewayOrderPayment[] }>(
+      API_ENDPOINTS.adminTransactions.list,
+      { params: { search: orderNumber, page: 1, limit: 20 } },
+    ),
 
   getGatewayOrderHistory: (orderId: string) =>
     api.get<GatewayStatusHistoryEntry[]>(

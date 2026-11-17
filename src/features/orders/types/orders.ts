@@ -365,3 +365,12 @@ export interface AdminOrderRow {
 
 /** UI-only source selector for the list filter. */
 export type OrderSourceFilter = "all" | OrderSource;
+
+/**
+ * The fields of a `/admin/transactions` row that the order page needs to link
+ * its payment (SUPER_ADMIN-only endpoint; the payments slice owns the full type).
+ */
+export type GatewayOrderPayment = Pick<
+  import("@/types/api").components["schemas"]["AdminTransactionListItem"],
+  "id" | "orderId" | "status"
+>;

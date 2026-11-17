@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AppIcon } from "@/components/shared/app-icon";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { useRecordRefund } from "../../api/payments.queries";
 import type { AdminTransactionDetail } from "../../types/payments";
+
+/** Where staff send the money: the gateway that took the payment. */
+function providerDashboard(provider: string): string {
+  if (provider === "miden") return "Miden dashboard";
+  if (provider === "paystack") return "Paystack dashboard";
+  return "payment provider's dashboard";
+}
 
 interface PaymentRefundDialogProps {
   payment: AdminTransactionDetail;
@@ -72,11 +80,22 @@ export function PaymentRefundDialog({ payment }: PaymentRefundDialogProps) {
           <DialogTitle className="text-2xl font-semibold text-foreground">
             Record Refund
           </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-1">
-            This only records a refund already processed elsewhere — it does
-            not move money.
-          </p>
         </DialogHeader>
+        <Alert className="mb-6 border-warning/30 bg-warning/10">
+          <AppIcon
+            icon="solar:danger-triangle-linear"
+            className="size-4 text-warning-ink"
+          />
+          <AlertTitle className="text-sm font-semibold">
+            This does not send money to the customer
+          </AlertTitle>
+          <AlertDescription className="text-xs text-muted-foreground">
+            Send the refund first, outside this app: through the{" "}
+            {providerDashboard(payment.provider)}, or by bank transfer from
+            the company account. Then record it here. Saving tells the
+            customer that the refund is done.
+          </AlertDescription>
+        </Alert>
         <div className="space-y-5">
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground ml-1">
