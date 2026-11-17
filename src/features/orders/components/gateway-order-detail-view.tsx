@@ -12,6 +12,7 @@ import {
 } from "../api/orders.queries";
 import { OrderDetailHeader } from "./detail/order-detail-header";
 import { OrderCancelDialog } from "./detail/order-cancel-dialog";
+import { OrderRefundLink } from "./detail/order-refund-link";
 import { OrderFulfillmentManager } from "./detail/order-fulfillment-manager";
 import { OrderItemsList } from "./detail/order-items-list";
 import { OrderAuditTrail } from "./detail/order-audit-trail";
@@ -71,17 +72,24 @@ export function GatewayOrderDetailView({
         source="gateway"
         status={order.orderStatus}
         actions={
-          isCancellable ? (
-            <OrderCancelDialog
-              isPending={cancelMutation.isPending}
-              onConfirm={(reason, close) =>
-                cancelMutation.mutate(
-                  { orderId, data: { reason } },
-                  { onSuccess: close },
-                )
-              }
+          <>
+            <OrderRefundLink
+              orderId={order.id}
+              orderNumber={order.orderNumber}
+              paymentStatus={order.paymentStatus}
             />
-          ) : undefined
+            {isCancellable && (
+              <OrderCancelDialog
+                isPending={cancelMutation.isPending}
+                onConfirm={(reason, close) =>
+                  cancelMutation.mutate(
+                    { orderId, data: { reason } },
+                    { onSuccess: close },
+                  )
+                }
+              />
+            )}
+          </>
         }
       />
 

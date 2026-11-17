@@ -32,7 +32,7 @@ describe("templateChangeWarning", () => {
   });
 
   it("warns moving from the listing strip to a band slot", () => {
-    expect(templateChangeWarning("listing-top", "home-after-categories", 2)).toEqual({ from: "strip", to: "band" });
+    expect(templateChangeWarning("listing-top", "home-after-hero", 2)).toEqual({ from: "strip", to: "band" });
   });
 
   it("stays silent when there is no art to be cropped yet", () => {

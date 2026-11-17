@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { ordersService } from "./orders.service";
 import { allOrdersRowToAdminRow } from "../utils/order-utils";
+import { pickRefundPayment } from "../utils/refund-payment";
 import type {
   AdminBankAccount,
   AdminOrderListParams,
@@ -179,6 +180,20 @@ export function useGatewayOrderDetail(orderId: string) {
     queryKey: [...ordersKeys.all, "gateway-detail", orderId] as const,
     queryFn: () => ordersService.getGatewayOrderDetail(orderId),
     enabled: !!orderId,
+  });
+}
+
+/** The payment to refund from the order page; pass `enabled` only for super admins. */
+export function useGatewayOrderPayment(
+  orderId: string,
+  orderNumber: string,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: [...ordersKeys.all, "gateway-payment", orderId] as const,
+    queryFn: () => ordersService.getGatewayOrderPayments(orderNumber),
+    select: (res) => pickRefundPayment(res.data ?? [], orderId),
+    enabled: enabled && !!orderNumber,
   });
 }
 

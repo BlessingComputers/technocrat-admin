@@ -20,7 +20,7 @@ export type PlacementGroup = "home" | "listings";
 
 export type PlacementKey =
   // Home page, in page order.
-  | "home-after-categories"
+  | "home-after-hero"
   | "home-after-shelf"
   | "home-after-value"
   | "home-before-bike"
@@ -69,8 +69,8 @@ export interface PlacementSpec {
 }
 
 export const PLACEMENTS: Record<PlacementKey, PlacementSpec> = {
-  "home-after-categories": {
-    label: "Home — between Categories and the shelf",
+  "home-after-hero": {
+    label: "Home — between the hero and Categories",
     group: "home",
     order: 0,
     template: "band",
@@ -102,8 +102,8 @@ export const PLACEMENTS: Record<PlacementKey, PlacementSpec> = {
   },
 };
 
-/** Backend default for rows created without a placement is "home-after-hero", which renders nowhere; the form always sends this instead. */
-export const DEFAULT_PLACEMENT: PlacementKey = "home-after-categories";
+/** Also the backend's default for rows created without a placement, so such rows land in this slot. The form always sends a placement. */
+export const DEFAULT_PLACEMENT: PlacementKey = "home-after-hero";
 
 export const PLACEMENT_KEYS = Object.keys(PLACEMENTS) as PlacementKey[];
 
