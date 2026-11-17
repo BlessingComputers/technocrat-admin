@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 import { sharedDiscountMagnitude, type Deal } from "../types/deals";
-import { dealWindow, overlapPairs, overviewRange, timingLine } from "../utils/deal-groups";
+import { dealWindow, overlapPairs, overviewHeading, overviewRange, timingLine } from "../utils/deal-groups";
 import { formatDealTime } from "../utils/deal-timing";
 
 const DAY_LABEL = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric" });
@@ -47,7 +47,7 @@ export function DealOverview({
 
   return (
     <Card className="gap-0 p-5 sm:p-6">
-      <h2 className="text-base font-semibold">The next two weeks</h2>
+      <h2 className="text-base font-semibold">{overviewHeading(range, now)}</h2>
       <p className="mt-0.5 mb-5 text-xs text-muted-foreground">
         Running and coming-up deals. Select one on the left for its targets and actions.
       </p>
