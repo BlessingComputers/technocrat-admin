@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AppIcon } from "@/components/shared/app-icon";
-import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
+import { CountdownConfirmButton } from "@/components/shared/countdown-confirm-button";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
 import {
@@ -750,18 +750,18 @@ export function FooterButtons({ children }: { children: ReactNode }) {
   );
 }
 
-/** The replace step: a warning strip with Back and a hold-to-confirm save. */
+/** The replace step: a warning strip with Back and a countdown-to-confirm save. */
 export function ReplaceConfirm({
   title,
   detail,
-  holdLabel,
+  confirmLabel,
   onBack,
   onConfirm,
   pending,
 }: {
   title: string;
   detail: string;
-  holdLabel: string;
+  confirmLabel: string;
   onBack: () => void;
   onConfirm: () => void;
   pending: boolean;
@@ -788,13 +788,13 @@ export function ReplaceConfirm({
         >
           Back
         </Button>
-        <HoldToConfirmButton
+        <CountdownConfirmButton
           onConfirm={onConfirm}
           disabled={pending}
           className="h-10 min-w-59 rounded-lg font-semibold max-sm:min-w-0"
         >
-          {pending ? "Saving…" : holdLabel}
-        </HoldToConfirmButton>
+          {pending ? "Saving…" : confirmLabel}
+        </CountdownConfirmButton>
       </FooterButtons>
     </>
   );
