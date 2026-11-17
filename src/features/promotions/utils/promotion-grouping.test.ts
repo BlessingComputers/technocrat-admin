@@ -38,37 +38,37 @@ function slot(promotions: Promotion[], placement: string): string[] {
 describe("groupByPlacement", () => {
   it("buckets by slot and sorts each by position", () => {
     const grouped = groupByPlacement([
-      promo("b", "home-after-hero", 1),
-      promo("a", "home-after-hero", 0),
-      promo("c", "catalog-top", 0),
+      promo("b", "home-after-categories", 1),
+      promo("a", "home-after-categories", 0),
+      promo("c", "listing-top", 0),
     ]);
-    expect(grouped.placed["home-after-hero"]?.map((p) => p.id)).toEqual(["a", "b"]);
-    expect(grouped.placed["catalog-top"]?.map((p) => p.id)).toEqual(["c"]);
+    expect(grouped.placed["home-after-categories"]?.map((p) => p.id)).toEqual(["a", "b"]);
+    expect(grouped.placed["listing-top"]?.map((p) => p.id)).toEqual(["c"]);
     expect(grouped.unplaced).toEqual([]);
   });
 
   it("sends a key this build does not know to unplaced, not to the default slot", () => {
-    // Falling back to home-after-hero here would put a banner on the homepage
+    // Falling back to home-after-categories here would put a banner on the homepage
     // that the storefront renders nowhere — the two must not disagree.
     const grouped = groupByPlacement([promo("x", "home-after-carousel-v2", 0)]);
     expect(grouped.unplaced.map((p) => p.id)).toEqual(["x"]);
-    expect(grouped.placed["home-after-hero"]).toBeUndefined();
+    expect(grouped.placed["home-after-categories"]).toBeUndefined();
   });
 
   it("breaks a position tie by age, so the order does not flicker", () => {
     const grouped = groupByPlacement([
-      promo("newer", "catalog-top", 0, "2026-05-01T00:00:00.000Z"),
-      promo("older", "catalog-top", 0, "2026-01-01T00:00:00.000Z"),
+      promo("newer", "listing-top", 0, "2026-05-01T00:00:00.000Z"),
+      promo("older", "listing-top", 0, "2026-01-01T00:00:00.000Z"),
     ]);
-    expect(grouped.placed["catalog-top"]?.map((p) => p.id)).toEqual([
+    expect(grouped.placed["listing-top"]?.map((p) => p.id)).toEqual([
       "older",
       "newer",
     ]);
   });
 
   it("leaves slots with nothing in them absent rather than empty", () => {
-    const grouped = groupByPlacement([promo("a", "hero-panel", 0)]);
-    expect(Object.keys(grouped.placed)).toEqual(["hero-panel"]);
+    const grouped = groupByPlacement([promo("a", "home-after-categories", 0)]);
+    expect(Object.keys(grouped.placed)).toEqual(["home-after-categories"]);
   });
 });
 
@@ -113,10 +113,10 @@ describe("reorderWithin", () => {
       promo("a", "home-after-value", 0),
       promo("b", "home-after-value", 1),
       promo("c", "home-after-value", 2),
-      promo("x", "home-after-brands", 0),
+      promo("x", "home-after-shelf", 0),
     ];
-    const result = reorderWithin(across, "b", "home-after-brands", 0)!;
-    expect(slot(result.promotions, "home-after-brands")).toEqual(["b", "x"]);
+    const result = reorderWithin(across, "b", "home-after-shelf", 0)!;
+    expect(slot(result.promotions, "home-after-shelf")).toEqual(["b", "x"]);
     // The gap "b" left behind is closed in the same payload.
     expect(slot(result.promotions, "home-after-value")).toEqual(["a", "c"]);
     expect(
@@ -141,9 +141,9 @@ describe("reorderWithin", () => {
 
   it("can rescue an unplaced promotion into a real slot", () => {
     const stray = [promo("lost", "home-after-carousel-v2", 0)];
-    const result = reorderWithin(stray, "lost", "home-after-hero", 0)!;
+    const result = reorderWithin(stray, "lost", "home-after-categories", 0)!;
     expect(result.entries).toEqual([
-      { id: "lost", placement: "home-after-hero", position: 0 },
+      { id: "lost", placement: "home-after-categories", position: 0 },
     ]);
   });
 });

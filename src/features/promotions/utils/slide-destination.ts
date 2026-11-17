@@ -20,7 +20,8 @@
  * Category and brand destinations are stored as resolved paths, not slugs,
  * which means the storefront needs no vocabulary at all: it renders what it is
  * given. The cost is that renaming the catalog's query params would strand
- * saved links, which is why `CATALOG_PARAM` below is the one place they appear.
+ * saved links, which is why `CATEGORY_PREFIX`, `LISTING_PATH` and `BRAND_PARAM`
+ * below are the one place they appear.
  */
 
 /** Which kind of destination the editor is currently authoring. */
@@ -33,19 +34,21 @@ export type DestinationKind =
   | "external";
 
 /**
- * The storefront's catalog route and its filter keys, mirrored from
- * `blessingcomputers/src/features/catalog/lib/catalog-filter-config.ts`. Two
- * repos, one contract; changing a key there is a data migration here.
+ * The Technocrat storefront's listing routes (technocrat/storefront:
+ * `src/app/(root)/category/[slug]`, `src/app/(root)/shop/products`). Its
+ * `features/promotions/model/slide-link.ts` reads these same shapes back;
+ * changing one is a data migration for saved slides.
  */
-const CATALOG_PATH = "/product";
-const CATALOG_PARAM = { category: "category", brand: "brand", page: "page" };
+const CATEGORY_PREFIX = "/category/";
+const LISTING_PATH = "/shop/products";
+const BRAND_PARAM = "brand";
 
 export function buildCategoryPath(slug: string): string {
-  return `${CATALOG_PATH}?${CATALOG_PARAM.page}=1&${CATALOG_PARAM.category}=${encodeURIComponent(slug)}`;
+  return `${CATEGORY_PREFIX}${encodeURIComponent(slug)}`;
 }
 
 export function buildBrandPath(slug: string): string {
-  return `${CATALOG_PATH}?${CATALOG_PARAM.page}=1&${CATALOG_PARAM.brand}=${encodeURIComponent(slug)}`;
+  return `${LISTING_PATH}?${BRAND_PARAM}=${encodeURIComponent(slug)}`;
 }
 
 // Quick picks for "page" mode used to live here as a hardcoded array, and went
@@ -127,6 +130,15 @@ export interface ParsedDestination {
   value: string;
 }
 
+/** A hand-typed path with bad percent-encoding must not throw in the editor. */
+function safeDecode(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Read stored columns back into the mode the editor should open in.
  *
@@ -145,11 +157,11 @@ export function parseDestination(columns: SlideLinkColumns): ParsedDestination {
 
   if (isInternalPath(value)) {
     const [path, query = ""] = value.split("?");
-    if (path === CATALOG_PATH && query) {
-      const params = new URLSearchParams(query);
-      const category = params.get(CATALOG_PARAM.category);
-      if (category) return { kind: "category", slug: category, value };
-      const brand = params.get(CATALOG_PARAM.brand);
+    const category = /^\/category\/([^/]+)\/?$/.exec(path);
+    const categorySlug = category ? safeDecode(category[1]) : null;
+    if (categorySlug) return { kind: "category", slug: categorySlug, value };
+    if (path === LISTING_PATH && query) {
+      const brand = new URLSearchParams(query).get(BRAND_PARAM);
       if (brand) return { kind: "brand", slug: brand, value };
     }
     return { kind: "page", slug: null, value };
@@ -185,7 +197,7 @@ export function validateDestination(
     return 'A page path starts with a single "/" — "//" points at another site.';
   }
   if (!isInternalPath(value)) {
-    return 'A page on this site starts with "/", for example /product?page=1.';
+    return 'A page on this site starts with "/", for example /shop/products.';
   }
   return null;
 }

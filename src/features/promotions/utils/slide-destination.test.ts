@@ -9,6 +9,20 @@ import {
 } from "./slide-destination";
 
 describe("parseDestination", () => {
+  it("builds the Technocrat storefront's own category and brand paths", () => {
+    expect(buildCategoryPath("gaming-laptops")).toBe("/category/gaming-laptops");
+    expect(buildBrandPath("hp")).toBe("/shop/products?brand=hp");
+  });
+
+  it("reads the listing route with no brand as a page", () => {
+    expect(
+      parseDestination({ productSlug: null, externalUrl: "/shop/products" }).kind,
+    ).toBe("page");
+    expect(
+      parseDestination({ productSlug: null, externalUrl: "/category/a/b" }).kind,
+    ).toBe("page");
+  });
+
   it("reads a product link off productSlug", () => {
     expect(
       parseDestination({ productSlug: "dell-xps-15", externalUrl: null }),

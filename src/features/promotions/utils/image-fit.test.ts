@@ -3,8 +3,7 @@ import { TEMPLATES } from "../constants/placements";
 import { RATIO_TOLERANCE, assessFit } from "./image-fit";
 
 const BAND = TEMPLATES.band.desktop; // 2400 × 1000
-const WIDE = TEMPLATES.wide.desktop; // 2400 × 1350
-const HERO = TEMPLATES.hero.desktop; // 2560 × 1280
+const STRIP = TEMPLATES.strip.desktop; // 2400 × 600
 
 describe("assessFit", () => {
   it("calls an exact export exact", () => {
@@ -37,15 +36,14 @@ describe("assessFit", () => {
     expect(fit.message).toContain("top and bottom");
   });
 
-  it("flags a 12:5 file dropped on a 16:9 slot, and names the other axis", () => {
-    const fit = assessFit({ w: 2400, h: 1000 }, WIDE);
+  it("flags a 4:1 file dropped on a 12:5 slot, and names the other axis", () => {
+    const fit = assessFit({ w: 2400, h: 600 }, BAND);
     expect(fit.status).toBe("mismatch");
     expect(fit.message).toContain("left and right");
   });
 
-  it("treats a portrait photo on the hero slot as a mismatch", () => {
-    // The hero is 2:1 landscape; a phone photo is 3:4.
-    expect(assessFit({ w: 1200, h: 1600 }, HERO).status).toBe("mismatch");
+  it("treats a portrait photo on the strip as a mismatch", () => {
+    expect(assessFit({ w: 1200, h: 1600 }, STRIP).status).toBe("mismatch");
   });
 
   it("holds the tolerance boundary — just inside passes, just outside warns", () => {
@@ -57,10 +55,7 @@ describe("assessFit", () => {
   });
 
   it("never reports exact for the right pixels on the wrong template", () => {
-    // The hero export is 2560 × 1280 (2:1); band is 12:5, 17% flatter. This is
-    // the pair the hero's desktop ratio was chosen to keep apart — at the 16:7
-    // it was first cut at, the two sat inside the ±5% tolerance and the
-    // uploader would have called a hero file a clean fit for a band slot.
-    expect(assessFit(HERO, BAND).status).toBe("mismatch");
+    // A strip export is 4:1; band is 12:5. Same width, so only the ratio check keeps them apart.
+    expect(assessFit(STRIP, BAND).status).toBe("mismatch");
   });
 });

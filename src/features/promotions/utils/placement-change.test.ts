@@ -24,48 +24,28 @@ function promo(overrides: Partial<Promotion> & { id: string }): Promotion {
 
 describe("templateChangeWarning", () => {
   it("stays silent moving between two band slots — the daily case", () => {
-    // Eight of eleven slots are band. Warning here would train staff to ignore
-    // the warning that actually matters.
-    expect(
-      templateChangeWarning("home-after-value", "home-after-brands", 3),
-    ).toBeNull();
+    expect(templateChangeWarning("home-after-value", "home-after-shelf", 3)).toBeNull();
   });
 
-  it("warns moving from a band slot to the wide slot", () => {
-    expect(templateChangeWarning("home-after-value", "home-after-hero", 1)).toEqual({
-      from: "band",
-      to: "wide",
-    });
+  it("warns moving from a band slot to the listing strip", () => {
+    expect(templateChangeWarning("home-after-value", "listing-top", 1)).toEqual({ from: "band", to: "strip" });
   });
 
-  it("warns moving into the full-bleed hero, which is 16:7", () => {
-    expect(templateChangeWarning("home-after-hero", "hero-panel", 2)).toEqual({
-      from: "wide",
-      to: "hero",
-    });
+  it("warns moving from the listing strip to a band slot", () => {
+    expect(templateChangeWarning("listing-top", "home-after-categories", 2)).toEqual({ from: "strip", to: "band" });
   });
 
   it("stays silent when there is no art to be cropped yet", () => {
-    expect(templateChangeWarning("home-after-value", "hero-panel", 0)).toBeNull();
+    expect(templateChangeWarning("home-after-value", "listing-top", 0)).toBeNull();
   });
 
   it("stays silent on a slot that has not moved", () => {
-    expect(
-      templateChangeWarning("home-after-value", "home-after-value", 5),
-    ).toBeNull();
+    expect(templateChangeWarning("home-after-value", "home-after-value", 5)).toBeNull();
   });
 
   it("stays silent when either end is a key this build does not know", () => {
-    // An unplaced promotion has no template, so there is no shape to compare.
-    expect(templateChangeWarning("legacy-slot", "home-after-hero", 4)).toBeNull();
-    expect(templateChangeWarning("home-after-hero", "legacy-slot", 4)).toBeNull();
-  });
-
-  it("crosses surfaces without warning when the template happens to match", () => {
-    // pdp-below-gallery is band too; art carries over untouched.
-    expect(
-      templateChangeWarning("home-after-brands", "pdp-below-gallery", 2),
-    ).toBeNull();
+    expect(templateChangeWarning("legacy-slot", "home-after-shelf", 4)).toBeNull();
+    expect(templateChangeWarning("home-after-shelf", "legacy-slot", 4)).toBeNull();
   });
 });
 
@@ -73,13 +53,13 @@ describe("findConflictingFallback", () => {
   const evergreen = promo({
     id: "evergreen",
     isFallback: true,
-    placement: "catalog-top",
+    placement: "listing-top",
   });
 
   it("finds the sitting fallback in the same slot", () => {
     expect(
       findConflictingFallback([evergreen], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: null,
       })?.id,
     ).toBe("evergreen");
@@ -89,7 +69,7 @@ describe("findConflictingFallback", () => {
     expect(
       findConflictingFallback([evergreen], {
         id: "evergreen",
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: null,
       }),
     ).toBeNull();
@@ -100,18 +80,18 @@ describe("findConflictingFallback", () => {
     const laptops = promo({
       id: "laptops",
       isFallback: true,
-      placement: "catalog-top",
+      placement: "listing-top",
       targetCategorySlug: "laptops",
     });
     expect(
       findConflictingFallback([laptops], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: "accessories",
       }),
     ).toBeNull();
     expect(
       findConflictingFallback([laptops], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: "laptops",
       })?.id,
     ).toBe("laptops");
@@ -120,7 +100,7 @@ describe("findConflictingFallback", () => {
   it("treats a site-wide fallback and a targeted one as different spots", () => {
     expect(
       findConflictingFallback([evergreen], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: "laptops",
       }),
     ).toBeNull();
@@ -129,7 +109,7 @@ describe("findConflictingFallback", () => {
   it("ignores an archived fallback, which can no longer render", () => {
     expect(
       findConflictingFallback([promo({ ...evergreen, status: "ARCHIVED" })], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: null,
       }),
     ).toBeNull();
@@ -138,7 +118,7 @@ describe("findConflictingFallback", () => {
   it("counts a DRAFT fallback, so two do not go live together later", () => {
     expect(
       findConflictingFallback([promo({ ...evergreen, status: "DRAFT" })], {
-        placement: "catalog-top",
+        placement: "listing-top",
         targetCategorySlug: null,
       })?.id,
     ).toBe("evergreen");
@@ -146,8 +126,8 @@ describe("findConflictingFallback", () => {
 
   it("ignores a non-fallback campaign sitting in the same slot", () => {
     expect(
-      findConflictingFallback([promo({ id: "campaign", placement: "catalog-top" })], {
-        placement: "catalog-top",
+      findConflictingFallback([promo({ id: "campaign", placement: "listing-top" })], {
+        placement: "listing-top",
         targetCategorySlug: null,
       }),
     ).toBeNull();
@@ -156,7 +136,7 @@ describe("findConflictingFallback", () => {
   it("ignores a fallback in a different slot", () => {
     expect(
       findConflictingFallback([evergreen], {
-        placement: "parts-top",
+        placement: "home-before-bike",
         targetCategorySlug: null,
       }),
     ).toBeNull();

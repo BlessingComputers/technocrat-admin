@@ -29,17 +29,16 @@ export interface StorefrontPage {
  * added on 2026-09-01 only to close the gap that exposed the problem: the page
  * had shipped on the storefront and this list, being the only list, never
  * learnt about it.
+ *
+ * The Technocrat storefront has no /api/link-targets route, so this list is
+ * what managers see; it was Blessing's until 2026-11-09.
  */
 export const FALLBACK_STOREFRONT_PAGES: StorefrontPage[] = [
   { path: "/", label: "Home" },
-  { path: "/product?page=1", label: "All products" },
-  { path: "/parts", label: "Parts catalog" },
-  { path: "/preorders", label: "Pre-orders" },
-  { path: "/about", label: "About us" },
-  { path: "/support", label: "Support" },
+  { path: "/shop/products", label: "All products" },
+  { path: "/shop/parts", label: "Parts catalog" },
+  { path: "/evs", label: "EVs" },
+  { path: "/services", label: "Services" },
+  { path: "/company", label: "Company" },
   { path: "/contact", label: "Contact" },
-  { path: "/locations", label: "Locations" },
-  { path: "/enterprise", label: "Enterprise" },
-  { path: "/partners", label: "Partners" },
-  { path: "/blog", label: "Blog" },
 ];
