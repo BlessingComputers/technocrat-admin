@@ -62,7 +62,7 @@ export function assignUniqueSlugs<T extends { name?: string; slug?: string }>(
  * nothing. `matchAll` inherits `lastIndex` too, so it is not immune.
  */
 const PRICE_TOKEN_SOURCE =
-  "(?<=^|[\\s(\\[])[@#₦N]\\s*([\\d,]*\\d(?:\\.\\d+)?)\\s*([kKmM])?";
+  "(?<=^|[\\s(\\[])[@#₦N]\\s*([\\d,]*\\d(?:\\.\\d+)?)\\s*([kKmM](?![a-zA-Z]))?";
 
 /** Non-global, so `test` never advances a cursor. Safe to share. */
 const PRICE_TOKEN_TEST_RE = new RegExp(PRICE_TOKEN_SOURCE, "mu");

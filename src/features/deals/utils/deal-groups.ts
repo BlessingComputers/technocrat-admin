@@ -98,6 +98,12 @@ export function overviewRange(now: number, deals: Deal[] = []): RailRange {
   return { start: now - 4 * DAY_MS, end: Math.max(now + 16 * DAY_MS, latestStart + 2 * DAY_MS) };
 }
 
+/** The overview's heading. Counts the weeks ahead once the range stretches past day sixteen. */
+export function overviewHeading(range: RailRange, now: number): string {
+  if (range.end <= now + 16 * DAY_MS) return "The next two weeks";
+  return `The next ${Math.ceil((range.end - now) / (7 * DAY_MS))} weeks`;
+}
+
 /** The row's timing line. The wording of the old table's timing cell, one line. */
 export function timingLine(deal: Deal, now: number): string {
   const expiry = dealExpiry(deal.expiresAt, now);

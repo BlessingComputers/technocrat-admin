@@ -570,7 +570,7 @@ export function MarkupRuleFormDialog({
                     changing != null ? `${changing.toLocaleString("en-NG")} variant${changing === 1 ? "" : "s"}` : "their variants"
                   } now?`}
                   detail={KEEPS_RUNNING}
-                  holdLabel={`Hold to turn off ${toReplace.length} and save`}
+                  confirmLabel={`Turn off ${toReplace.length} and save`}
                   onBack={() => setStep("form")}
                   onConfirm={confirmReplace}
                   pending={isSubmitting}

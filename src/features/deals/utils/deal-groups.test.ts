@@ -7,6 +7,7 @@ import {
   dealWindow,
   groupDeals,
   overlapPairs,
+  overviewHeading,
   overviewRange,
   timeOverlaps,
   timingLine,
@@ -146,6 +147,17 @@ describe("overviewRange", () => {
     const near = deal({ status: "SCHEDULED", startsAt: iso(NOW + 3 * DAY_MS) });
     expect(overviewRange(NOW, [near, far]).end).toBe(NOW + 32 * DAY_MS);
     expect(overviewRange(NOW, [near]).end).toBe(NOW + 16 * DAY_MS);
+  });
+});
+
+describe("overviewHeading", () => {
+  it("says two weeks for the default range", () => {
+    expect(overviewHeading(overviewRange(NOW), NOW)).toBe("The next two weeks");
+  });
+  it("counts the weeks, rounded up, when the range stretches", () => {
+    const at = (days: number) => [deal({ status: "SCHEDULED", startsAt: iso(NOW + days * DAY_MS) })];
+    expect(overviewHeading(overviewRange(NOW, at(16)), NOW)).toBe("The next 3 weeks");
+    expect(overviewHeading(overviewRange(NOW, at(30)), NOW)).toBe("The next 5 weeks");
   });
 });
 

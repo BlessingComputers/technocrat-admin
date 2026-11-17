@@ -89,6 +89,12 @@ describe("extractPriceTokens", () => {
   it("returns empty for text with no price markers", () => {
     expect(extractPriceTokens("16 GB RAM, 256 GB SSD")).toEqual([]);
   });
+
+  it("does not read the first letter of the next word as a k/M suffix", () => {
+    expect(extractPriceTokens("N85,000 mouse")).toEqual([85_000]);
+    expect(extractPriceTokens("#650,000 Midnight blue")).toEqual([650_000]);
+    expect(extractPriceTokens("@45k, @1.1M.")).toEqual([45_000, 1_100_000]);
+  });
 });
 
 describe("priceMatchesRawText", () => {

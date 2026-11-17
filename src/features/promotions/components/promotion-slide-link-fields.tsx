@@ -324,7 +324,7 @@ export function PromotionSlideLinkFields({
           )}
           <Input
             id={`${idPrefix}-path`}
-            placeholder="/product?category=laptops&sort=price_asc"
+            placeholder="/shop/products?category=laptops&sort=price_asc"
             value={value.externalUrl ?? ""}
             onChange={(e) =>
               onChange({ ...value, externalUrl: e.target.value, targetName: null })
