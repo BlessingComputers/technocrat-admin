@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils/cn";
 import {
   filterNavByPermissions,
   isSuperAdmin,
-  type StaffSession,
 } from "@/lib/auth/permissions";
+import { useStaffSession } from "@/lib/auth/session-context";
 import type { NavGroup, NavItem } from "@/types/nav";
 import {
   Sidebar,
@@ -72,7 +72,6 @@ function ConditionalDropdownTrigger({
 interface AppSidebarProps {
   /** Raw nav config, injected by the (staff) layout (components can't import config). */
   navGroups: NavGroup[];
-  staffSession?: StaffSession | null;
 }
 
 /**
@@ -233,7 +232,10 @@ function NavParentRow({
  * nav list carries no horizontal padding and the rows carry it instead; padding
  * on the list would inset the fill and lose the effect.
  */
-export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) {
+export function AppSidebar({ navGroups }: AppSidebarProps) {
+  // The client session, not the layout's server one: when the server render
+  // had an expired token, this recovers after the silent refresh.
+  const { staffSession } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
   const { railCollapsed, toggleRail } = useSidebar();

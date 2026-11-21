@@ -12,10 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  type StaffSession,
-  filterHelpDocsByPermissions,
-} from "@/lib/auth/permissions";
+import { filterHelpDocsByPermissions } from "@/lib/auth/permissions";
 import { usePermissions } from "@/lib/auth/use-permissions";
 import type { HelpDoc } from "@/types/help";
 import { NotificationBell } from "@/features/notifications";
@@ -24,7 +21,6 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 interface TopbarProps {
-  staffSession?: StaffSession | null;
   /** Help docs for the header dropdown — injected from the layout (app layer). */
   helpDocs?: HelpDoc[];
 }
