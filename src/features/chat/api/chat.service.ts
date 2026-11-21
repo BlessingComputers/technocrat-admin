@@ -12,11 +12,9 @@ import type { AiEscalationReason, AiState } from "../types/chat.contract";
 
 /**
  * Chat data access. These REST calls seed initial history; live updates arrive
- * over Socket.IO (see `chat-socket.ts`). The backend wraps responses in a
- * `{ status, message, data }` envelope that the shared client does NOT
- * auto-unwrap (it only unwraps a boolean `success` field), so every method peels
- * `.data` via `unwrapEnvelope` before normalizing — matching the rest of the
- * admin app (`customer.service.ts`).
+ * over Socket.IO (see `chat-socket.ts`). The shared client unwraps the
+ * backend's `{ status, message, data }` envelope, so each method gets the inner
+ * payload.
  *
  * The chat REST responses have no schema in the OpenAPI spec (ADR-0006 note in
  * types/chat.ts), so the live shapes aren't guaranteed. Each response is
@@ -96,8 +94,7 @@ function staffDisplayName(
 ): string | undefined {
   if (!staff) return undefined;
   const full =
-    staff.name ??
-    `${staff.firstName ?? ""} ${staff.lastName ?? ""}`.trim();
+    staff.name ?? `${staff.firstName ?? ""} ${staff.lastName ?? ""}`.trim();
   return full || undefined;
 }
 
@@ -119,7 +116,8 @@ function customerDisplayName(
   customers: RawConversation["customers"],
 ): string | undefined {
   if (!customers) return undefined;
-  const full = `${customers.firstName ?? ""} ${customers.lastName ?? ""}`.trim();
+  const full =
+    `${customers.firstName ?? ""} ${customers.lastName ?? ""}`.trim();
   return full || undefined;
 }
 
@@ -137,7 +135,9 @@ function normalizeConversation(raw: RawConversation): ConversationSummary {
     customerPhone: raw.customers?.phone ?? null,
     assignedStaffId: raw.assignedStaffId ?? raw.assignedStaff?.id ?? null,
     assignedStaffName:
-      staffDisplayName(raw.assignedStaff) ?? staffDisplayName(raw.staff) ?? null,
+      staffDisplayName(raw.assignedStaff) ??
+      staffDisplayName(raw.staff) ??
+      null,
     assignedStaffAvatar:
       raw.assignedStaff?.avatarUrl ?? raw.staff?.avatarUrl ?? null,
     // `lastMessage` is the current live field (confirmed schema, CONTRACT.md
@@ -239,25 +239,6 @@ function normalizeConversationDetail(
   };
 }
 
-/**
- * Peel the backend response envelope so normalizers see the real payload.
- *
- * The backend wraps REST responses as `{ status: 'success', message, data }`.
- * The shared client (`lib/api/client.ts`) only auto-unwraps envelopes whose
- * `success` field is a boolean, so this `status`-based envelope reaches services
- * INTACT — every other admin service unwraps `.data` itself (see
- * `customer.service.ts`: `"data" in root ? root.data : root`). The chat detail /
- * notes / staff-room reads previously skipped this step, so they read one level
- * too high (`payload.history` was actually at `payload.data.history`) and came
- * back empty. Idempotent: the inner payload has no top-level `data` key, so a
- * genuinely-unwrapped body passes through unchanged.
- */
-function unwrapEnvelope(body: unknown): unknown {
-  return body && typeof body === "object" && "data" in body
-    ? (body as { data: unknown }).data
-    : body;
-}
-
 // ── Service ─────────────────────────────────────────────────────────
 export const chatService = {
   /** Active conversations; `mine` restricts to the caller's assignments. */
@@ -265,7 +246,7 @@ export const chatService = {
     const data = await api.get<unknown>(API_ENDPOINTS.chat.conversations, {
       params: mine ? { mine: "true" } : undefined,
     });
-    return toRawConversationArray(unwrapEnvelope(data)).map(normalizeConversation);
+    return toRawConversationArray(data).map(normalizeConversation);
   },
 
   /** Full detail incl. customer, participants, message history and notes. */
@@ -276,7 +257,7 @@ export const chatService = {
     const data = await api.get<unknown>(API_ENDPOINTS.chat.conversation(id), {
       params: cursor ? { cursor } : undefined,
     });
-    return normalizeConversationDetail(unwrapEnvelope(data), id);
+    return normalizeConversationDetail(data, id);
   },
 
   /**
@@ -303,14 +284,10 @@ export const chatService = {
   },
 
   getNotes: async (id: string): Promise<ConversationNotes | null> =>
-    unwrapEnvelope(
-      await api.get<unknown>(API_ENDPOINTS.chat.conversationNotes(id)),
-    ) as ConversationNotes | null,
+    api.get<ConversationNotes | null>(API_ENDPOINTS.chat.conversationNotes(id)),
 
   getStaffRoomHistory: async (cursor?: string): Promise<StaffRoomHistory> =>
-    unwrapEnvelope(
-      await api.get<unknown>(API_ENDPOINTS.chat.staffRoomHistory, {
-        params: cursor ? { cursor } : undefined,
-      }),
-    ) as StaffRoomHistory,
+    api.get<StaffRoomHistory>(API_ENDPOINTS.chat.staffRoomHistory, {
+      params: cursor ? { cursor } : undefined,
+    }),
 };

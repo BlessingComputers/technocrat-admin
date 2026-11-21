@@ -44,44 +44,55 @@ interface ApiResponse<T = unknown> {
 
 // ─── Response Envelope Unwrapping (ADR-0007) ────────────────────────
 //
-// The backend wraps responses in `{ success, data, message }`. We unwrap in
-// THIS one place so services and codegen types speak inner payloads only — the
-// envelope never leaks into features. Robust to two unconfirmed backend facts:
-//   1. Trust the `success` flag, not just HTTP status — a `success: false`
-//      envelope throws ApiError EVEN ON HTTP 200 (some backends ride failures
-//      on a 200).
-//   2. Pass through non-envelope bodies unchanged (bare arrays, raw objects,
-//      plain text), so a non-conforming endpoint doesn't break.
+// The backend sends two envelope shapes. We unwrap both in THIS one place so
+// services speak inner payloads only. Do not peel `.data` again in a service.
+//   - `{ success: boolean, data, message? }`: the controllers' local `ok()`
+//     helpers (products, parts, every `/v1/admin/*` route).
+//   - `{ status: "success" | "error", message, data?, meta? }`: the backend's
+//     `ResponseUtil` (auth, rbac, chat, whatsapp, tax, sales-notifications).
+//     Matched only when every key is one of those four, so a domain object
+//     that happens to carry a `status` field is never mistaken for one.
+// A failure flag throws ApiError EVEN ON HTTP 200. Non-envelope bodies (bare
+// arrays, raw objects, plain text) pass through unchanged.
 //
-// KNOWN RISK to verify once codegen lands (ADR-0006): if list endpoints put
-// pagination metadata as a SIBLING of `data` (`{ success, data: [...], total }`)
-// rather than nested, unwrapping to `.data` drops `total`. Those endpoints must
-// then return the sibling meta too, or use the `{ raw: true }` hatch.
+// Unwrapping drops any sibling of `data` (`meta`, `total`, `facets`). Endpoints
+// that send pagination that way (`/v1/products/all`, the staff list) must be
+// read with the `{ raw: true }` hatch.
 
 interface ResponseEnvelope {
-  success: boolean;
+  ok: boolean;
   data?: unknown;
   message?: string;
 }
 
-function isEnvelope(body: unknown): body is ResponseEnvelope {
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    "success" in body &&
-    typeof (body as { success: unknown }).success === "boolean"
-  );
+const STATUS_ENVELOPE_KEYS = new Set(["status", "message", "data", "meta"]);
+
+function readEnvelope(body: unknown): ResponseEnvelope | null {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return null;
+  }
+  const b = body as Record<string, unknown>;
+  const message = typeof b.message === "string" ? b.message : undefined;
+  if (typeof b.success === "boolean") {
+    return { ok: b.success, data: b.data, message };
+  }
+  if (
+    (b.status === "success" || b.status === "error") &&
+    message !== undefined &&
+    Object.keys(b).every((k) => STATUS_ENVELOPE_KEYS.has(k))
+  ) {
+    return { ok: b.status === "success", data: b.data, message };
+  }
+  return null;
 }
 
 function unwrapEnvelope<T>(body: unknown, status: number): T {
-  if (isEnvelope(body)) {
-    if (!body.success) {
-      throw new ApiError(body.message || "Request failed", status, body);
-    }
-    return body.data as T;
+  const envelope = readEnvelope(body);
+  if (!envelope) return body as T;
+  if (!envelope.ok) {
+    throw new ApiError(envelope.message || "Request failed", status, body);
   }
-  // Non-envelope body — return as-is.
-  return body as T;
+  return envelope.data as T;
 }
 
 // ─── Refresh single-flight (cross-tab) ──────────────────────────────

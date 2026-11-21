@@ -27,9 +27,7 @@ interface StaffEnvelope {
 }
 
 /**
- * Coerce a list response to an array. The RBAC endpoints don't all use the
- * standard `{ success, data }` envelope the client unwraps (ADR-0007), so a
- * bare `{ data: [...] }` can arrive un-unwrapped — handle both. TODO(codegen,
+ * Coerce a list response to an array, bare or under `data`. TODO(codegen,
  * ADR-0006): drop once the response schemas are pinned.
  */
 function asArray<T>(value: unknown): T[] {

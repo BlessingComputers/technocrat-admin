@@ -15,67 +15,52 @@ import type {
  * Tax data access.
  *
  * The tax endpoints use the backend's `ResponseUtil` envelope
- * (`{ status, message, data }`, a STRING `status`). The shared admin client only
- * unwraps a BOOLEAN `success` envelope, so it leaves tax responses wrapped — we
- * peel `.data` here. (Product/part markup differs: it uses the `ok()` helper,
- * `{ success: true, data }`, which the client DOES unwrap — that's why the
- * markup services return payloads directly and this one doesn't.)
+ * (`{ status, message, data }`). The shared client unwraps it, so every method
+ * returns the inner payload.
  *
  * Path params take the rule's DB `id` (UUID), never the human `TAX-XXXXXXXX`.
  */
 
 const { tax, products } = API_ENDPOINTS;
 
-/** Peel the `ResponseUtil` envelope the shared client leaves intact for tax. */
-function unwrap<T>(root: unknown): T {
-  return (
-    root && typeof root === "object" && "data" in root
-      ? (root as { data: T }).data
-      : root
-  ) as T;
-}
-
 export const taxService = {
   // ── Store-wide setting ──────────────────────────────────────────────
-  getSetting: async () => unwrap<TaxSetting>(await api.get(tax.setting)),
+  getSetting: async () => api.get<TaxSetting>(tax.setting),
 
   updateSetting: async (data: TaxSettingInput) =>
-    unwrap<TaxSetting>(await api.put(tax.setting, data)),
+    api.put<TaxSetting>(tax.setting, data),
 
   // ── Product tax rules ───────────────────────────────────────────────
-  getRules: async () => unwrap<TaxRule[]>(await api.get(tax.rules)),
+  getRules: async () => api.get<TaxRule[]>(tax.rules),
 
-  createRule: async (data: TaxRuleInput) =>
-    unwrap<TaxRule>(await api.post(tax.rules, data)),
+  createRule: async (data: TaxRuleInput) => api.post<TaxRule>(tax.rules, data),
 
   updateRule: async (id: string, data: TaxRuleUpdateInput) =>
-    unwrap<TaxRule>(await api.patch(tax.rule(id), data)),
+    api.patch<TaxRule>(tax.rule(id), data),
 
   deleteRule: async (id: string) =>
-    unwrap<{ message: string }>(await api.delete(tax.rule(id))),
+    api.delete<{ message: string }>(tax.rule(id)),
 
   // ── Part tax rules ──────────────────────────────────────────────────
-  getPartRules: async () => unwrap<PartTaxRule[]>(await api.get(tax.partRules)),
+  getPartRules: async () => api.get<PartTaxRule[]>(tax.partRules),
 
   createPartRule: async (data: PartTaxRuleInput) =>
-    unwrap<PartTaxRule>(await api.post(tax.partRules, data)),
+    api.post<PartTaxRule>(tax.partRules, data),
 
   updatePartRule: async (id: string, data: TaxRuleUpdateInput) =>
-    unwrap<PartTaxRule>(await api.patch(tax.partRule(id), data)),
+    api.patch<PartTaxRule>(tax.partRule(id), data),
 
   deletePartRule: async (id: string) =>
-    unwrap<{ message: string }>(await api.delete(tax.partRule(id))),
+    api.delete<{ message: string }>(tax.partRule(id)),
 
   // ── Taxonomy for scope selects ──────────────────────────────────────
   // These endpoints live in lib (`API_ENDPOINTS`), so calling them here keeps
   // the feature-boundary rule intact — no import from features/products.
-  getCategories: async () =>
-    unwrap<TaxonomyOption[]>(await api.get(products.categories)),
+  getCategories: async () => api.get<TaxonomyOption[]>(products.categories),
 
-  getBrands: async () => unwrap<TaxonomyOption[]>(await api.get(products.brands)),
+  getBrands: async () => api.get<TaxonomyOption[]>(products.brands),
 
-  getPartTypes: async () =>
-    unwrap<TaxonomyOption[]>(await api.get(products.parts.types)),
+  getPartTypes: async () => api.get<TaxonomyOption[]>(products.parts.types),
 
   // ── Product search (exact-product scope) ────────────────────────────
   // Powers the "specific product" tax-rule scope. The list endpoint uses the
