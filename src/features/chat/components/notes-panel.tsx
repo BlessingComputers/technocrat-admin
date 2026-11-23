@@ -168,8 +168,15 @@ export function NotesPanel({
             name="leadStatus"
             render={({ field }) => (
               <Select
-                value={field.value ?? undefined}
-                onValueChange={(v) => field.onChange(v as LeadStatus)}
+                // Always controlled: `undefined` here made Radix flip between
+                // uncontrolled and controlled on every form reset (notes load,
+                // customer record load), with a console warning each time.
+                // "" shows the placeholder; no item has an empty value, so a
+                // real pick is never "" and Radix's own "" calls are ignored.
+                value={field.value ?? ""}
+                onValueChange={(v) => {
+                  if (v) field.onChange(v as LeadStatus);
+                }}
               >
                 <SelectTrigger className="w-full rounded-lg">
                   <SelectValue placeholder="Select status" />

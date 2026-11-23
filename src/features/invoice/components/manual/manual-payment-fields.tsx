@@ -68,8 +68,10 @@ export function ManualPaymentFields({
             Sales channel <span className="text-muted-foreground/60">(optional)</span>
           </Label>
           <Select
-            value={form.saleChannel || undefined}
-            onValueChange={(v) => onChange({ saleChannel: v })}
+            value={form.saleChannel || ""}
+            onValueChange={(v) => {
+              if (v) onChange({ saleChannel: v });
+            }}
           >
             <SelectTrigger className="h-11 w-full rounded-lg bg-muted/50 border-border font-semibold">
               <SelectValue placeholder="Walk in" />

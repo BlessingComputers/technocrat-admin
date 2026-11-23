@@ -213,10 +213,10 @@ export function BulkProductCard({
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Select
-                value={row.categoryId || undefined}
-                onValueChange={(v) =>
-                  onChange(row.id, { categoryId: v, subcategoryId: "" })
-                }
+                value={row.categoryId || ""}
+                onValueChange={(v) => {
+                  if (v) onChange(row.id, { categoryId: v, subcategoryId: "" });
+                }}
               >
                 <SelectTrigger className="w-full bg-card">
                   <SelectValue placeholder="Category" />
@@ -230,8 +230,10 @@ export function BulkProductCard({
                 </SelectContent>
               </Select>
               <Select
-                value={row.subcategoryId || undefined}
-                onValueChange={(v) => onChange(row.id, { subcategoryId: v })}
+                value={row.subcategoryId || ""}
+                onValueChange={(v) => {
+                  if (v) onChange(row.id, { subcategoryId: v });
+                }}
                 disabled={
                   !row.categoryId || subsLoading || subcategories.length === 0
                 }
@@ -258,8 +260,10 @@ export function BulkProductCard({
                 </SelectContent>
               </Select>
               <Select
-                value={row.brandId || undefined}
-                onValueChange={(v) => onChange(row.id, { brandId: v })}
+                value={row.brandId || ""}
+                onValueChange={(v) => {
+                  if (v) onChange(row.id, { brandId: v });
+                }}
               >
                 <SelectTrigger className="w-full bg-card">
                   <SelectValue placeholder="Brand" />
