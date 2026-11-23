@@ -8,6 +8,7 @@ import { ChatThread } from "./chat-thread";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ConnectionStatusBar } from "./connection-status-bar";
 import { NotesPanel } from "./notes-panel";
+import { ChatCustomerSummary } from "./chat-customer-summary";
 import { GroupDetailsPanel } from "./group-details-panel";
 import { ReassignMenu } from "./reassign-menu";
 import { AiStopControl } from "./ai-stop-control";
@@ -93,6 +94,14 @@ export function ChatWorkspaceView() {
       />
     ) : null;
 
+  const customerSummarySlot =
+    chat.selectedConversation?.channel === "LIVE_CHAT" ? (
+      <ChatCustomerSummary
+        customerId={chat.customerId}
+        record={chat.customerRecord}
+      />
+    ) : null;
+
   const threadContent = chat.selectedConversation ? (
     <ChatThread
       conversationId={chat.selectedConversation.id}
@@ -104,6 +113,7 @@ export function ChatWorkspaceView() {
       memberCount={chat.members.length || chat.selectedConversation.memberCount}
       customerEmail={chat.customerEmail}
       customerPhone={chat.customerPhone}
+      customerSummarySlot={customerSummarySlot}
       messages={chat.messages}
       currentStaffId={chat.currentStaffId}
       someoneTyping={chat.typingUserIds.length > 0}
@@ -150,6 +160,7 @@ export function ChatWorkspaceView() {
       customerName={chat.customerName}
       customerEmail={chat.customerEmail}
       customerPhone={chat.customerPhone}
+      customerSummarySlot={customerSummarySlot}
       onSave={chat.handleSaveNotes}
       onClose={() => setPanelState((state) => ({ ...state, open: false }))}
     />

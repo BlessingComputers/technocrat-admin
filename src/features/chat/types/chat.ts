@@ -97,6 +97,11 @@ export interface ConversationSummary {
   /** Customer contact, surfaced to prefill CRM notes. */
   customerEmail?: string | null;
   customerPhone?: string | null;
+  /**
+   * The customer's internal id (`Customer.id`, the one `/customers/[id]`
+   * takes). Sent on every conversation row; null for a row without a customer.
+   */
+  customerId?: string | null;
   assignedStaffId?: string | null;
   /** Assigned admin's display name/avatar (from the backend when available). */
   assignedStaffName?: string | null;
@@ -126,6 +131,19 @@ export interface ConversationSummary {
    * evidence that the AI stopped — read `aiState` for that.
    */
   aiEscalationReason?: AiEscalationReason | null;
+}
+
+/**
+ * The slice of the admin customer record (GET /v1/admin/customers/:id) the
+ * chat reads. The chat API never sends the customer's phone, so this is where
+ * the phone comes from, along with the paid-order count.
+ */
+export interface ChatCustomerRecord {
+  id: string;
+  phone?: string | null;
+  /** Paid orders only: a bank transfer order counts once its payment is validated. */
+  totalOrders?: number | null;
+  lastOrderAt?: string | null;
 }
 
 /** Full conversation detail returned by GET /chat/conversations/{id}. */

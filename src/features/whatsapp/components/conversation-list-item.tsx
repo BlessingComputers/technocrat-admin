@@ -2,10 +2,11 @@
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { cn } from "@/lib/utils/cn";
+import { formatListTimestamp, listTimestampTitle } from "@/lib/utils/list-timestamp";
 
 import { CONVERSATION_STATUS_STYLE } from "../constants/whatsapp-status";
 import type { WhatsAppConversation } from "../types/whatsapp";
-import { conversationTitle, formatWaId, relativeTime } from "../utils/whatsapp-format";
+import { conversationTitle, formatWaId } from "../utils/whatsapp-format";
 
 interface ConversationListItemProps {
   conversation: WhatsAppConversation;
@@ -50,9 +51,13 @@ export function ConversationListItem({
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
             {title}
           </span>
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-            {relativeTime(conversation.lastMessageAt ?? conversation.createdAt)}
-          </span>
+          <time
+            dateTime={conversation.lastMessageAt ?? conversation.createdAt}
+            title={listTimestampTitle(conversation.lastMessageAt ?? conversation.createdAt)}
+            className="shrink-0 text-xs tabular-nums text-muted-foreground"
+          >
+            {formatListTimestamp(conversation.lastMessageAt ?? conversation.createdAt)}
+          </time>
         </div>
 
         <div className="flex items-center gap-2">

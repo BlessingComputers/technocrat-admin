@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { formatListTimestamp, listTimestampTitle } from "@/lib/utils/list-timestamp";
 import { AppIcon } from "@/components/shared/app-icon";
 import { ChatAvatar } from "./chat-avatar";
 import { CustomerProfileDialog } from "./customer-profile-dialog";
-import { formatTime } from "../utils/chat-format";
 import { AI_ESCALATION_REASON_LABEL } from "../utils/chat-ai-state";
 import type { ConversationSummary } from "../types/chat";
 
@@ -93,9 +93,15 @@ export function ConversationListItem({
           <span className="truncate font-semibold text-foreground">
             {conversation.name ?? "Customer"}
           </span>
-          <span className="shrink-0 text-xs text-muted-foreground">
-            {formatTime(conversation.lastMessageAt)}
-          </span>
+          {conversation.lastMessageAt ? (
+            <time
+              dateTime={conversation.lastMessageAt}
+              title={listTimestampTitle(conversation.lastMessageAt)}
+              className="shrink-0 text-xs tabular-nums text-muted-foreground"
+            >
+              {formatListTimestamp(conversation.lastMessageAt)}
+            </time>
+          ) : null}
         </div>
 
         <div className="mt-0.5 flex items-center justify-between gap-2">

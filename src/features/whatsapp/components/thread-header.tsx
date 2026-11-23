@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AppIcon } from "@/components/shared/app-icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -85,6 +86,21 @@ export function ThreadHeader({
         </div>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
           <span className="tabular-nums">{formatWaId(conversation.waId)}</span>
+          <span aria-hidden>·</span>
+          {/* The store account behind this number, so staff don't search
+              Customers by phone. The backend never fills `customerId` today
+              (no phone-to-account linking; see whatsapp.worker.ts), so the
+              fallback says "not linked", not "no account": nobody checked. */}
+          {conversation.customerId ? (
+            <Link
+              href={`/customers/${conversation.customerId}`}
+              className="font-medium text-primary-ink underline-offset-2 hover:underline"
+            >
+              Customer page
+            </Link>
+          ) : (
+            <span>Not linked to a store account</span>
+          )}
           <span aria-hidden>·</span>
           <span>{conversation.conversationId}</span>
           {owner && (

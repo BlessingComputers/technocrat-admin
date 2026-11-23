@@ -1,6 +1,7 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
+  ChatCustomerRecord,
   ChatMessage,
   ChatProductCard,
   ConversationDetail,
@@ -38,6 +39,8 @@ interface RawConversation {
   name?: string | null;
   subject?: string | null;
   avatarUrl?: string | null;
+  /** `Customer.id`. The backend selects it on every row and the detail. */
+  customerId?: string | null;
   assignedStaffId?: string | null;
   lastMessagePreview?: string | null;
   /** Current live shape: the preview text itself, not an object (2026-08-01). */
@@ -133,6 +136,7 @@ function normalizeConversation(raw: RawConversation): ConversationSummary {
     avatarUrl: raw.avatarUrl ?? raw.customers?.avatarUrl ?? null,
     customerEmail: raw.customers?.email ?? null,
     customerPhone: raw.customers?.phone ?? null,
+    customerId: raw.customerId ?? null,
     assignedStaffId: raw.assignedStaffId ?? raw.assignedStaff?.id ?? null,
     assignedStaffName:
       staffDisplayName(raw.assignedStaff) ??
@@ -226,6 +230,7 @@ function normalizeConversationDetail(
     ...normalizeConversation({ ...conv, id: conv.id ?? conversationId }),
     customer: customers
       ? {
+          id: conv.customerId ?? null,
           name: customerDisplayName(customers) ?? "Customer",
           email: customers.email ?? null,
           phone: customers.phone ?? null,
@@ -282,6 +287,14 @@ export const chatService = {
   setAiState: async (id: string, aiState: AiState): Promise<void> => {
     await api.patch(API_ENDPOINTS.chat.conversationAi(id), { aiState });
   },
+
+  /**
+   * The customer behind a conversation, from the admin customers endpoint.
+   * Called here rather than through the customers feature, which this feature
+   * may not import (ARCHITECTURE.md rule 2); it reads only what the chat shows.
+   */
+  getCustomerRecord: async (customerId: string): Promise<ChatCustomerRecord> =>
+    api.get<ChatCustomerRecord>(API_ENDPOINTS.customerMgt.detail(customerId)),
 
   getNotes: async (id: string): Promise<ConversationNotes | null> =>
     api.get<ConversationNotes | null>(API_ENDPOINTS.chat.conversationNotes(id)),

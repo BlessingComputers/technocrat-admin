@@ -4,9 +4,18 @@ import { useEffect, useRef } from "react";
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isAiMessage } from "@/lib/constants/ai-sender";
+import { runStarts } from "@/lib/utils/message-runs";
 
 import { MessageBubble } from "./message-bubble";
 import type { WhatsAppMessage } from "../types/whatsapp";
+
+/** Who spoke, for grouping runs: the customer, the AI, or one staff member. */
+function senderKey(message: WhatsAppMessage): string {
+  if (message.senderType === "SYSTEM") return isAiMessage(message) ? "ai" : "system";
+  if (message.senderType === "CUSTOMER") return "customer";
+  return `staff:${message.senderId ?? ""}`;
+}
 
 interface MessageListProps {
   messages: WhatsAppMessage[];
@@ -48,10 +57,12 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     );
   }
 
+  const starts = runStarts(messages, senderKey);
+
   return (
     <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
-      {messages.map((m) => (
-        <MessageBubble key={m.id} message={m} />
+      {messages.map((m, i) => (
+        <MessageBubble key={m.id} message={m} startsRun={starts[i]} />
       ))}
       <div ref={endRef} />
     </div>

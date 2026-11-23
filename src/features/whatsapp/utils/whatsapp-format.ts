@@ -68,22 +68,6 @@ export function replyWindowState(
   };
 }
 
-/** Compact relative timestamp for list rows: "now", "12m", "3h", "2d". */
-export function relativeTime(
-  iso: string | null,
-  now: number = Date.now(),
-): string {
-  if (!iso) return "";
-  const diff = now - new Date(iso).getTime();
-  if (!Number.isFinite(diff)) return "";
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}
-
 /** Wall-clock time for message bubbles, e.g. "14:05". */
 export function messageTime(iso: string): string {
   const date = new Date(iso);

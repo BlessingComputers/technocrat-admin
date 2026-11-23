@@ -131,6 +131,7 @@ export function OrderDetailView({ manualOrderId }: OrderDetailViewProps) {
           <OrderCustomerCard
             customer={{
               name: `${order.customer?.firstName ?? ""} ${order.customer?.lastName ?? ""}`.trim(),
+              id: order.customer?.id,
               customerId: order.customer?.customerId,
               email: order.customer?.email,
               phone: order.customer?.phone,

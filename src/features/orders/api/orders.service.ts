@@ -79,6 +79,17 @@ async function callWithFallback<T>(
 }
 
 export const ordersService = {
+  // ── Customer behind an order ───────────────────────────────────
+  /**
+   * The order's customer record, read for their paid-order count. Called here
+   * rather than through the customers feature, which this feature may not
+   * import (ARCHITECTURE.md rule 2).
+   */
+  getOrderCustomer: (customerId: string) =>
+    api.get<{ id: string; totalOrders?: number | null }>(
+      API_ENDPOINTS.customerMgt.detail(customerId),
+    ),
+
   // ── Bank Accounts ──────────────────────────────────────────────
   getBankAccounts: () =>
     callWithFallback<AdminBankAccount[]>(

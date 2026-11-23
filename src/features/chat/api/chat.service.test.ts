@@ -69,6 +69,26 @@ describe("chatService.getConversation", () => {
     expect(detail.messages[0].senderType).toBe("CUSTOMER");
     expect(detail.name).toBe("Elijah Ogungbe");
   });
+
+  // The chat API never sends the customer's phone, so the workspace loads it
+  // from the customer record by this id. Dropping it brings back "go to the
+  // customer page to copy the number".
+  it("keeps the conversation's customerId on the row and the customer", async () => {
+    get.mockResolvedValue({
+      ...payload,
+      conversation: {
+        ...payload.conversation,
+        customerId: "0b4c9a3e-5d1f-4a7b-9c2e-8f6d1a2b3c4d",
+      },
+    });
+
+    const detail = await chatService.getConversation(
+      "d4893014-cee8-4b6f-bf31-3ba31fb13804",
+    );
+
+    expect(detail.customerId).toBe("0b4c9a3e-5d1f-4a7b-9c2e-8f6d1a2b3c4d");
+    expect(detail.customer?.id).toBe("0b4c9a3e-5d1f-4a7b-9c2e-8f6d1a2b3c4d");
+  });
 });
 
 describe("chatService.listConversations — assigned-admin identity", () => {

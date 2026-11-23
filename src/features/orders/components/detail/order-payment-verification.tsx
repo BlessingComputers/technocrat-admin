@@ -300,6 +300,21 @@ export function OrderPaymentVerification({
                   <p className="font-semibold text-foreground text-lg tracking-tighter">
                     {formatPrice(order.confirmedAmountPaid || 0)}
                   </p>
+                  {/* Answers "who confirmed this?" without the audit trail. The
+                      payload has carried `validatedBy` all along. */}
+                  {order.validatedBy && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Validated by{" "}
+                      {`${order.validatedBy.firstName} ${order.validatedBy.lastName}`.trim() ||
+                        order.validatedBy.email}
+                      {order.validatedAt &&
+                        ` on ${new Date(order.validatedAt).toLocaleDateString("en-NG", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}`}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

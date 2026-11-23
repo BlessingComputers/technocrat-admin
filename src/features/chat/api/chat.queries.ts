@@ -12,6 +12,7 @@ export const chatKeys = {
   conversation: (id: string) =>
     [...chatKeys.all, "conversation", id] as const,
   notes: (id: string) => [...chatKeys.all, "notes", id] as const,
+  customer: (id: string) => [...chatKeys.all, "customer", id] as const,
   staffRoom: () => [...chatKeys.all, "staffroom"] as const,
 };
 
@@ -29,6 +30,21 @@ export function useConversation(id: string | null) {
     queryKey: chatKeys.conversation(id ?? ""),
     queryFn: () => chatService.getConversation(id!),
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * The conversation's customer record: phone and paid-order count. `retry:
+ * false` because a 403 (staff without `customers:read`) won't fix itself; the
+ * panel then simply shows what the conversation already had.
+ */
+export function useChatCustomer(customerId: string | null) {
+  return useQuery({
+    queryKey: chatKeys.customer(customerId ?? ""),
+    queryFn: () => chatService.getCustomerRecord(customerId!),
+    enabled: Boolean(customerId),
+    staleTime: 1000 * 60 * 2,
+    retry: false,
   });
 }
 
