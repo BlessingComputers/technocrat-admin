@@ -8,6 +8,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { PermissionGate } from "@/lib/auth/permission-gate";
 import { getProductSpecLine, getProductTitle } from "@/lib/utils/product-name";
 import type { ProductDetail } from "../../types/products";
+import { catalogueHref } from "../../utils/catalogue-href";
 
 interface ProductIdentityHeaderProps {
   product: ProductDetail;
@@ -91,8 +92,18 @@ export function ProductIdentityHeader({
         >
           {product.productId}
         </span>
-        <Badge variant="outline">{product.brand.name}</Badge>
-        <Badge variant="outline">{product.category.name}</Badge>
+        {/* Links, not labels: the next question on a product is often "what
+            else is in this brand or category?" */}
+        <Badge variant="outline" asChild className="hover:bg-muted">
+          <Link href={catalogueHref({ brand: product.brand.slug })}>
+            {product.brand.name}
+          </Link>
+        </Badge>
+        <Badge variant="outline" asChild className="hover:bg-muted">
+          <Link href={catalogueHref({ category: product.category.slug })}>
+            {product.category.name}
+          </Link>
+        </Badge>
         <Badge variant={product.isActive ? "success" : "muted"}>
           <AppIcon
             icon={

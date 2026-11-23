@@ -45,3 +45,24 @@ export function splitCategoryId(
   // two levels this endpoint returns). Better to report nothing than to guess.
   return {};
 }
+
+/**
+ * Find a category anywhere in the two-level tree by slug. A catalogue link
+ * from a product page can carry a subcategory's slug, which the top-level
+ * list alone doesn't hold; `parent` is set only when the match is a child.
+ */
+export function findCategoryBySlug(
+  slug: string | undefined,
+  categories: ProductCategory[],
+): { category: ProductCategory; parent?: ProductCategory } | undefined {
+  if (!slug) return undefined;
+
+  for (const category of categories) {
+    if (category.slug === slug) return { category };
+
+    const child = childCategories(category).find((c) => c.slug === slug);
+    if (child) return { category: child, parent: category };
+  }
+
+  return undefined;
+}

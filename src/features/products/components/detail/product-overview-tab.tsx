@@ -1,11 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
 import { MetaLabel } from "@/components/shared/meta-label";
 import { usePermissions } from "@/lib/auth/use-permissions";
 import { useCategories } from "../../api/products.queries";
+import { catalogueHref } from "../../utils/catalogue-href";
 import { splitCategoryId } from "../../utils/category-tree";
 import type { ProductDetail } from "../../types/products";
 
@@ -43,9 +45,20 @@ export function ProductOverviewTab({ product }: ProductOverviewTabProps) {
           <InfoRow
             label="Category"
             value={parent?.name ?? product.category.name}
+            href={catalogueHref({ category: parent?.slug ?? product.category.slug })}
           />
-          {child && <InfoRow label="Subcategory" value={child.name} />}
-          <InfoRow label="Brand" value={product.brand.name} />
+          {child && (
+            <InfoRow
+              label="Subcategory"
+              value={child.name}
+              href={catalogueHref({ category: child.slug })}
+            />
+          )}
+          <InfoRow
+            label="Brand"
+            value={product.brand.name}
+            href={catalogueHref({ brand: product.brand.slug })}
+          />
           <InfoRow label="Slug" value={product.slug} mono />
         </InfoCard>
 
@@ -94,10 +107,13 @@ function InfoRow({
   label,
   value,
   mono,
+  href,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  /** Opens the catalogue list filtered to this value: "what else is in it?" */
+  href?: string;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border/40 py-2.5 last:border-b-0">
@@ -106,6 +122,14 @@ function InfoRow({
         <span className="max-w-[60%] truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
           {value}
         </span>
+      ) : href ? (
+        <Link
+          href={href}
+          title={`All products in ${value}`}
+          className="min-w-0 truncate text-right text-sm font-semibold text-primary-ink underline-offset-4 hover:underline focus-visible:underline"
+        >
+          {value}
+        </Link>
       ) : (
         <span className="min-w-0 truncate text-right text-sm font-semibold text-foreground">
           {value}
