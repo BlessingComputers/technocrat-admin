@@ -21,7 +21,7 @@ const base: WhatsAppMessage = {
   waMessageId: null,
   senderType: "SYSTEM",
   senderId: AI_SENDER_ID,
-  senderName: "Blessing Assistant",
+  senderName: "Technocrat Assistant",
   body: "Your order ships tomorrow.",
   mediaUrl: null,
   status: "SHADOW",

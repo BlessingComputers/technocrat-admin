@@ -47,7 +47,7 @@ export function AiMessage({
             />
           </span>
           <span className="text-sm font-medium text-foreground">
-            {message.senderName || "Blessing Assistant"}
+            {message.senderName || "Technocrat Assistant"}
           </span>
           <span className="rounded-full bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
             AI
