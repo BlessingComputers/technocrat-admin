@@ -77,6 +77,77 @@ function fitInsideBox(width: number, height: number, maxW: number, maxH: number)
   };
 }
 
+const readU32LE = (b: Uint8Array, i: number) =>
+  (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+
+const isAscii = (b: Uint8Array, i: number, s: string) =>
+  b.length >= i + s.length &&
+  Array.from(s).every((c, k) => b[i + k] === c.charCodeAt(0));
+
+/** True once a GIF's block stream holds a second image descriptor. */
+function gifHasManyFrames(b: Uint8Array): boolean {
+  // 6-byte signature + 7-byte logical screen descriptor, then the optional
+  // global colour table (3 × 2^(n+1) bytes).
+  let i = 13;
+  if (b.length < i) return false;
+  if (b[10] & 0x80) i += 3 * 2 ** ((b[10] & 0x07) + 1);
+
+  const skipSubBlocks = () => {
+    while (i < b.length && b[i] !== 0) i += b[i] + 1;
+    i += 1; // the zero-length terminator
+  };
+
+  let frames = 0;
+  while (i < b.length) {
+    const block = b[i];
+    if (block === 0x2c) {
+      frames += 1;
+      if (frames > 1) return true;
+      const packed = b[i + 9];
+      i += 10;
+      if (packed & 0x80) i += 3 * 2 ** ((packed & 0x07) + 1);
+      i += 1; // LZW minimum code size
+      skipSubBlocks();
+    } else if (block === 0x21) {
+      i += 2; // introducer + label
+      skipSubBlocks();
+    } else {
+      return false; // 0x3b trailer, or bytes we don't understand
+    }
+  }
+  return false;
+}
+
+/** True when a RIFF/WEBP container holds more than one ANMF frame chunk. */
+function webpHasManyFrames(b: Uint8Array): boolean {
+  let frames = 0;
+  for (let i = 12; i + 8 <= b.length; ) {
+    if (isAscii(b, i, "ANMF") && ++frames > 1) return true;
+    const size = readU32LE(b, i + 4);
+    i += 8 + size + (size % 2);
+  }
+  return false;
+}
+
+/**
+ * True when the bytes are a GIF or WebP with more than one frame. Sniffs the
+ * signature, not the MIME type, because a renamed file keeps its real bytes.
+ * A one-frame "animation" counts as a still: nothing is lost by drawing it.
+ */
+export function isAnimatedImageBytes(bytes: Uint8Array): boolean {
+  if (isAscii(bytes, 0, "GIF87a") || isAscii(bytes, 0, "GIF89a")) {
+    return gifHasManyFrames(bytes);
+  }
+  if (isAscii(bytes, 0, "RIFF") && isAscii(bytes, 8, "WEBP")) {
+    return webpHasManyFrames(bytes);
+  }
+  return false;
+}
+
+export async function isAnimatedImage(file: File): Promise<boolean> {
+  return isAnimatedImageBytes(new Uint8Array(await file.arrayBuffer()));
+}
+
 function canvasToBlob(
   canvas: HTMLCanvasElement,
   type: string,
@@ -181,12 +252,18 @@ export interface PrepareImageOptions {
  * The original is also kept when the re-encode comes out no smaller, so a
  * well-optimised export is never made worse.
  *
+ * An animated GIF or WebP is returned untouched: a canvas holds one frame, so
+ * the re-encode would turn the banner into a still. The backend resizes every
+ * frame itself, so the caller must cap the animated file's bytes instead.
+ *
  * Client-only (uses `document`/`canvas`).
  */
 export async function prepareImageForUpload(
   file: File,
   { box, maxBytes = DEFAULT_MAX_BYTES, quality = WEBP_QUALITY }: PrepareImageOptions = {},
 ): Promise<File> {
+  if (await isAnimatedImage(file)) return file;
+
   // Format alone can force the re-encode, regardless of how small the file is.
   const mustConvert = !isUploadableType(file.type) || isAvif(file);
 
