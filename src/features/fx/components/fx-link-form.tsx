@@ -189,14 +189,16 @@ export function FxLinkForm() {
           </p>
         )}
 
-        <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/[0.06] px-4 py-3">
-          <AppIcon icon="solar:danger-triangle-linear" className="mt-0.5 size-4 shrink-0 text-warning-ink" />
-          <p className="text-sm text-foreground/80">
-            A linked item starts from its current Naira price. Check the prices
-            in a scope before you link it, because a wrong price will follow the
-            dollar too.
-          </p>
-        </div>
+        {linked && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/[0.06] px-4 py-3">
+            <AppIcon icon="solar:danger-triangle-linear" className="mt-0.5 size-4 shrink-0 text-warning-ink" />
+            <p className="text-sm text-foreground/80">
+              A linked item starts from its current Naira price. Check the prices
+              in a scope before you link it, because a wrong price will follow the
+              dollar too.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
           {!hasScope && (
