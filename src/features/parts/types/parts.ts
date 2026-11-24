@@ -7,6 +7,7 @@
 // own managed entity (PartTypeResponse).
 
 import type { components } from "@/types/api";
+import type { FxFilter } from "@/lib/utils/fx-link";
 import type { PriceAgeDays } from "@/lib/utils/price-age";
 
 type Schemas = components["schemas"];
@@ -102,6 +103,8 @@ export interface PartsListParams {
   isInStock?: boolean;
   /** Price not checked for this many days or more (30 / 60 / 90). */
   priceAge?: PriceAgeDays;
+  /** Dollar pricing link state (`?fx=`). */
+  fx?: FxFilter;
   /** `priceChecked` = oldest check first; absent = the backend's newest. */
   sort?: "priceChecked";
 }

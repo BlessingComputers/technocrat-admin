@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { fxLinkedParam } from "@/lib/utils/fx-link";
 import {
   confirmPricesInBatches,
   priceCheckedBefore,
@@ -74,6 +75,8 @@ function buildListParams(params?: ProductsListParams): QueryParams {
     priceCheckedBefore: params?.priceAge
       ? priceCheckedBefore(params.priceAge)
       : undefined,
+    // Same Prisma-only rule; OpenSearch does not carry fxLinked (#299).
+    fxLinked: fxLinkedParam(params?.fx),
     createdFrom: params?.createdFrom
       ? new Date(`${params.createdFrom}T00:00:00`).toISOString()
       : undefined,

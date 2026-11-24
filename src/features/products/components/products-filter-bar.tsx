@@ -12,6 +12,7 @@ import {
 import { AppIcon } from "@/components/shared/app-icon";
 import { FilterSearch } from "@/components/shared/filter-bar";
 import { cn } from "@/lib/utils/cn";
+import { FX_FILTER_LABELS } from "@/lib/utils/fx-link";
 import { formatPrice } from "@/lib/utils/format";
 import type {
   ProductBrand,
@@ -116,6 +117,12 @@ export function ProductsFilterBar({
       key: "priceAge",
       label: `Price checked ${params.priceAge}+ days ago`,
       clear: { priceAge: undefined },
+    });
+  if (params.fx)
+    chips.push({
+      key: "fx",
+      label: `Dollar pricing: ${FX_FILTER_LABELS[params.fx]}`,
+      clear: { fx: undefined },
     });
   if (params.createdFrom || params.createdTo)
     chips.push({

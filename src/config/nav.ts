@@ -113,6 +113,15 @@ export const navGroups: NavGroup[] = [
             iconActive: "solar:calculator-bold",
             requiredPermission: "tax:manage",
           },
+          {
+            // `products:read` is the backend gate on every FX read; the
+            // SUPER_ADMIN-only writes are hidden inside the view.
+            title: "Dollar pricing",
+            href: "/pricing/fx",
+            icon: "solar:dollar-minimalistic-linear",
+            iconActive: "solar:dollar-minimalistic-bold",
+            requiredPermission: "products:read",
+          },
         ],
       },
     ],

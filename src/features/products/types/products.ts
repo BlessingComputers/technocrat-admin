@@ -4,6 +4,7 @@
 // TODO(codegen, ADR-0006): once the OpenAPI types land, alias the response
 // shapes here to the generated schemas (Zod owns request/form inputs).
 
+import type { FxFilter } from "@/lib/utils/fx-link";
 import type { PriceAgeDays } from "@/lib/utils/price-age";
 import type { components } from "@/types/api";
 
@@ -243,6 +244,8 @@ export interface ProductsListParams {
   isActive?: boolean;
   /** Price not checked for this many days or more (30 / 60 / 90). */
   priceAge?: PriceAgeDays;
+  /** Dollar pricing link state (`?fx=`). */
+  fx?: FxFilter;
   /** Created on or after this day, `YYYY-MM-DD` (local). */
   createdFrom?: string;
   /** Created on or before this day, `YYYY-MM-DD` (local). */

@@ -342,8 +342,6 @@ export const API_ENDPOINTS = {
     target: (staffId: string) => endpoint(`/v1/analytics/targets/${staffId}`),
     adSpend: endpoint("/v1/analytics/ad-spend"),
     adSpendEntry: (id: string) => endpoint(`/v1/analytics/ad-spend/${id}`),
-    // Active products + parts whose priceCheckedAt is older than `days`.
-    priceAge: endpoint("/v1/analytics/price-age"),
   },
   // Store tax: the global setting (master switch + fallback rate) plus scoped
   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),
@@ -356,6 +354,15 @@ export const API_ENDPOINTS = {
   policy: {
     current: endpoint("/v1/policy/current"),
     versions: endpoint("/v1/policy/versions"),
+  },
+  // Dollar pricing (FX, ask 45). Reads need `products:read`; `link` and the
+  // standing-link delete are SUPER_ADMIN only.
+  fx: {
+    history: endpoint("/v1/pricing/fx/history"),
+    link: endpoint("/v1/pricing/fx/link"),
+    standingLinks: endpoint("/v1/pricing/fx/standing-links"),
+    standingLink: (id: string) =>
+      endpoint(`/v1/pricing/fx/standing-links/${id}`),
   },
   tax: {
     setting: endpoint("/v1/tax"),

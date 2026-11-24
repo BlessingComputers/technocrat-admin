@@ -82,8 +82,11 @@ export interface UploaderUpdatesParams {
 }
 
 /**
- * `GET /analytics/price-age`: active products and parts whose price was not
- * checked in `days` days. `before` is the cut-off to pass as
- * `priceCheckedBefore` when opening the matching list.
+ * Active products and parts whose price was not checked in `days` days,
+ * leaving out items that follow the dollar (`fxLinked`). FX reprices those
+ * without moving `priceCheckedAt`, so they would always read as stale.
  */
-export type PriceAgeCounts = components["schemas"]["PriceAgeResponse"]["data"];
+export interface PriceAgeCounts {
+  products: number;
+  parts: number;
+}
