@@ -36,6 +36,22 @@ import type { NavGroup } from "@/types/nav";
  */
 export const navGroups: NavGroup[] = [
   {
+    // Personal pages first (Linear's sidebar does the same). `:me` is filled
+    // with the signed-in staff id by the sidebar (`ME_SEGMENT` in
+    // `components/layouts/nav-active.ts`); without a session the row and this
+    // group drop out. Rewards may go here or under Users (decided at that build, ask 20).
+    label: "You",
+    items: [
+      {
+        title: "My uploads",
+        href: "/uploads/:me",
+        icon: "solar:upload-square-linear",
+        iconActive: "solar:upload-square-bold",
+        requiredPermissions: ["products"],
+      },
+    ],
+  },
+  {
     // No label: a heading over a single "Overview" row says nothing twice.
     items: [
       {

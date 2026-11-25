@@ -9,6 +9,12 @@ Supersedes: parts of [[0010]] (the docked-rail revision) and [[0009]]'s sidebar 
 > inset lines their text up with the parent label. Blessing ported this rail the
 > same day (Blessing ADR-0016). Research:
 > `BCL/docs/craft-research/sources/2026-11-25-dashboard-sidebars.md`.
+>
+> Also 2026-11-25: a "You" group leads the nav ("My uploads" now; Rewards
+> here or under Users later; `:me` hrefs filled from the session), and only the most
+> specific matching href is active (`currentHref`). Blessing's inset shell was
+> **not** applied here: this shell keeps the full-bleed canvas its Figma frames
+> draw (user decision).
 
 The `(staff)` shell is re-shaped to Figma `404:1729` (sidebar) and `301:920`
 (dashboard canvas). Those two frames are the only Technocrat admin screens that

@@ -41,7 +41,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { LogoutConfirmModal } from "@/components/shared/logout-confirm-modal";
 import { logoutAction } from "@/lib/auth/logout-action";
 import { disconnectChatSocket } from "@/features/chat";
-import { holdsCurrentPage, isPathActive } from "./nav-active";
+import { currentHref, holdsCurrentPage, resolveMeHrefs } from "./nav-active";
 
 /**
  * Renders `children` either as the account menu's trigger or as plain content.
@@ -134,14 +134,15 @@ function NavLeafRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
  */
 function NavParentRow({
   item,
-  pathname,
+  current,
   isOpen,
   railCollapsed,
   onToggle,
   onExpandRail,
 }: {
   item: NavItem;
-  pathname: string;
+  /** The one href that owns the current page (`currentHref`), or null. */
+  current: string | null;
   isOpen: boolean;
   railCollapsed: boolean;
   onToggle: () => void;
@@ -150,7 +151,7 @@ function NavParentRow({
   const children = item.children ?? [];
   const listId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
   const marked =
-    (railCollapsed || !isOpen) && holdsCurrentPage(pathname, children);
+    (railCollapsed || !isOpen) && holdsCurrentPage(current, children);
 
   return (
     <SidebarMenuItem>
@@ -200,7 +201,7 @@ function NavParentRow({
           className="mx-0 gap-0 border-none px-0 py-0"
         >
           {children.map((child) => {
-            const childActive = isPathActive(pathname, child.href ?? "");
+            const childActive = child.href === current;
             return (
               <SidebarMenuSubItem key={child.title}>
                 <SidebarMenuSubButton
@@ -276,7 +277,21 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
     });
   };
 
-  const filteredGroups = filterNavByPermissions(navGroups, staffSession);
+  const filteredGroups = filterNavByPermissions(
+    resolveMeHrefs(navGroups, staffSession?.id ?? null),
+    staffSession,
+  );
+  // One active row at most: the most specific href wins, so "My uploads" and
+  // "Uploads" never light up together.
+  const current = currentHref(
+    pathname,
+    filteredGroups.flatMap((group) =>
+      group.items.flatMap((item) => [
+        ...(item.href ? [item.href] : []),
+        ...(item.children ?? []).flatMap((child) => (child.href ? [child.href] : [])),
+      ]),
+    ),
+  );
   const superAdmin = isSuperAdmin(staffSession);
 
   const initials = staffSession
@@ -326,7 +341,7 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
                     <NavParentRow
                       key={item.title}
                       item={item}
-                      pathname={pathname}
+                      current={current}
                       isOpen={isOpen}
                       railCollapsed={railCollapsed}
                       onToggle={() =>
@@ -349,7 +364,7 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
                   <NavLeafRow
                     key={item.title}
                     item={item}
-                    isActive={isPathActive(pathname, item.href ?? "")}
+                    isActive={item.href === current}
                   />
                 );
               })}
