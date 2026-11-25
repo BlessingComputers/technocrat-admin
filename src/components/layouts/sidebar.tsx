@@ -130,8 +130,8 @@ function NavLeafRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
 /**
  * A parent row and its child routes. The parent navigates nowhere — it opens the
  * list — so it never takes the solid active fill; the child does (two filled
- * rows would read as two selections). It opens on its own whenever a child is
- * the current route, and stays wherever the user last put it after that.
+ * rows would read as two selections). It starts open, and stays wherever the
+ * user last put it after that.
  *
  * Collapsed to the icon rail there is no room for a child list, and a parent
  * with no `href` would otherwise be a dead icon. Clicking it there expands the
