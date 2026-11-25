@@ -113,7 +113,9 @@ export function GatewayOrderDetailView({
         </div>
 
         <div className="lg:col-span-4 space-y-6">
-          <OrderCustomerCard customer={{ customerId: order.customerId }} />
+          <OrderCustomerCard
+            customer={{ id: order.customerId, customerId: order.customerId }}
+          />
           <OrderSummaryCard
             money={{
               subtotal: order.subtotalAmount,

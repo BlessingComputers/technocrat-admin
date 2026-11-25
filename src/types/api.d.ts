@@ -2418,6 +2418,31 @@ export interface paths {
                                  * @example 450000
                                  */
                                 lowestPrice: number | null;
+                                /** @description One entry per active variant, cheapest first. Same field on GET /products/featured and the flash-sale product lists. Not on GET /products/search (OpenSearch). */
+                                variantPrices: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Variant UUID — use for PATCH /variants/{id}
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Human-readable ID — display only
+                                     * @example VAR-XXXXXXXX
+                                     */
+                                    variantId: string;
+                                    /**
+                                     * @description Variant SKU. For new laptops/desktops this is the manufacturer part number (admin label "Part number") — use as mpn in product feeds. Same value as GET /products/slug/{slug} returns.
+                                     * @example 6F2Z4EA
+                                     */
+                                    sku: string | null;
+                                    /** @description Markup-applied shelf price */
+                                    price: number;
+                                    basePrice: number | null;
+                                    compareAtPrice: number | null;
+                                    baseCompareAtPrice: number | null;
+                                    /** @example IN_STOCK */
+                                    availabilityStatus: string;
+                                }[];
                                 /**
                                  * @description Most expensive active variant
                                  * @example 650000
@@ -13926,7 +13951,7 @@ export interface paths {
          * @description ## New-sale email notification
          *
          *     Every time a customer's payment is confirmed **PAID**, a background job emails every **active**
-         *     registered recipient with the sale details. Subject line is always `"Blessing Computers Sales"`.
+         *     registered recipient with the sale details. Subject line is `"<STORE_NAME> Sales"` — `"Technocrat Sales"` unless `STORE_NAME` is set.
          *     The email includes the customer's name, email, the purchase date/time, and an itemized list of
          *     what was bought (product, variant, quantity, line total) plus the order total.
          *
@@ -16830,7 +16855,7 @@ export interface paths {
          *
          *     An AI-authored reply arrives as an ordinary `chat:message:received` event with `senderType: "SYSTEM"`, `senderId: "ai-assistant"`, and `senderName`/`senderAvatar` from the backend's `AI_SENDER_NAME`/`AI_SENDER_AVATAR` config (default: `"<STORE_NAME> Assistant"`, i.e. `"Technocrat Assistant"` when `STORE_NAME` is unset). Render it distinctly from a `STAFF` message if you like (a bot icon, a label) — nothing on the wire requires special handling beyond recognizing the `SYSTEM` sender type, which the schema has always allowed.
          *
-         *     **Product answers come both as a plain-text link AND as structured cards.** When a customer asks about a product, the AI looks it up in the live catalogue and replies with the name, price, availability, and a URL (e.g. `https://www.blessingcomputers.com/product/dell-xps-13`) in `body` — auto-linkify bare URLs in your renderer (or at minimum make sure a long URL doesn't break the bubble layout). **The same message also carries a `products` array** (see `ChatProductCard`) with everything needed to render an inline card — image, price, description, availability, link — with zero extra fetches. Every entry has already passed the AI's anti-hallucination checks (a fabricated product can never appear here), so it's safe to render directly. Field names mirror the storefront's own product-listing card shape, so an existing card component should need little to no mapping. `products` is absent/`[]` on every CUSTOMER/STAFF message and on any AI message that didn't reference a product; historical messages from the REST history endpoints carry the same field, so reloading a conversation shows the same cards it showed live.
+         *     **Product answers come both as a plain-text link AND as structured cards.** When a customer asks about a product, the AI looks it up in the live catalogue and replies with the name, price, availability, and a URL (e.g. `https://technocratng.com/shop/products/dell-xps-13`) in `body` — auto-linkify bare URLs in your renderer (or at minimum make sure a long URL doesn't break the bubble layout). **The same message also carries a `products` array** (see `ChatProductCard`) with everything needed to render an inline card — image, price, description, availability, link — with zero extra fetches. Every entry has already passed the AI's anti-hallucination checks (a fabricated product can never appear here), so it's safe to render directly. Field names mirror the storefront's own product-listing card shape, so an existing card component should need little to no mapping. `products` is absent/`[]` on every CUSTOMER/STAFF message and on any AI message that didn't reference a product; historical messages from the REST history endpoints carry the same field, so reloading a conversation shows the same cards it showed live.
          *
          *     **Shadow mode is the one case that needs real attention.** Controlled by `AI_SHADOW_MODE` (defaults `true`): while on, an AI reply is posted with `isInternal: true` — visible to staff only, **never delivered to the customer**, so staff can review AI output before it goes live for real. A naive staff UI might show every message it receives as "sent" — if you display internal AI messages, mark them clearly (e.g. "Shadow mode — not visible to customer") so staff don't assume the customer saw it. When shadow mode is off, a genuine reply is always public; the only *forced*-public exception is the guaranteed fallback message below, which is public even during shadow mode, since a customer who was promised a reply must actually get one.
          *
@@ -17909,7 +17934,7 @@ export interface paths {
          *       "senderType": "SYSTEM",
          *       "senderName": "Technocrat Assistant",
          *       "senderAvatar": null,
-         *       "body": "The HP Pavilion 15 is ₦450,000 and in stock: https://www.blessingcomputers.com/product/hp-pavilion-15-eg3054",
+         *       "body": "The HP Pavilion 15 is ₦450,000 and in stock: https://technocratng.com/shop/products/hp-pavilion-15-eg3054",
          *       "isInternal": false,
          *       "createdAt": "2024-01-15T10:30:00.000Z",
          *       "idempotencyKey": "ai:uuid:1",
@@ -17926,7 +17951,7 @@ export interface paths {
          *           "lowestPrice": 450000,
          *           "highestPrice": 450000,
          *           "availabilityStatus": "IN_STOCK",
-         *           "url": "https://www.blessingcomputers.com/product/hp-pavilion-15-eg3054"
+         *           "url": "https://technocratng.com/shop/products/hp-pavilion-15-eg3054"
          *         }
          *       ]
          *     }
@@ -31597,6 +31622,11 @@ export interface components {
              */
             unitPrice: number;
             /**
+             * @description Variant's live base price, before pricing rules — refreshed on every cart read like unitPrice. When a pricing-rule deal applies, basePrice > unitPrice: show it as the struck "was" price and the % off. Ignore it when it is not above unitPrice (a markup). null if the variant has none. Same value as variants[].basePrice on GET /products/slug/{slug}.
+             * @example 550000
+             */
+            basePrice: number | null;
+            /**
              * @description Crossed-out original price. null if no discount
              * @example 550000
              */
@@ -32259,7 +32289,7 @@ export interface components {
             id: string;
             /**
              * Format: email
-             * @example sales@blessingcomputers.com
+             * @example sales@technocratng.com
              */
             email: string;
             /** @example Sales team inbox */
@@ -32372,7 +32402,7 @@ export interface components {
         CompanyBankAccountSnapshot: {
             /** @example GTBank */
             bankName: string;
-            /** @example Blessing Computers Ltd */
+            /** @example Technocrat Ltd */
             accountName: string;
             /** @example 0123456789 */
             accountNumber: string;

@@ -14,6 +14,8 @@ interface ChatThreadProps {
   memberCount?: number;
   customerEmail?: string | null;
   customerPhone?: string | null;
+  /** Link to the customer page with their paid-order count, for the profile card. */
+  customerSummarySlot?: ReactNode;
   messages: ChatMessage[];
   currentStaffId: string | null;
   someoneTyping: boolean;
@@ -58,6 +60,7 @@ export function ChatThread({
   memberCount,
   customerEmail,
   customerPhone,
+  customerSummarySlot,
   messages,
   currentStaffId,
   someoneTyping,
@@ -93,6 +96,7 @@ export function ChatThread({
         assignedStaffName={assignedStaffName}
         customerEmail={customerEmail}
         customerPhone={customerPhone}
+        customerSummarySlot={customerSummarySlot}
         panelOpen={panelOpen}
         reassignSlot={reassignSlot}
         aiControlSlot={aiControlSlot}

@@ -1,9 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { AppIcon } from "@/components/shared/app-icon";
+import { useOrderCustomer } from "../../api/orders.queries";
 import type { OrderCustomerInfo } from "../../types/orders";
 import { MetaLabel } from "@/components/shared/meta-label";
+
+/**
+ * "3 paid orders", from the customer record. Paid, because `totalOrders` only
+ * counts an order once its payment is validated, so an ordinal ("3rd order")
+ * would be wrong for an order still waiting on validation.
+ */
+function paidOrdersLabel(count?: number | null): string | null {
+  if (count == null) return null;
+  if (count === 0) return "No paid orders yet";
+  return `${count} paid order${count === 1 ? "" : "s"}`;
+}
 
 interface OrderCustomerCardProps {
   customer: OrderCustomerInfo;
@@ -18,6 +31,7 @@ interface OrderCustomerCardProps {
 export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
   const name = customer.name?.trim();
   const hasContact = Boolean(customer.email || customer.phone);
+  const paidOrders = paidOrdersLabel(useOrderCustomer(customer.id).data?.totalOrders);
 
   // Inverted panel: `bg-foreground` flips with the theme, so it is near-black in
   // light mode and near-WHITE in dark. No hue role survives that — `-ink` and the
@@ -58,7 +72,23 @@ export function OrderCustomerCard({ customer }: OrderCustomerCardProps) {
               Unknown customer
             </p>
           )}
+          {paidOrders && (
+            <p className="mt-2 text-xs text-background/90">{paidOrders}</p>
+          )}
         </div>
+
+        {/* The way to everything else about this customer (orders, invoices,
+            addresses). Before this, staff copied the name and searched
+            Customers. */}
+        {customer.id && (
+          <Link
+            href={`/customers/${customer.id}`}
+            className="flex items-center justify-between gap-2 rounded-md bg-background/10 px-3 py-2 text-xs font-semibold text-background transition-colors hover:bg-background/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background/60"
+          >
+            Open customer page
+            <AppIcon icon="solar:alt-arrow-right-linear" className="w-3.5 h-3.5" />
+          </Link>
+        )}
 
         {hasContact && (
           <div className="pt-4 border-t border-background/10 space-y-3">

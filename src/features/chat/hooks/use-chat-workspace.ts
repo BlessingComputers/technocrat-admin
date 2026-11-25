@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStaffSession } from "@/lib/auth/session-context";
 import { isSuperAdmin } from "@/lib/auth/permissions";
 import {
+  useChatCustomer,
   useConversation,
   useConversationNotes,
   useConversations,
@@ -187,12 +188,20 @@ export function useChatWorkspace() {
 
   const members = staffRoomQuery.data?.members ?? [];
 
-  // Customer contact for prefilling CRM notes: the list row carries the email;
-  // phone (when the backend exposes it) comes from the fuller detail record.
+  // Customer contact for prefilling CRM notes and the profile dialog. The chat
+  // API never sends the customer's phone, so it comes from the customer record
+  // (the same one the customer page reads). Staff used to open that page just
+  // to copy the number.
+  const customerId =
+    selectedConversation?.customerId ?? detailQuery.data?.customer?.id ?? null;
+  const customerRecord = useChatCustomer(isStaffRoom ? null : customerId).data;
   const customerEmail =
     selectedConversation?.customerEmail ?? detailQuery.data?.customer?.email ?? null;
   const customerPhone =
-    selectedConversation?.customerPhone ?? detailQuery.data?.customer?.phone ?? null;
+    selectedConversation?.customerPhone ??
+    detailQuery.data?.customer?.phone ??
+    customerRecord?.phone ??
+    null;
   const customerName = selectedConversation?.name ?? null;
 
   // ── Handlers (selection/tab go through the URL — ADR-0005) ─────────
@@ -417,6 +426,8 @@ export function useChatWorkspace() {
     customerEmail,
     customerPhone,
     customerName,
+    customerId,
+    customerRecord,
     takingIds,
     setTab,
     handleSelect,

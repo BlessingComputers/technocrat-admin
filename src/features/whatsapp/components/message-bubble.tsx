@@ -13,16 +13,18 @@ import { AiMessage } from "./ai-message";
 
 interface MessageBubbleProps {
   message: WhatsAppMessage;
+  /** First message of this sender's run: the sender's name shows here only. */
+  startsRun?: boolean;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, startsRun = true }: MessageBubbleProps) {
   const isCustomer = message.senderType === "CUSTOMER";
   const isSystem = message.senderType === "SYSTEM";
 
   // SYSTEM covers both an AI reply and a genuine notice; only `senderId` tells
   // them apart, and an AI answer is a paragraph that a pill cannot hold.
   if (isSystem && isAiMessage(message)) {
-    return <AiMessage message={message} />;
+    return <AiMessage message={message} showLabel={startsRun} />;
   }
 
   if (isSystem) {
@@ -60,8 +62,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             : "rounded-tr-sm bg-primary text-primary-foreground",
         )}
       >
-        {!isCustomer && (
+        {/* Named once per run, for both parties, like a WhatsApp group: the
+            name marks each change of speaker without repeating on every
+            bubble. */}
+        {startsRun && !isCustomer && (
           <MetaLabel tone="pinned" className="mb-0.5 block font-semibold">
+            {message.senderName}
+          </MetaLabel>
+        )}
+        {startsRun && isCustomer && message.senderName && (
+          <MetaLabel className="mb-0.5 block font-semibold">
             {message.senderName}
           </MetaLabel>
         )}

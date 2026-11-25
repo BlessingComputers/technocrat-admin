@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { AppIcon } from "@/components/shared/app-icon";
 import { FilterSearch } from "@/components/shared/filter-bar";
+import { FX_FILTER_LABELS, toFxFilter, type FxFilter } from "@/lib/utils/fx-link";
 import { PRICE_AGE_OPTIONS, toPriceAgeDays } from "@/lib/utils/price-age";
 import type { Brand, Category, PartType, PartsListParams } from "../types/parts";
 
@@ -95,6 +96,12 @@ export function PartsFilterBar({
       key: "priceAge",
       label: `Price checked ${params.priceAge}+ days ago`,
       clear: { priceAge: undefined },
+    });
+  if (params.fx)
+    chips.push({
+      key: "fx",
+      label: `Dollar pricing: ${FX_FILTER_LABELS[params.fx]}`,
+      clear: { fx: undefined },
     });
 
   const hasActiveFilters = chips.length > 0 || searchValue !== "";
@@ -222,6 +229,26 @@ export function PartsFilterBar({
               {PRICE_AGE_OPTIONS.map((days) => (
                 <SelectItem key={days} value={String(days)}>
                   Not checked {days}+ days
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={params.fx ?? "any"}
+            onValueChange={(v) => onChange({ fx: toFxFilter(v) })}
+          >
+            <SelectTrigger
+              className="w-full sm:w-[170px]"
+              aria-label="Dollar pricing"
+            >
+              <SelectValue placeholder="Dollar pricing" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Dollar pricing: any</SelectItem>
+              {(Object.keys(FX_FILTER_LABELS) as FxFilter[]).map((key) => (
+                <SelectItem key={key} value={key}>
+                  {FX_FILTER_LABELS[key]}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils/cn";
 import {
   filterNavByPermissions,
   isSuperAdmin,
-  type StaffSession,
 } from "@/lib/auth/permissions";
+import { useStaffSession } from "@/lib/auth/session-context";
 import type { NavGroup, NavItem } from "@/types/nav";
 import {
   Sidebar,
@@ -41,6 +41,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { LogoutConfirmModal } from "@/components/shared/logout-confirm-modal";
 import { logoutAction } from "@/lib/auth/logout-action";
 import { disconnectChatSocket } from "@/features/chat";
+import { currentHref, holdsCurrentPage, resolveMeHrefs } from "./nav-active";
 
 /**
  * Renders `children` either as the account menu's trigger or as plain content.
@@ -72,19 +73,6 @@ function ConditionalDropdownTrigger({
 interface AppSidebarProps {
   /** Raw nav config, injected by the (staff) layout (components can't import config). */
   navGroups: NavGroup[];
-  staffSession?: StaffSession | null;
-}
-
-/**
- * Is `href` the route currently open? Compares against the path only —
- * `usePathname()` strips the query/hash, but hrefs may carry them (e.g.
- * `/catalogues?page=1`). `/` is matched exactly: every path starts with it, so
- * the prefix test would light up the dashboard row on every screen.
- */
-function isPathActive(pathname: string, href: string): boolean {
-  const hrefPath = href.split(/[?#]/)[0];
-  if (hrefPath === "/") return pathname === "/";
-  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
 }
 
 /** Shared row geometry: the frame's full-bleed rows, padded by the row itself. */
@@ -131,24 +119,30 @@ function NavLeafRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
 /**
  * A parent row and its child routes. The parent navigates nowhere — it opens the
  * list — so it never takes the solid active fill; the child does (two filled
- * rows would read as two selections). It opens on its own whenever a child is
- * the current route, and stays wherever the user last put it after that.
+ * rows would read as two selections). It starts open, and stays wherever the
+ * user last put it after that.
  *
  * Collapsed to the icon rail there is no room for a child list, and a parent
  * with no `href` would otherwise be a dead icon. Clicking it there expands the
  * rail and opens the list in one go, rather than sending the user somewhere they
  * did not ask for.
+ *
+ * Closed (or on the rail) over the current page, it keeps the user's place
+ * (Fluent 2 Nav: the selection moves to the category when it is closed): bold
+ * glyph, full-strength label and a dot. Not the solid fill, which stays the
+ * child's. Shape cues, so the state is never colour-only.
  */
 function NavParentRow({
   item,
-  pathname,
+  current,
   isOpen,
   railCollapsed,
   onToggle,
   onExpandRail,
 }: {
   item: NavItem;
-  pathname: string;
+  /** The one href that owns the current page (`currentHref`), or null. */
+  current: string | null;
   isOpen: boolean;
   railCollapsed: boolean;
   onToggle: () => void;
@@ -156,6 +150,8 @@ function NavParentRow({
 }) {
   const children = item.children ?? [];
   const listId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
+  const marked =
+    (railCollapsed || !isOpen) && holdsCurrentPage(current, children);
 
   return (
     <SidebarMenuItem>
@@ -164,17 +160,34 @@ function NavParentRow({
         aria-expanded={railCollapsed ? undefined : isOpen}
         aria-controls={railCollapsed ? undefined : listId}
         tooltip={item.title}
-        className={cn(ROW_BASE, ROW_IDLE)}
+        className={cn(
+          ROW_BASE,
+          ROW_IDLE,
+          marked && "font-semibold text-sidebar-foreground",
+        )}
       >
-        <AppIcon icon={item.icon} className="size-5 shrink-0" />
+        <AppIcon
+          icon={marked ? item.iconActive : item.icon}
+          className="size-5 shrink-0"
+        />
         <span className="text-sm group-data-[collapsible=icon]:hidden">
           {item.title}
         </span>
+        {marked && (
+          <>
+            <span
+              aria-hidden
+              className="ml-auto size-1.5 shrink-0 rounded-full bg-sidebar-primary group-data-[collapsible=icon]:hidden"
+            />
+            <span className="sr-only">(current page is in this group)</span>
+          </>
+        )}
         <AppIcon
           icon="solar:alt-arrow-down-linear"
           className={cn(
-            "ml-auto size-4 shrink-0 transition-transform duration-200",
+            "size-4 shrink-0 transition-transform duration-200",
             "group-data-[collapsible=icon]:hidden",
+            !marked && "ml-auto",
             isOpen && "rotate-180",
           )}
         />
@@ -188,24 +201,21 @@ function NavParentRow({
           className="mx-0 gap-0 border-none px-0 py-0"
         >
           {children.map((child) => {
-            const childActive = isPathActive(pathname, child.href ?? "");
+            const childActive = child.href === current;
             return (
               <SidebarMenuSubItem key={child.title}>
                 <SidebarMenuSubButton
                   asChild
                   isActive={childActive}
                   className={cn(
-                    // The primitive pins descendant svgs to the accent colour;
-                    // `text-current` hands the glyph back to its row.
-                    "h-10 translate-x-0 gap-3 rounded-none pl-[3.25rem] pr-5 [&>svg]:text-current",
+                    // No glyph: the parent's icon names the group (Fluent 2 Nav,
+                    // shadcn sidebar blocks). The 3.25rem inset lines the text up
+                    // with the parent's label (px-5 + 20px icon + gap-3).
+                    "h-10 translate-x-0 rounded-none pl-[3.25rem] pr-5",
                     childActive ? ROW_ACTIVE : ROW_IDLE,
                   )}
                 >
                   <Link href={child.href ?? "/"}>
-                    <AppIcon
-                      icon={childActive ? child.iconActive : child.icon}
-                      className="size-[18px] shrink-0"
-                    />
                     <span className="text-sm">{child.title}</span>
                   </Link>
                 </SidebarMenuSubButton>
@@ -233,14 +243,17 @@ function NavParentRow({
  * nav list carries no horizontal padding and the rows carry it instead; padding
  * on the list would inset the fill and lose the effect.
  */
-export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) {
+export function AppSidebar({ navGroups }: AppSidebarProps) {
+  // The client session, not the layout's server one: when the server render
+  // had an expired token, this recovers after the silent refresh.
+  const { staffSession } = useStaffSession();
   const pathname = usePathname();
   const router = useRouter();
   const { railCollapsed, toggleRail } = useSidebar();
   const [isLoggingOut, startLogout] = useTransition();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   // Parent rows the user has opened or closed by hand, keyed by title. Absent =
-  // follow the route (open when a child is active).
+  // open: every parent starts expanded.
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(
     {},
   );
@@ -264,7 +277,21 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
     });
   };
 
-  const filteredGroups = filterNavByPermissions(navGroups, staffSession);
+  const filteredGroups = filterNavByPermissions(
+    resolveMeHrefs(navGroups, staffSession?.id ?? null),
+    staffSession,
+  );
+  // One active row at most: the most specific href wins, so "My uploads" and
+  // "Uploads" never light up together.
+  const current = currentHref(
+    pathname,
+    filteredGroups.flatMap((group) =>
+      group.items.flatMap((item) => [
+        ...(item.href ? [item.href] : []),
+        ...(item.children ?? []).flatMap((child) => (child.href ? [child.href] : [])),
+      ]),
+    ),
+  );
   const superAdmin = isSuperAdmin(staffSession);
 
   const initials = staffSession
@@ -302,22 +329,19 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
             {/* `hidden` rather than the primitive's `-mt-8 opacity-0` collapse:
                 that offset assumes the stock `h-8` label, and this one is taller. */}
             {group.label && (
-              <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
+              <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-medium text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
                 {group.label}
               </SidebarGroupLabel>
             )}
             <SidebarMenu className="gap-0">
               {group.items.map((item) => {
                 if (item.children?.length) {
-                  const subtreeActive = item.children.some((child) =>
-                    isPathActive(pathname, child.href ?? ""),
-                  );
-                  const isOpen = expandedParents[item.title] ?? subtreeActive;
+                  const isOpen = expandedParents[item.title] ?? true;
                   return (
                     <NavParentRow
                       key={item.title}
                       item={item}
-                      pathname={pathname}
+                      current={current}
                       isOpen={isOpen}
                       railCollapsed={railCollapsed}
                       onToggle={() =>
@@ -340,7 +364,7 @@ export function AppSidebar({ navGroups, staffSession = null }: AppSidebarProps) 
                   <NavLeafRow
                     key={item.title}
                     item={item}
-                    isActive={isPathActive(pathname, item.href ?? "")}
+                    isActive={item.href === current}
                   />
                 );
               })}

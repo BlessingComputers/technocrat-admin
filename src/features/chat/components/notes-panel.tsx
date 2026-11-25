@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,13 @@ interface NotesPanelProps {
   /** Customer contact used to prefill the form when notes have no saved value. */
   customerName?: string | null;
   customerEmail?: string | null;
+  /**
+   * Comes from the customer record when the conversation has none (the chat
+   * API never sends it), so it can arrive a moment after the panel opens.
+   */
   customerPhone?: string | null;
+  /** Link to the customer page with their paid-order count, above the form. */
+  customerSummarySlot?: ReactNode;
   onSave: (values: NotesFormInput) => void;
   onClose: () => void;
 }
@@ -69,6 +75,7 @@ export function NotesPanel({
   customerName,
   customerEmail,
   customerPhone,
+  customerSummarySlot,
   onSave,
   onClose,
 }: NotesPanelProps) {
@@ -115,6 +122,8 @@ export function NotesPanel({
       </div>
 
       <div className="-mr-2 flex-1 space-y-5 overflow-y-auto pr-2">
+        {customerSummarySlot}
+
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">Name</Label>
           <Input
@@ -159,8 +168,15 @@ export function NotesPanel({
             name="leadStatus"
             render={({ field }) => (
               <Select
-                value={field.value ?? undefined}
-                onValueChange={(v) => field.onChange(v as LeadStatus)}
+                // Always controlled: `undefined` here made Radix flip between
+                // uncontrolled and controlled on every form reset (notes load,
+                // customer record load), with a console warning each time.
+                // "" shows the placeholder; no item has an empty value, so a
+                // real pick is never "" and Radix's own "" calls are ignored.
+                value={field.value ?? ""}
+                onValueChange={(v) => {
+                  if (v) field.onChange(v as LeadStatus);
+                }}
               >
                 <SelectTrigger className="w-full rounded-lg">
                   <SelectValue placeholder="Select status" />

@@ -9,9 +9,12 @@ import { MetaLabel } from "@/components/shared/meta-label";
 import { STALE_PRICE_DAYS } from "@/lib/utils/price-age";
 import { usePriceAge } from "../api/analytics.queries";
 
-/** Opens each list filtered to stale prices, oldest check first. */
-const PRODUCTS_HREF = `/catalogues/all?priceAge=${STALE_PRICE_DAYS}&sort=priceChecked&dir=asc`;
-const PARTS_HREF = `/catalogues/parts?priceAge=${STALE_PRICE_DAYS}&sort=priceChecked`;
+/**
+ * Opens each list filtered to stale prices, oldest check first, with linked
+ * items left out like the counts (`fx=unlinked`).
+ */
+const PRODUCTS_HREF = `/catalogues/all?priceAge=${STALE_PRICE_DAYS}&fx=unlinked&sort=priceChecked&dir=asc`;
+const PARTS_HREF = `/catalogues/parts?priceAge=${STALE_PRICE_DAYS}&fx=unlinked&status=active&sort=priceChecked`;
 
 function CountRow({
   label,
@@ -46,7 +49,8 @@ function CountRow({
 
 /**
  * Dashboard card for ask 42: active products and parts whose price nobody
- * has set or confirmed in 30+ days. Each count opens its list, filtered and
+ * has set or confirmed in 30+ days. Items that follow the dollar are left
+ * out (ask 45): FX keeps their price current without a person checking it. Each count opens its list, filtered and
  * sorted oldest check first. Hidden behind `products:read` by the caller.
  */
 export function PriceAgeCard() {
@@ -65,7 +69,8 @@ export function PriceAgeCard() {
             </h2>
             <p className="text-sm text-muted-foreground">
               Not set or confirmed in {STALE_PRICE_DAYS}+ days. Fix the price,
-              or mark it as still correct.
+              or mark it as still correct. Items that follow the dollar are
+              not counted.
             </p>
           </div>
         </div>

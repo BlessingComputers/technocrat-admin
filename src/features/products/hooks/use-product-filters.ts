@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { toFxFilter } from "@/lib/utils/fx-link";
 import { toPriceAgeDays } from "@/lib/utils/price-age";
 import type { ProductsListParams } from "../types/products";
 
@@ -62,6 +63,7 @@ function parseParams(sp: URLSearchParams): ProductsListParams {
     maxPrice: toInt(sp.get("maxPrice")),
     isFeatured: sp.get("featured") === "1" ? true : undefined,
     priceAge: toPriceAgeDays(toInt(sp.get("priceAge"))),
+    fx: toFxFilter(sp.get("fx")),
     createdFrom: toDay(sp.get("createdFrom")),
     createdTo: toDay(sp.get("createdTo")),
     sortKey: sp.get("sort") || DEFAULT_SORT_KEY,
@@ -82,6 +84,7 @@ function toQueryString(params: ProductsListParams): string {
   if (params.maxPrice != null) sp.set("maxPrice", String(params.maxPrice));
   if (params.isFeatured) sp.set("featured", "1");
   if (params.priceAge) sp.set("priceAge", String(params.priceAge));
+  if (params.fx) sp.set("fx", params.fx);
   if (params.createdFrom) sp.set("createdFrom", params.createdFrom);
   if (params.createdTo) sp.set("createdTo", params.createdTo);
   if (params.sortKey && params.sortKey !== DEFAULT_SORT_KEY)

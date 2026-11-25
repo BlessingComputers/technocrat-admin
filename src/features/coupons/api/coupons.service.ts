@@ -12,14 +12,9 @@ import type {
 const { coupons } = API_ENDPOINTS;
 
 /**
- * No manual envelope peel here, deliberately — same reasoning as
- * `preorder.service.ts`. These routes sit on the consolidated admin dashboard
- * controller, which answers through its own `ok()` helper (`{ success: true,
- * data }`, a BOOLEAN `success`), and the shared client's `unwrapEnvelope`
- * recognises that shape and strips it (ADR-0007). Modules answering through
- * `ResponseUtil` send a STRING `status` instead, which `isEnvelope` does not
- * match, and those services peel `.data` by hand (see `tax.service.ts`). Don't
- * copy that peel in here — it would strip a level already stripped.
+ * No manual envelope peel here. The shared client unwraps both backend
+ * envelope shapes (ADR-0007, `lib/api/client.ts`); a peel here would strip a
+ * level already stripped.
  */
 
 /** Drop empty/undefined params so the backend's enum validation doesn't choke. */

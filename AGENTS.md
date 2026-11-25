@@ -24,7 +24,7 @@ enforcement in the same change.
 | --- | --- |
 | Write icon names as literal `solar:<name>` / `brand:<name>` strings. Never build them with templates. | `scripts/build-icons.mjs` (predev, prebuild) builds the subset from src/ and fails on unknown names. |
 | Feature code imports another slice only through its `index.ts`. | `eslint-plugin-boundaries` in `eslint.config.mjs` (`npm run lint`). |
-| Do not write a local `unwrap`/`unwrapEnvelope` in a service. Four copies exist (chat, whatsapp, tax, sales-notifications). | Nothing yet. Next: make `src/lib/api/client.ts` peel every backend envelope shape, then delete the copies. |
+| Do not write a local `unwrap`/`unwrapEnvelope` in a service. `src/lib/api/client.ts` peels both backend envelope shapes; use `{ raw: true }` when you need a sibling `meta`. | `src/lib/api/client-envelope.test.ts` covers the client. Nothing blocks a new local peel yet. |
 | Port Blessing admin changes by 3-way merge or by hand. Never copy UI files over; 52117ed lost the restyle that way (restored in 24f9f92). | Nothing; judgment rule. |
 | No subagents. | Nothing; judgment rule (see above). |
 

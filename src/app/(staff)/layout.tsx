@@ -57,9 +57,9 @@ async function AuthenticatedStaffShell({ children }: { children: ReactNode }) {
       <SessionProvider initialSession={staffSession}>
         <ChatRealtimeProvider>
           <SidebarProvider defaultRailCollapsed={railCollapsed}>
-            <AppSidebar navGroups={navGroups} staffSession={staffSession} />
+            <AppSidebar navGroups={navGroups} />
             <SidebarInset className="flex flex-col h-screen overflow-hidden">
-              <Topbar staffSession={staffSession} helpDocs={helpDocs} />
+              <Topbar helpDocs={helpDocs} />
               {/* `scrollbar-gutter: stable` reserves the vertical scrollbar's
                   gutter at all times, so pages whose content height crosses the
                   viewport (or tabs that swap tall/short content) don't shift the

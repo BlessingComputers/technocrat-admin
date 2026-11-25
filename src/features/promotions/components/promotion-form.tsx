@@ -197,8 +197,9 @@ export function PromotionForm({
       <div className="space-y-1.5">
         <Label htmlFor="promo-placement">Where it appears</Label>
         <Select
-          value={values.placement || undefined}
-          onValueChange={(next) =>
+          value={values.placement || ""}
+          onValueChange={(next) => {
+            if (!next) return;
             setValues((v) => ({
               ...v,
               placement: next as PlacementKey,
@@ -206,8 +207,8 @@ export function PromotionForm({
               targetCategorySlug: PLACEMENTS[next as PlacementKey]?.targetable
                 ? v.targetCategorySlug
                 : null,
-            }))
-          }
+            }));
+          }}
         >
           <SelectTrigger id="promo-placement" className="w-full">
             <SelectValue placeholder="Choose a slot" />

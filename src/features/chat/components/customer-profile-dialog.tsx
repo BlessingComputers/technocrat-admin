@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import { AppIcon } from "@/components/shared/app-icon";
 import {
@@ -23,6 +23,8 @@ interface CustomerProfileDialogProps {
   phone?: string | null;
   /** Small line under the name — e.g. the conversation status. */
   subtitle?: string | null;
+  /** Rendered under the contact rows: the chat's link to the customer page. */
+  footer?: ReactNode;
 }
 
 /**
@@ -39,6 +41,7 @@ export function CustomerProfileDialog({
   email,
   phone,
   subtitle,
+  footer,
 }: CustomerProfileDialogProps) {
   const [photoOpen, setPhotoOpen] = useState(false);
   const hasPhoto = Boolean(avatarUrl);
@@ -97,6 +100,7 @@ export function CustomerProfileDialog({
               </p>
             ) : null}
           </div>
+          {footer ? <div className="border-t border-border p-4">{footer}</div> : null}
         </DialogContent>
       </Dialog>
 

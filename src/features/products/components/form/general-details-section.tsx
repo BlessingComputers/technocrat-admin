@@ -131,7 +131,7 @@ export function GeneralDetailsSection({
                 onValueChange={(v) => {
                   if (v) field.onChange(v);
                 }}
-                value={field.value || undefined}
+                value={field.value || ""}
                 disabled={!categoryId || subsLoading || subcategories.length === 0}
               >
                 <FormControl>

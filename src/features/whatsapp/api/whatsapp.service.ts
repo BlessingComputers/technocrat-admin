@@ -19,28 +19,6 @@ import type {
 
 const { whatsapp } = API_ENDPOINTS;
 
-/**
- * Peel the backend response envelope.
- *
- * The backend's `ResponseUtil.success` wraps every REST body as
- * `{ status: 'success', message, data }`. The shared client
- * (`lib/api/client.ts`) only auto-unwraps envelopes whose `success` field is a
- * **boolean**, so this `status`-based envelope reaches services INTACT — every
- * admin service unwraps `.data` itself (see `chat.service.ts` and
- * `customer.service.ts`). Skipping this step is what made the list endpoints
- * hand the view the whole envelope, so `conversations.map` was not a function.
- *
- * Idempotent: none of the inner payloads carry a top-level `data` key, so an
- * already-unwrapped body passes through unchanged.
- */
-function unwrapEnvelope<T>(body: unknown): T {
-  return (
-    body && typeof body === "object" && !Array.isArray(body) && "data" in body
-      ? (body as { data: unknown }).data
-      : body
-  ) as T;
-}
-
 /** List endpoints must degrade to an empty list, never crash the workspace. */
 function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
@@ -52,27 +30,23 @@ export const whatsappService = {
     params: WhatsAppListParams = {},
   ): Promise<WhatsAppConversation[]> =>
     asArray<WhatsAppConversation>(
-      unwrapEnvelope(
-        await api.get<unknown>(whatsapp.conversations, {
-          // `mine` is a string flag server-side; only send it when narrowing.
-          params: {
-            status: params.status,
-            ...(params.mine ? { mine: "true" } : {}),
-          },
-        }),
-      ),
+      await api.get<unknown>(whatsapp.conversations, {
+        // `mine` is a string flag server-side; only send it when narrowing.
+        params: {
+          status: params.status,
+          ...(params.mine ? { mine: "true" } : {}),
+        },
+      }),
     ),
 
   /** Unassigned WAITING conversations — anyone may claim one. */
   getQueue: async (): Promise<WhatsAppConversation[]> =>
-    asArray<WhatsAppConversation>(
-      unwrapEnvelope(await api.get<unknown>(whatsapp.queue)),
-    ),
+    asArray<WhatsAppConversation>(await api.get<unknown>(whatsapp.queue)),
 
   /** Detail + up to the last 200 messages, oldest first. */
   getConversation: async (id: string): Promise<WhatsAppConversationThread> => {
-    const payload = unwrapEnvelope<WhatsAppConversationThread>(
-      await api.get<unknown>(whatsapp.conversation(id)),
+    const payload = await api.get<WhatsAppConversationThread>(
+      whatsapp.conversation(id),
     );
     // The message list iterates `messages` — keep it an array even if the
     // endpoint ever answers without one.
@@ -88,25 +62,25 @@ export const whatsappService = {
    * window has lapsed; the customer must message first.
    */
   sendMessage: async (id: string, body: string): Promise<{ queued: boolean }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.messages(id), { body })),
+    api.post(whatsapp.messages(id), { body }),
 
   /** Claim an unassigned conversation. 409 if someone else got there first. */
   assignSelf: async (
     id: string,
   ): Promise<{ conversationId: string; assignedStaffId: string }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.assignSelf(id))),
+    api.post(whatsapp.assignSelf(id)),
 
   /** SUPER_ADMIN only — move an owned conversation to another agent. */
   reassign: async (
     id: string,
     staffId: string,
   ): Promise<{ conversationId: string; assignedStaffId: string }> =>
-    unwrapEnvelope(await api.patch<unknown>(whatsapp.assign(id), { staffId })),
+    api.patch(whatsapp.assign(id), { staffId }),
 
   resolveConversation: async (
     id: string,
   ): Promise<{ conversationId: string; status: "RESOLVED" }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.resolve(id))),
+    api.post(whatsapp.resolve(id)),
 
   /**
    * Stop or resume the AI first responder on one conversation (ticket A5).
@@ -124,16 +98,16 @@ export const whatsappService = {
   // arrive. Nothing is auto-assigned to whoever just came online.
 
   goOnline: async (): Promise<{ online: boolean }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.presenceOnline)),
+    api.post(whatsapp.presenceOnline),
 
   goOffline: async (): Promise<{ online: boolean }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.presenceOffline)),
+    api.post(whatsapp.presenceOffline),
 
   heartbeat: async (): Promise<{ ok: boolean }> =>
-    unwrapEnvelope(await api.post<unknown>(whatsapp.presenceHeartbeat)),
+    api.post(whatsapp.presenceHeartbeat),
 
   getPresence: async (): Promise<WhatsAppPresence> =>
-    unwrapEnvelope(await api.get<unknown>(whatsapp.presenceMe)),
+    api.get(whatsapp.presenceMe),
 
   /**
    * Active staff, for the SUPER_ADMIN reassign picker. WhatsApp exposes no

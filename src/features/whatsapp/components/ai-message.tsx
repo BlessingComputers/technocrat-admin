@@ -11,8 +11,10 @@ import { messageTime } from "../utils/whatsapp-format";
  *
  * The SYSTEM branch renders a `text-xs rounded-full` pill, which was right for
  * short notices and wrong for an AI answer: a paragraph overflows it and loses
- * its line breaks. This is the same outlined treatment as the live-chat AI
- * bubble so staff read one visual language across both inboxes.
+ * its line breaks. This is the same treatment as the live-chat AI bubble so
+ * staff read one visual language across both inboxes: on the shop's side
+ * (right) with the agents, outlined with a jewel edge so it never reads as a
+ * human agent, and labelled on the first message of a run.
  *
  * No delivery indicator, deliberately — a SYSTEM message has no receipt to
  * show.
@@ -23,42 +25,51 @@ import { messageTime } from "../utils/whatsapp-format";
  * wording as admin live chat's `AiMessage` so there is one phrase to learn,
  * not two.
  */
-export function AiMessage({ message }: { message: WhatsAppMessage }) {
+export function AiMessage({
+  message,
+  showLabel = true,
+}: {
+  message: WhatsAppMessage;
+  /** False after the first message of an AI run. The shadow marker always shows. */
+  showLabel?: boolean;
+}) {
   const isShadow = message.isInternal === true;
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      <div className="flex flex-wrap items-center gap-1.5 px-1">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-jewel/15">
-          <AppIcon
-            icon="solar:magic-stick-3-linear"
-            aria-hidden
-            className="size-3.5 text-jewel-ink"
-          />
-        </span>
-        <span className="text-sm font-medium text-foreground">
-          {message.senderName || "Blessing Assistant"}
-        </span>
-        <span className="rounded-full bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
-          AI
-        </span>
-        {isShadow && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-px text-xs font-medium text-foreground">
+    <div className="flex flex-col items-end gap-1">
+      {(showLabel || isShadow) && (
+        <div className="flex flex-wrap items-center justify-end gap-1.5 px-1">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-jewel/15">
             <AppIcon
-              icon="solar:eye-closed-linear"
+              icon="solar:magic-stick-3-linear"
               aria-hidden
-              className="size-3.5 text-warning-ink"
+              className="size-3.5 text-jewel-ink"
             />
-            Shadow mode — not visible to customer
           </span>
-        )}
-      </div>
+          <span className="text-sm font-medium text-foreground">
+            {message.senderName || "Technocrat Assistant"}
+          </span>
+          <span className="rounded-full bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
+            AI
+          </span>
+          {isShadow && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-px text-xs font-medium text-foreground">
+              <AppIcon
+                icon="solar:eye-closed-linear"
+                aria-hidden
+                className="size-3.5 text-warning-ink"
+              />
+              Shadow mode — not visible to customer
+            </span>
+          )}
+        </div>
+      )}
 
       {/* `whitespace-pre-wrap` is required, not cosmetic: the escalation note
           arrives as "[AI handover · reason]\nsummary" — or, for a
           per-message skip, "[AI skipped this message · reason]" — and
           collapses without it. */}
-      <div className="max-w-[min(32rem,80%)] whitespace-pre-wrap break-words rounded-2xl border border-border bg-background px-3.5 py-2.5 text-sm leading-relaxed text-foreground">
+      <div className="max-w-[min(32rem,80%)] whitespace-pre-wrap break-words rounded-2xl rounded-tr-sm border border-border border-l-4 border-l-jewel bg-background px-3.5 py-2.5 text-sm leading-relaxed text-foreground">
         <LinkifiedText body={message.body} />
       </div>
 

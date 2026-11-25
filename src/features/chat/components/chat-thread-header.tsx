@@ -21,6 +21,8 @@ interface ChatThreadHeaderProps {
   /** Customer contact for the WhatsApp-style profile card. */
   customerEmail?: string | null;
   customerPhone?: string | null;
+  /** Link to the customer page with their paid-order count, for the profile card. */
+  customerSummarySlot?: ReactNode;
   panelOpen: boolean;
   /** Super-admin reassign control, rendered in the actions row when provided. */
   reassignSlot?: ReactNode;
@@ -53,6 +55,7 @@ export function ChatThreadHeader({
   assignedStaffName,
   customerEmail,
   customerPhone,
+  customerSummarySlot,
   panelOpen,
   reassignSlot,
   aiControlSlot,
@@ -183,6 +186,7 @@ export function ChatThreadHeader({
           email={customerEmail}
           phone={customerPhone}
           subtitle={status ? STATUS_LABEL[status] : null}
+          footer={customerSummarySlot}
         />
       ) : null}
     </>

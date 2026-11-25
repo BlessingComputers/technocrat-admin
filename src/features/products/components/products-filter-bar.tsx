@@ -12,12 +12,14 @@ import {
 import { AppIcon } from "@/components/shared/app-icon";
 import { FilterSearch } from "@/components/shared/filter-bar";
 import { cn } from "@/lib/utils/cn";
+import { FX_FILTER_LABELS } from "@/lib/utils/fx-link";
 import { formatPrice } from "@/lib/utils/format";
 import type {
   ProductBrand,
   ProductCategory,
   ProductsListParams,
 } from "../types/products";
+import { findCategoryBySlug } from "../utils/category-tree";
 import {
   ProductsMoreFilters,
   type ConditionOption,
@@ -58,6 +60,10 @@ export function ProductsFilterBar({
   const category = params.category ?? "all";
   const brand = params.brand ?? "all";
   const stock = params.stock ?? "all";
+  // A product page links here with a subcategory's slug, which the top-level
+  // list doesn't hold. Resolve it against the tree so the chip and the select
+  // show its name rather than a raw slug or a blank trigger.
+  const activeCategory = findCategoryBySlug(params.category, categories);
 
   const priceLabel = (() => {
     const { minPrice, maxPrice } = params;
@@ -78,7 +84,7 @@ export function ProductsFilterBar({
   if (category !== "all")
     chips.push({
       key: "category",
-      label: `Category: ${categories.find((c) => c.slug === category)?.name || category}`,
+      label: `Category: ${activeCategory?.category.name || category}`,
       clear: { category: undefined },
     });
   if (brand !== "all")
@@ -111,6 +117,12 @@ export function ProductsFilterBar({
       key: "priceAge",
       label: `Price checked ${params.priceAge}+ days ago`,
       clear: { priceAge: undefined },
+    });
+  if (params.fx)
+    chips.push({
+      key: "fx",
+      label: `Dollar pricing: ${FX_FILTER_LABELS[params.fx]}`,
+      clear: { fx: undefined },
     });
   if (params.createdFrom || params.createdTo)
     chips.push({
@@ -170,6 +182,11 @@ export function ProductsFilterBar({
                   {c.name}
                 </SelectItem>
               ))}
+              {activeCategory?.parent && (
+                <SelectItem value={activeCategory.category.slug}>
+                  {activeCategory.parent.name} › {activeCategory.category.name}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
 

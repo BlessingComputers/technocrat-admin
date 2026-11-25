@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toFxFilter } from "@/lib/utils/fx-link";
 import { toPriceAgeDays } from "@/lib/utils/price-age";
 import type { PartsListParams } from "../types/parts";
 
@@ -39,6 +40,7 @@ function parseParams(sp: URLSearchParams): PartsListParams {
       status === "active" ? true : status === "inactive" ? false : undefined,
     isInStock: stock === "in" ? true : stock === "out" ? false : undefined,
     priceAge: toPriceAgeDays(toInt(sp.get("priceAge"))),
+    fx: toFxFilter(sp.get("fx")),
     sort: sp.get("sort") === "priceChecked" ? "priceChecked" : undefined,
   };
 }
@@ -54,6 +56,7 @@ function toQueryString(params: PartsListParams): string {
   if (params.isInStock === true) sp.set("stock", "in");
   else if (params.isInStock === false) sp.set("stock", "out");
   if (params.priceAge) sp.set("priceAge", String(params.priceAge));
+  if (params.fx) sp.set("fx", params.fx);
   if (params.sort) sp.set("sort", params.sort);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   return sp.toString();

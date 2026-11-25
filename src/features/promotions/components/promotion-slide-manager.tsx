@@ -9,7 +9,7 @@ import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { MetaLabel } from "@/components/shared/meta-label";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { cn } from "@/lib/utils/cn";
-import { prepareImageForUpload } from "@/lib/utils/convert-image";
+import { isAnimatedImage, prepareImageForUpload } from "@/lib/utils/convert-image";
 import {
   useDeleteSlide,
   useReplaceSlideImages,
@@ -37,9 +37,21 @@ import {
   type SlideLinkValue,
 } from "./promotion-slide-link-fields";
 import { parseDestination } from "../utils/slide-destination";
-import type { PromotionSlide } from "../types/promotions";
+import { MAX_REQUEST_BYTES, slideUploadBytes } from "../utils/slide-chunks";
+import type { PromotionSlide, SlideUpload } from "../types/promotions";
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+/** Also the `accept` list of every file input below. The backend stores an
+ * animated GIF or WebP as animated WebP; a still GIF is re-encoded to WebP
+ * here first (`prepareImageForUpload`). */
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ACCEPT_ATTR = ACCEPTED_TYPES.join(",");
+/**
+ * Ceiling on one animated file. `prepareSlideImage` cannot shrink an
+ * animation (a canvas keeps one frame), so the file goes up as chosen. One
+ * request must stay under Vercel's ~4.5 MB body cap, which is the chunker's
+ * per-request budget.
+ */
+const MAX_ANIMATED_BYTES = MAX_REQUEST_BYTES;
 /**
  * Ceiling on what a staffer may *choose*, not on what gets uploaded.
  *
@@ -95,15 +107,35 @@ function slideLinkBadge(
   }
 }
 
-/** Shared gate for anything arriving from a file input. */
-function rejectFile(file: File): string | null {
+const formatMB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+/**
+ * Shared gate for anything arriving from a file input. The backend drops an
+ * unsupported file without an error, so the type check here is the only
+ * message staff get.
+ */
+async function rejectFile(file: File): Promise<string | null> {
   if (!ACCEPTED_TYPES.includes(file.type)) {
-    return `${file.name}: only JPEG, PNG, or WebP are accepted.`;
+    return `${file.name}: only JPEG, PNG, WebP or GIF are accepted.`;
   }
   if (file.size > MAX_SOURCE_BYTES) {
     return `${file.name}: too large to process — export it under 40 MB first.`;
   }
+  if (file.size > MAX_ANIMATED_BYTES && (await isAnimatedImage(file))) {
+    return `${file.name}: animated banners can be at most ${formatMB(MAX_ANIMATED_BYTES)} (this one is ${formatMB(file.size)}). Shorten it, or use fewer colours or frames.`;
+  }
   return null;
+}
+
+/**
+ * The first pending slide whose desktop and mobile files together exceed one
+ * request. The chunker never splits a slide, so such a slide would 413. Only
+ * two animated files can get here: stills are re-encoded far below it.
+ */
+function oversizedSlideError(uploads: SlideUpload[]): string | null {
+  const index = uploads.findIndex((u) => slideUploadBytes(u) > MAX_REQUEST_BYTES);
+  if (index === -1) return null;
+  return `Slide ${index + 1}: the desktop and mobile files together are ${formatMB(slideUploadBytes(uploads[index]))}. One slide can be at most ${formatMB(MAX_REQUEST_BYTES)}.`;
 }
 
 /**
@@ -281,7 +313,7 @@ export function PromotionSlideManager({
         toast.error(`This slot shows at most ${maxSlides} slides.`);
         break;
       }
-      const rejection = rejectFile(file);
+      const rejection = await rejectFile(file);
       if (rejection) {
         toast.error(rejection);
         continue;
@@ -310,7 +342,7 @@ export function PromotionSlideManager({
     const pendingId = mobileTargetRef.current;
     mobileTargetRef.current = null;
     if (!pendingId) return;
-    const rejection = rejectFile(file);
+    const rejection = await rejectFile(file);
     if (rejection) {
       toast.error(rejection);
       return;
@@ -373,7 +405,7 @@ export function PromotionSlideManager({
     }
     // The service flattens this into files[] / mobileFiles[] / mobileIndexes;
     // nothing above it has to think in parallel arrays.
-    const uploads = pendingSlides.map((slide) => ({
+    const uploads: SlideUpload[] = pendingSlides.map((slide) => ({
       file: slide.desktop.file,
       mobileFile: slide.mobile?.file ?? null,
       metadata: {
@@ -382,6 +414,11 @@ export function PromotionSlideManager({
         externalUrl: slide.link.externalUrl,
       },
     }));
+    const sizeError = oversizedSlideError(uploads);
+    if (sizeError) {
+      toast.error(sizeError);
+      return;
+    }
     const count = uploads.length;
     // The batch goes up in size-budgeted groups, so "how many landed" is not
     // all-or-nothing any more.
@@ -421,7 +458,7 @@ export function PromotionSlideManager({
   const handleReplaceFileSelected = async (file: File) => {
     const target = replacing;
     if (!target) return;
-    const rejection = rejectFile(file);
+    const rejection = await rejectFile(file);
     if (rejection) {
       toast.error(rejection);
       setReplacing(null);
@@ -687,8 +724,8 @@ export function PromotionSlideManager({
         <p className="mb-3 max-w-sm text-xs text-muted-foreground">
           {desktopSize
             ? takesMobile
-              ? `Desktop first, at ${formatSize(desktopSize)}. You can attach the mobile version to each one after. JPEG, PNG, or WebP — larger files are resized to fit automatically.`
-              : `${formatSize(desktopSize)}, square. One file serves every screen size. JPEG, PNG, or WebP — larger files are resized to fit automatically.`
+              ? `Desktop first, at ${formatSize(desktopSize)}. You can attach the mobile version to each one after. JPEG, PNG, WebP or GIF. Larger stills are resized to fit automatically; animated files up to 3.5 MB go up as they are.`
+              : `${formatSize(desktopSize)}, square. One file serves every screen size. JPEG, PNG, WebP or GIF. Larger stills are resized to fit automatically; animated files up to 3.5 MB go up as they are.`
             : "Choose a slot on this promotion first — the right image size depends on where it appears."}
         </p>
         <Button
@@ -704,7 +741,7 @@ export function PromotionSlideManager({
         <input
           ref={desktopInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ACCEPT_ATTR}
           multiple
           className="hidden"
           onChange={(e) => {
@@ -719,7 +756,7 @@ export function PromotionSlideManager({
         <input
           ref={mobileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ACCEPT_ATTR}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -731,7 +768,7 @@ export function PromotionSlideManager({
         <input
           ref={replaceInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ACCEPT_ATTR}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

@@ -36,6 +36,22 @@ import type { NavGroup } from "@/types/nav";
  */
 export const navGroups: NavGroup[] = [
   {
+    // Personal pages first (Linear's sidebar does the same). `:me` is filled
+    // with the signed-in staff id by the sidebar (`ME_SEGMENT` in
+    // `components/layouts/nav-active.ts`); without a session the row and this
+    // group drop out. Rewards may go here or under Users (decided at that build, ask 20).
+    label: "You",
+    items: [
+      {
+        title: "My uploads",
+        href: "/uploads/:me",
+        icon: "solar:upload-square-linear",
+        iconActive: "solar:upload-square-bold",
+        requiredPermissions: ["products"],
+      },
+    ],
+  },
+  {
     // No label: a heading over a single "Overview" row says nothing twice.
     items: [
       {
@@ -55,7 +71,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "CATALOG",
+    label: "Catalog",
     items: [
       {
         title: "Catalogues",
@@ -113,12 +129,21 @@ export const navGroups: NavGroup[] = [
             iconActive: "solar:calculator-bold",
             requiredPermission: "tax:manage",
           },
+          {
+            // `products:read` is the backend gate on every FX read; the
+            // SUPER_ADMIN-only writes are hidden inside the view.
+            title: "Dollar pricing",
+            href: "/pricing/fx",
+            icon: "solar:dollar-minimalistic-linear",
+            iconActive: "solar:dollar-minimalistic-bold",
+            requiredPermission: "products:read",
+          },
         ],
       },
     ],
   },
   {
-    label: "SALES",
+    label: "Sales",
     items: [
       {
         title: "Orders",
@@ -175,7 +200,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "CUSTOMERS",
+    label: "Customers",
     items: [
       {
         title: "Customers",
@@ -211,7 +236,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "MARKETING",
+    label: "Marketing",
     items: [
       {
         // Role-gated for the same reason as Pre-orders — both coupon routes sit
@@ -236,21 +261,31 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "SYSTEM",
+    label: "System",
     items: [
       {
+        // Parent only, no gate of its own (same as Payments): Staff answers to
+        // `users`, Uploads to `products`, so an uploader sees Users with only
+        // Uploads under it. URLs stay flat (/users, /uploads).
         title: "Users",
-        href: "/users",
-        icon: "solar:shield-user-linear",
-        iconActive: "solar:shield-user-bold",
-        requiredPermissions: ["users"],
-      },
-      {
-        title: "Uploads",
-        href: "/uploads",
-        icon: "solar:cloud-upload-linear",
-        iconActive: "solar:cloud-upload-bold",
-        requiredPermissions: ["products"],
+        icon: "solar:users-group-rounded-linear",
+        iconActive: "solar:users-group-rounded-bold",
+        children: [
+          {
+            title: "Staff",
+            href: "/users",
+            icon: "solar:shield-user-linear",
+            iconActive: "solar:shield-user-bold",
+            requiredPermissions: ["users"],
+          },
+          {
+            title: "Uploads",
+            href: "/uploads",
+            icon: "solar:cloud-upload-linear",
+            iconActive: "solar:cloud-upload-bold",
+            requiredPermissions: ["products"],
+          },
+        ],
       },
       {
         // Gated on the backend's `policy` RBAC group (policy:versions:read /

@@ -29,7 +29,23 @@ export const ordersKeys = {
   list: (params: AdminOrderListParams) =>
     [...ordersKeys.all, "list", params] as const,
   detail: (id: string) => [...ordersKeys.all, "detail", id] as const,
+  customer: (id: string) => [...ordersKeys.all, "customer", id] as const,
 };
+
+/**
+ * The customer behind an order, for the "N paid orders" line on its card.
+ * `retry: false`: a 403 (no `customers:read`) won't fix itself, and the card
+ * just leaves the line out.
+ */
+export function useOrderCustomer(customerId?: string | null) {
+  return useQuery({
+    queryKey: ordersKeys.customer(customerId ?? ""),
+    queryFn: () => ordersService.getOrderCustomer(customerId!),
+    enabled: Boolean(customerId),
+    staleTime: 1000 * 60 * 2,
+    retry: false,
+  });
+}
 
 // ── Bank Accounts ──────────────────────────────────────────────
 export function useBankAccounts() {

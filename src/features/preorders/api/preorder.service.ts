@@ -22,20 +22,10 @@ import type {
 const { preorders } = API_ENDPOINTS;
 
 /**
- * No envelope peeling here, deliberately.
- *
- * The consolidated admin dashboard controller answers through its own `ok()`
- * helper — `{ success: true, data }`, a BOOLEAN `success` — which the shared
- * client's `unwrapEnvelope` recognises and unwraps for us (ADR-0007). So
- * `api.get<PreordersPage>()` lands directly on `{ data, total, page, … }`.
- *
- * This is NOT true of every backend module: anything answering through
- * `ResponseUtil` sends `{ status: 'success', … }` with a STRING status, which
- * `isEnvelope` does not match, so those services peel `.data` by hand (see
- * `tax.service.ts`). The customer-facing preorder routes are ResponseUtil
- * ones — but we don't call those, only the admin ones, so the unwrap applies.
- * Don't copy a manual peel in here from the tax service; it would strip a
- * level that has already been stripped and leave `data` undefined.
+ * No envelope peeling here. The shared client unwraps both backend envelope
+ * shapes (ADR-0007, `lib/api/client.ts`), so `api.get<PreordersPage>()` lands
+ * directly on `{ data, total, page, … }`. A manual peel would strip a level
+ * already stripped and leave `data` undefined.
  */
 
 /** Drop empty/undefined params so the backend's enum validation doesn't choke. */

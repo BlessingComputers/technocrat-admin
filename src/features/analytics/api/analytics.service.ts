@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { priceCheckedBefore } from "@/lib/utils/price-age";
 import type { SuperAdminLiveKpiData } from "../types/dashboard-kpi";
 import type {
   AdminKpiParams,
@@ -43,6 +44,11 @@ function uploaderItemsQuery(params: UploaderItemsParams) {
  * dashboard resource). The client unwraps the response envelope (ADR-0007), so
  * these return the inner payload directly.
  */
+/** A list response read only for its total. */
+interface TotalOnly {
+  meta?: { total?: number };
+}
+
 export const analyticsService = {
   /** Super-admin live KPI payload (nested revenue/orders/refunds buckets). */
   getAdminDashboardKpis: (params?: AdminKpiParams) =>
@@ -135,9 +141,29 @@ export const analyticsService = {
       params: { startDate, endDate, page },
     }),
 
-  /** Stale-price counts for the dashboard card. Requires `products:read`. */
-  getPriceAge: (days: number) =>
-    api.get<PriceAgeCounts>(API_ENDPOINTS.analytics.priceAge, {
-      params: { days },
-    }),
+  /**
+   * Stale-price counts for the dashboard card. Requires `products:read`.
+   *
+   * Counted through the two lists, not `GET /analytics/price-age`: that
+   * endpoint has no `fxLinked` param, and linked items must be left out (FX
+   * moves their price without moving `priceCheckedAt`). The lists match its
+   * rule: active only, and `/products/all` drops hidden backing products.
+   * A backend without ask 45 ignores `fxLinked`, which counts what it did.
+   */
+  getPriceAge: async (days: number): Promise<PriceAgeCounts> => {
+    const shared = {
+      page: 1,
+      limit: 1,
+      priceCheckedBefore: priceCheckedBefore(days),
+      fxLinked: "false",
+    };
+    const [products, parts] = await Promise.all([
+      // `/products/all` keeps `meta` beside `data`, so it needs `raw`.
+      api.get<TotalOnly>(API_ENDPOINTS.products.list, { params: shared, raw: true }),
+      api.get<TotalOnly>(API_ENDPOINTS.products.parts.list, {
+        params: { ...shared, isActive: "true" },
+      }),
+    ]);
+    return { products: products.meta?.total ?? 0, parts: parts.meta?.total ?? 0 };
+  },
 };

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const LARGE_BREAKPOINT = 1024; // Tailwind `lg`
+export const LARGE_BREAKPOINT = 1024; // Tailwind `lg`
 
 /**
  * True when the viewport is at or above the `lg` breakpoint — the width at which

@@ -328,6 +328,9 @@ export interface OrderMoney {
 /** Normalized customer identity for the shared `OrderCustomerCard`. */
 export interface OrderCustomerInfo {
   name?: string | null;
+  /** `Customer.id`, the uuid `/customers/[id]` takes. Not shown. */
+  id?: string | null;
+  /** Shown: the human code on manual orders, the uuid on gateway orders. */
   customerId?: string | null;
   email?: string | null;
   phone?: string | null;

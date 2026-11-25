@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppIcon } from "@/components/shared/app-icon";
+import { FX_FILTER_LABELS, toFxFilter, type FxFilter } from "@/lib/utils/fx-link";
 import { PRICE_AGE_OPTIONS, toPriceAgeDays } from "@/lib/utils/price-age";
 import type { ProductsListParams } from "../types/products";
 
@@ -37,8 +38,8 @@ interface ProductsMoreFiltersProps {
 }
 
 /**
- * Advanced filters (condition · price range · price age · created range ·
- * featured) tucked behind a popover
+ * Advanced filters (condition · price range · price age · dollar pricing ·
+ * created range · featured) tucked behind a popover
  * so the inline bar stays calm. The draft is local and committed on Apply as one
  * patch — keeping each price keystroke out of the URL history. The active-count
  * badge reflects the committed params, not the draft.
@@ -54,6 +55,7 @@ export function ProductsMoreFilters({
   const [maxPrice, setMaxPrice] = useState(params.maxPrice?.toString() ?? "");
   const [featured, setFeatured] = useState(Boolean(params.isFeatured));
   const [priceAge, setPriceAge] = useState(params.priceAge?.toString() ?? "");
+  const [fx, setFx] = useState<string>(params.fx ?? "");
   const [createdFrom, setCreatedFrom] = useState(params.createdFrom ?? "");
   const [createdTo, setCreatedTo] = useState(params.createdTo ?? "");
 
@@ -63,6 +65,7 @@ export function ProductsMoreFilters({
     (params.maxPrice != null ? 1 : 0) +
     (params.isFeatured ? 1 : 0) +
     (params.priceAge ? 1 : 0) +
+    (params.fx ? 1 : 0) +
     (params.createdFrom || params.createdTo ? 1 : 0);
 
   const min = minPrice.trim() === "" ? undefined : Number(minPrice);
@@ -82,6 +85,7 @@ export function ProductsMoreFilters({
       setMaxPrice(params.maxPrice?.toString() ?? "");
       setFeatured(Boolean(params.isFeatured));
       setPriceAge(params.priceAge?.toString() ?? "");
+      setFx(params.fx ?? "");
       setCreatedFrom(params.createdFrom ?? "");
       setCreatedTo(params.createdTo ?? "");
     }
@@ -96,6 +100,7 @@ export function ProductsMoreFilters({
       maxPrice: max != null && Number.isFinite(max) ? max : undefined,
       isFeatured: featured ? true : undefined,
       priceAge: toPriceAgeDays(priceAge ? Number(priceAge) : undefined),
+      fx: toFxFilter(fx),
       createdFrom: createdFrom || undefined,
       createdTo: createdTo || undefined,
     });
@@ -108,6 +113,7 @@ export function ProductsMoreFilters({
     setMaxPrice("");
     setFeatured(false);
     setPriceAge("");
+    setFx("");
     setCreatedFrom("");
     setCreatedTo("");
     onApply({
@@ -116,6 +122,7 @@ export function ProductsMoreFilters({
       maxPrice: undefined,
       isFeatured: undefined,
       priceAge: undefined,
+      fx: undefined,
       createdFrom: undefined,
       createdTo: undefined,
     });
@@ -213,6 +220,28 @@ export function ProductsMoreFilters({
               {PRICE_AGE_OPTIONS.map((days) => (
                 <SelectItem key={days} value={String(days)}>
                   {days}+ days ago
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Dollar pricing
+          </Label>
+          <Select
+            value={fx || "any"}
+            onValueChange={(v) => setFx(v === "any" ? "" : v)}
+          >
+            <SelectTrigger className="h-9 w-full border border-border bg-card">
+              <SelectValue placeholder="Any" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any</SelectItem>
+              {(Object.keys(FX_FILTER_LABELS) as FxFilter[]).map((key) => (
+                <SelectItem key={key} value={key}>
+                  {FX_FILTER_LABELS[key]}
                 </SelectItem>
               ))}
             </SelectContent>

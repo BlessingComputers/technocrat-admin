@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { fxLinkedParam } from "@/lib/utils/fx-link";
 import {
   confirmPricesInBatches,
   priceCheckedBefore,
@@ -58,6 +59,8 @@ function buildListParams(params?: PartsListParams): QueryParams {
     priceCheckedBefore: params?.priceAge
       ? priceCheckedBefore(params.priceAge)
       : undefined,
+    // Prisma-backed list only; `/products/search/parts` ignores it (#299).
+    fxLinked: fxLinkedParam(params?.fx),
     sortBy: params?.sort === "priceChecked" ? "price_checked_oldest" : undefined,
   };
 }
