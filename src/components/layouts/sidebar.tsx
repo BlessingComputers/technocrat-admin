@@ -242,7 +242,7 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
   const [isLoggingOut, startLogout] = useTransition();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   // Parent rows the user has opened or closed by hand, keyed by title. Absent =
-  // follow the route (open when a child is active).
+  // open: every parent starts expanded.
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(
     {},
   );
@@ -311,10 +311,7 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
             <SidebarMenu className="gap-0">
               {group.items.map((item) => {
                 if (item.children?.length) {
-                  const subtreeActive = item.children.some((child) =>
-                    isPathActive(pathname, child.href ?? ""),
-                  );
-                  const isOpen = expandedParents[item.title] ?? subtreeActive;
+                  const isOpen = expandedParents[item.title] ?? true;
                   return (
                     <NavParentRow
                       key={item.title}

@@ -248,18 +248,28 @@ export const navGroups: NavGroup[] = [
     label: "SYSTEM",
     items: [
       {
+        // Parent only, no gate of its own (same as Payments): Staff answers to
+        // `users`, Uploads to `products`, so an uploader sees Users with only
+        // Uploads under it. URLs stay flat (/users, /uploads).
         title: "Users",
-        href: "/users",
-        icon: "solar:shield-user-linear",
-        iconActive: "solar:shield-user-bold",
-        requiredPermissions: ["users"],
-      },
-      {
-        title: "Uploads",
-        href: "/uploads",
-        icon: "solar:cloud-upload-linear",
-        iconActive: "solar:cloud-upload-bold",
-        requiredPermissions: ["products"],
+        icon: "solar:users-group-rounded-linear",
+        iconActive: "solar:users-group-rounded-bold",
+        children: [
+          {
+            title: "Staff",
+            href: "/users",
+            icon: "solar:shield-user-linear",
+            iconActive: "solar:shield-user-bold",
+            requiredPermissions: ["users"],
+          },
+          {
+            title: "Uploads",
+            href: "/uploads",
+            icon: "solar:cloud-upload-linear",
+            iconActive: "solar:cloud-upload-bold",
+            requiredPermissions: ["products"],
+          },
+        ],
       },
       {
         // Gated on the backend's `policy` RBAC group (policy:versions:read /
