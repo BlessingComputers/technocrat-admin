@@ -207,17 +207,14 @@ function NavParentRow({
                   asChild
                   isActive={childActive}
                   className={cn(
-                    // The primitive pins descendant svgs to the accent colour;
-                    // `text-current` hands the glyph back to its row.
-                    "h-10 translate-x-0 gap-3 rounded-none pl-[3.25rem] pr-5 [&>svg]:text-current",
+                    // No glyph: the parent's icon names the group (Fluent 2 Nav,
+                    // shadcn sidebar blocks). The 3.25rem inset lines the text up
+                    // with the parent's label (px-5 + 20px icon + gap-3).
+                    "h-10 translate-x-0 rounded-none pl-[3.25rem] pr-5",
                     childActive ? ROW_ACTIVE : ROW_IDLE,
                   )}
                 >
                   <Link href={child.href ?? "/"}>
-                    <AppIcon
-                      icon={childActive ? child.iconActive : child.icon}
-                      className="size-[18px] shrink-0"
-                    />
                     <span className="text-sm">{child.title}</span>
                   </Link>
                 </SidebarMenuSubButton>

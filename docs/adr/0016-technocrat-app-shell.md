@@ -3,6 +3,13 @@
 Status: accepted (2026-08-09)
 Supersedes: parts of [[0010]] (the docked-rail revision) and [[0009]]'s sidebar rules
 
+> **Revision (2026-11-25).** `Ctrl+B` / `Cmd+B` now toggles the docked rail at
+> `lg`+ (it used to toggle only the drawer, which does not exist there), and the
+> rail button's title names it. Child rows no longer draw icons; the 3.25rem
+> inset lines their text up with the parent label. Blessing ported this rail the
+> same day (Blessing ADR-0016). Research:
+> `BCL/docs/craft-research/sources/2026-11-25-dashboard-sidebars.md`.
+
 The `(staff)` shell is re-shaped to Figma `404:1729` (sidebar) and `301:920`
 (dashboard canvas). Those two frames are the only Technocrat admin screens that
 exist; everything else in this ADR is derived from them plus the ~63 routes the

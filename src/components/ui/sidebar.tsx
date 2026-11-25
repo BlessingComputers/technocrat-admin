@@ -6,7 +6,7 @@ import { PanelLeftIcon } from "lucide-react";
 import { Slot } from "radix-ui";
 
 import { useIsMobile } from "@/lib/hooks/use-mobile";
-import { useIsLargeScreen } from "@/lib/hooks/use-large-screen";
+import { LARGE_BREAKPOINT, useIsLargeScreen } from "@/lib/hooks/use-large-screen";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,7 +110,13 @@ function SidebarProvider({
         (event.metaKey || event.ctrlKey)
       ) {
         event.preventDefault();
-        toggleSidebar();
+        // At `lg`+ there is no drawer to open, so the shortcut drives the docked
+        // rail instead (ADR-0016); below `lg` it opens and closes the drawer.
+        if (window.innerWidth >= LARGE_BREAKPOINT) {
+          useSidebarStore.getState().toggleRail();
+        } else {
+          toggleSidebar();
+        }
       }
     };
 
@@ -279,7 +285,7 @@ function SidebarRailTrigger({
       size="icon"
       aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       aria-expanded={!railCollapsed}
-      title={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={railCollapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
       className={cn(
         "size-8 shrink-0 rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
         className,
