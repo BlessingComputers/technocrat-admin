@@ -55,7 +55,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "CATALOG",
+    label: "Catalog",
     items: [
       {
         title: "Catalogues",
@@ -127,7 +127,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "SALES",
+    label: "Sales",
     items: [
       {
         title: "Orders",
@@ -184,7 +184,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "CUSTOMERS",
+    label: "Customers",
     items: [
       {
         title: "Customers",
@@ -220,7 +220,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "MARKETING",
+    label: "Marketing",
     items: [
       {
         // Role-gated for the same reason as Pre-orders — both coupon routes sit
@@ -245,7 +245,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "SYSTEM",
+    label: "System",
     items: [
       {
         // Parent only, no gate of its own (same as Payments): Staff answers to

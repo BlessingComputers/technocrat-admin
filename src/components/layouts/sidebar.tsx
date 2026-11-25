@@ -41,6 +41,7 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { LogoutConfirmModal } from "@/components/shared/logout-confirm-modal";
 import { logoutAction } from "@/lib/auth/logout-action";
 import { disconnectChatSocket } from "@/features/chat";
+import { holdsCurrentPage, isPathActive } from "./nav-active";
 
 /**
  * Renders `children` either as the account menu's trigger or as plain content.
@@ -72,18 +73,6 @@ function ConditionalDropdownTrigger({
 interface AppSidebarProps {
   /** Raw nav config, injected by the (staff) layout (components can't import config). */
   navGroups: NavGroup[];
-}
-
-/**
- * Is `href` the route currently open? Compares against the path only —
- * `usePathname()` strips the query/hash, but hrefs may carry them (e.g.
- * `/catalogues?page=1`). `/` is matched exactly: every path starts with it, so
- * the prefix test would light up the dashboard row on every screen.
- */
-function isPathActive(pathname: string, href: string): boolean {
-  const hrefPath = href.split(/[?#]/)[0];
-  if (hrefPath === "/") return pathname === "/";
-  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
 }
 
 /** Shared row geometry: the frame's full-bleed rows, padded by the row itself. */
@@ -137,6 +126,11 @@ function NavLeafRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
  * with no `href` would otherwise be a dead icon. Clicking it there expands the
  * rail and opens the list in one go, rather than sending the user somewhere they
  * did not ask for.
+ *
+ * Closed (or on the rail) over the current page, it keeps the user's place
+ * (Fluent 2 Nav: the selection moves to the category when it is closed): bold
+ * glyph, full-strength label and a dot. Not the solid fill, which stays the
+ * child's. Shape cues, so the state is never colour-only.
  */
 function NavParentRow({
   item,
@@ -155,6 +149,8 @@ function NavParentRow({
 }) {
   const children = item.children ?? [];
   const listId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
+  const marked =
+    (railCollapsed || !isOpen) && holdsCurrentPage(pathname, children);
 
   return (
     <SidebarMenuItem>
@@ -163,17 +159,34 @@ function NavParentRow({
         aria-expanded={railCollapsed ? undefined : isOpen}
         aria-controls={railCollapsed ? undefined : listId}
         tooltip={item.title}
-        className={cn(ROW_BASE, ROW_IDLE)}
+        className={cn(
+          ROW_BASE,
+          ROW_IDLE,
+          marked && "font-semibold text-sidebar-foreground",
+        )}
       >
-        <AppIcon icon={item.icon} className="size-5 shrink-0" />
+        <AppIcon
+          icon={marked ? item.iconActive : item.icon}
+          className="size-5 shrink-0"
+        />
         <span className="text-sm group-data-[collapsible=icon]:hidden">
           {item.title}
         </span>
+        {marked && (
+          <>
+            <span
+              aria-hidden
+              className="ml-auto size-1.5 shrink-0 rounded-full bg-sidebar-primary group-data-[collapsible=icon]:hidden"
+            />
+            <span className="sr-only">(current page is in this group)</span>
+          </>
+        )}
         <AppIcon
           icon="solar:alt-arrow-down-linear"
           className={cn(
-            "ml-auto size-4 shrink-0 transition-transform duration-200",
+            "size-4 shrink-0 transition-transform duration-200",
             "group-data-[collapsible=icon]:hidden",
+            !marked && "ml-auto",
             isOpen && "rotate-180",
           )}
         />
@@ -304,7 +317,7 @@ export function AppSidebar({ navGroups }: AppSidebarProps) {
             {/* `hidden` rather than the primitive's `-mt-8 opacity-0` collapse:
                 that offset assumes the stock `h-8` label, and this one is taller. */}
             {group.label && (
-              <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
+              <SidebarGroupLabel className="h-auto px-5 pt-4 pb-2 text-xs font-medium text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
                 {group.label}
               </SidebarGroupLabel>
             )}
