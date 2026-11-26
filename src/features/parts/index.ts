@@ -3,6 +3,7 @@
 
 // Views consumed by route pages (uncomment as each slice lands):
 export { PartsBrowseView } from "./components/parts-browse-view";
+export { PartBulkPriceView } from "./components/part-bulk-price-view";
 export { PartFormView } from "./components/part-form-view";
 export { PartDetailView } from "./components/part-detail-view";
 export { ProductPartsPanel } from "./components/product-parts-panel";

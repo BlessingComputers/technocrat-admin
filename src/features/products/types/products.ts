@@ -191,6 +191,8 @@ export interface ProductDetail {
    * spec's product schemas do not list it.
    */
   priceCheckedAt: string;
+  /** Price follows the dollar rate (ask 45). Wire-only. */
+  fxLinked?: boolean;
   createdAt: string;
   updatedAt: string;
 }

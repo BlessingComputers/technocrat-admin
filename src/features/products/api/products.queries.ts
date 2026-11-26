@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
 import { refreshCatalogEditViews } from "@/lib/utils/catalog-edit-refresh";
+import { BULK_PRICE_CONCURRENCY, runLimited } from "@/lib/utils/bulk-price";
 import { productsService } from "./products.service";
 import type {
   BrandInput,
@@ -606,4 +607,35 @@ export function useSetPrimaryCategoryBanner() {
       });
     },
   });
+}
+
+/**
+ * Product details for the bulk price page, fetched a few at a time (the
+ * backend's per-IP cap). Settled results: one failed load does not hide the rest.
+ */
+export function useBulkPriceProducts(ids: string[]) {
+  return useQuery({
+    queryKey: [...productKeys.all, "bulk-price", ids] as const,
+    queryFn: () =>
+      runLimited(ids, BULK_PRICE_CONCURRENCY, (id) => productsService.getProduct(id)),
+    enabled: ids.length > 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** One variant's new base price, from the bulk price page. */
+export function useSaveProductVariantPrice() {
+  const queryClient = useQueryClient();
+  return {
+    save: (productId: string, variantId: string, price: number) =>
+      productsService.updateVariant(productId, variantId, { price }),
+    /** Refresh lists and details, but not the bulk page's own query. */
+    refresh: () => {
+      queryClient.invalidateQueries({
+        queryKey: productKeys.all,
+        predicate: (q) => q.queryKey[1] !== "bulk-price",
+      });
+      refreshCatalogEditViews(queryClient);
+    },
+  };
 }
