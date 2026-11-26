@@ -1,0 +1,119 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { usePermissions } from "@/lib/auth/use-permissions";
+import { formatPrice } from "@/lib/utils/format";
+
+import { useRewardMonth, useRewardMonths } from "../api/rewards.queries";
+import {
+  closesOnLabel,
+  formatRewardMonth,
+  monthTotal,
+  rewardRowId,
+  shortDate,
+} from "../model/reward-rules";
+import type { RewardRow } from "../types/rewards";
+import { AdjustRewardDialog } from "./adjust-reward-dialog";
+import { MarkPaidDialog } from "./mark-paid-dialog";
+import { RewardStatementsTable } from "./reward-statements-table";
+import { RewardsError, RewardsLoading } from "./rewards-states";
+
+export function UploadersTab() {
+  const { can, canAnyInGroup } = usePermissions();
+  const allowed = canAnyInGroup(["rewards"]);
+  // `?staff=<id>` comes from "View rewards" on /uploads/<id>.
+  const highlightStaffId = useSearchParams().get("staff") ?? undefined;
+  // undefined = the open month (the backend default).
+  const [month, setMonth] = useState<string | undefined>(undefined);
+  const [adjusting, setAdjusting] = useState<RewardRow | null>(null);
+  const [paying, setPaying] = useState<RewardRow | null>(null);
+
+  const months = useRewardMonths(allowed);
+  const view = useRewardMonth(month, allowed);
+
+  // Scroll the linked row into view once its month has loaded.
+  useEffect(() => {
+    if (!highlightStaffId || !view.data) return;
+    document
+      .getElementById(rewardRowId(highlightStaffId))
+      ?.scrollIntoView({ block: "center" });
+  }, [highlightStaffId, view.data]);
+
+  if (view.isLoading) return <RewardsLoading />;
+  if (view.isError || !view.data) {
+    return <RewardsError title="Couldn't load this month" onRetry={() => view.refetch()} />;
+  }
+
+  const { data } = view;
+  const label = formatRewardMonth(data.month);
+  const highlightMissing =
+    highlightStaffId !== undefined &&
+    !data.statements.some((row) => row.staff.id === highlightStaffId);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground">
+            {data.closedAt
+              ? `Closed on ${shortDate(data.closedAt)}.`
+              : `Month in progress. Figures are live and close on ${closesOnLabel(data.month)}.`}
+          </p>
+        </div>
+        <Select value={data.month} onValueChange={setMonth}>
+          <SelectTrigger className="w-52" aria-label="Month">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(months.data ?? [{ month: data.month, closedAt: data.closedAt }]).map((m) => (
+              <SelectItem key={m.month} value={m.month}>
+                {formatRewardMonth(m.month)}
+                {m.closedAt ? "" : " (open)"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {data.statements.length === 0 ? (
+        <Card className="py-10 text-center text-sm text-muted-foreground">
+          No counted uploads or updates in {label}.
+        </Card>
+      ) : (
+        <>
+          {highlightMissing && (
+            <p className="text-sm text-muted-foreground">
+              This uploader has no counted work in {label}.
+            </p>
+          )}
+          <Card className="gap-0 p-0">
+            <RewardStatementsTable
+              rows={data.statements}
+              canAdjust={can("rewards:manage")}
+              canPay={can("rewards:pay")}
+              highlightStaffId={highlightStaffId}
+              onAdjust={setAdjusting}
+              onPay={setPaying}
+            />
+            <p className="border-t px-4 py-3 text-right text-sm font-semibold text-foreground">
+              Total for {label}: {formatPrice(monthTotal(data.statements))}
+            </p>
+          </Card>
+        </>
+      )}
+      <AdjustRewardDialog row={adjusting} onClose={() => setAdjusting(null)} />
+      <MarkPaidDialog row={paying} onClose={() => setPaying(null)} />
+    </div>
+  );
+}

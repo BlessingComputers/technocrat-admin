@@ -29,6 +29,14 @@ describe("Users nav group", () => {
     expect(usersChildren(["users:read", "products:read"])).toEqual(["Staff", "Uploads"]);
   });
 
+  it("adds Rewards for a rewards permission holder", () => {
+    expect(usersChildren(["users:read", "products:read", "rewards:pay"])).toEqual([
+      "Staff",
+      "Uploads",
+      "Rewards",
+    ]);
+  });
+
   it("shows an uploader only Uploads", () => {
     expect(usersChildren(["products:read"])).toEqual(["Uploads"]);
   });
@@ -39,5 +47,14 @@ describe("Users nav group", () => {
 
   it("hides the parent when no child is allowed", () => {
     expect(usersChildren(["orders:read"])).toBeNull();
+  });
+});
+
+describe("You nav group", () => {
+  it("gives an uploader My uploads and My rewards", () => {
+    const you = filterNavByPermissions(navGroups, session(["products:read"])).find(
+      (group) => group.label === "You",
+    );
+    expect(you?.items.map((item) => item.title)).toEqual(["My uploads", "My rewards"]);
   });
 });

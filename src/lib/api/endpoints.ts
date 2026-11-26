@@ -342,6 +342,16 @@ export const API_ENDPOINTS = {
     target: (staffId: string) => endpoint(`/v1/analytics/targets/${staffId}`),
     adSpend: endpoint("/v1/analytics/ad-spend"),
     adSpendEntry: (id: string) => endpoint(`/v1/analytics/ad-spend/${id}`),
+    rewards: {
+      base: endpoint("/v1/analytics/rewards"),
+      rate: endpoint("/v1/analytics/rewards/rate"),
+      months: endpoint("/v1/analytics/rewards/months"),
+      me: endpoint("/v1/analytics/rewards/me"),
+      adjustment: (id: string) =>
+        endpoint(`/v1/analytics/rewards/statements/${id}/adjustment`),
+      paid: (id: string) =>
+        endpoint(`/v1/analytics/rewards/statements/${id}/paid`),
+    },
   },
   // Store tax: the global setting (master switch + fallback rate) plus scoped
   // product/part tax rules. Rule endpoints resolve by the rule's DB `id` (UUID),

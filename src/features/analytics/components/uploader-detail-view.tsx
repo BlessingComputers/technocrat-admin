@@ -5,6 +5,7 @@ import PageContainer from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { AppIcon } from "@/components/shared/app-icon";
+import { usePermissions } from "@/lib/auth/use-permissions";
 import {
   useUploaderAnalytics,
   useUploaderProducts,
@@ -25,6 +26,7 @@ import { Card } from "@/components/ui/card";
 export function UploaderDetailView({ staffId }: { staffId: string }) {
   const { range, tab, page, setRange, setTab, setPage } =
     useUploaderDetailFilters();
+  const { canAnyInGroup } = usePermissions();
 
   const report = useUploaderAnalytics({
     startDate: range.startDate,
@@ -74,6 +76,14 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
         title={uploader?.staff.name ?? "Uploader"}
         description="Everything this staff member created or updated in the selected period."
       >
+        {canAnyInGroup(["rewards"]) && (
+          <Button asChild variant="outline" size="sm" className="font-medium">
+            <Link href={`/rewards/team?staff=${encodeURIComponent(staffId)}`}>
+              <AppIcon icon="solar:hand-money-linear" className="mr-1.5 size-4" />
+              View rewards
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="ghost" size="sm" className="font-medium">
           <Link href="/uploads">
             <AppIcon icon="solar:arrow-left-linear" className="mr-1.5 size-4" />

@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import PageContainer from "@/components/layouts/page-container";
+import { AppIcon } from "@/components/shared/app-icon";
 import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 import { useStaffSession } from "@/lib/auth/session-context";
 import { isSuperAdmin } from "@/lib/auth/permissions";
+import { usePermissions } from "@/lib/auth/use-permissions";
 import { useUploaderAnalytics } from "../api/analytics.queries";
 import { useUploaderFilters } from "../hooks/use-uploader-filters";
 import { filterSortUploaders } from "../utils/filter-sort-uploaders";
@@ -26,6 +30,9 @@ import type { UploaderSummary } from "../types/upload-analytics";
 export function UploaderManagementView() {
   const { staffSession } = useStaffSession();
   const canManageTargets = isSuperAdmin(staffSession);
+  // Managers land on the team view; an uploader on their own rewards.
+  const { canAnyInGroup } = usePermissions();
+  const rewardsHref = canAnyInGroup(["rewards"]) ? "/rewards/team" : "/rewards";
 
   const { params, searchInput, setRange, setSort, setSearch } =
     useUploaderFilters();
@@ -46,7 +53,14 @@ export function UploaderManagementView() {
       <PageHeader
         title="Upload Management"
         description="Track each staff member's uploads against their daily target and manage targets."
-      />
+      >
+        <Button asChild variant="outline" size="sm" className="font-medium">
+          <Link href={rewardsHref}>
+            <AppIcon icon="solar:hand-money-linear" className="mr-1.5 size-4" />
+            Rewards
+          </Link>
+        </Button>
+      </PageHeader>
       <div className="space-y-6">
         <UploaderManagementToolbar
           range={params.range}

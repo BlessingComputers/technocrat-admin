@@ -61,12 +61,8 @@ export function changedFieldLabels(fields: readonly string[]): string[] {
   return [...new Set(fields.map((f) => FIELD_LABELS[f] ?? humanize(f)))];
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
 /** "7 uploads + 3 updates": the split behind one daily total. */
-export function workSplitLabel(uploads: number, updates: number): string {
-  return `${plural(uploads, "upload")} + ${plural(updates, "update")}`;
-}
+export { workSplitLabel } from "@/lib/utils/work-split";
 
 /**
  * The edit page for an updated item, or null when the backend could not find
