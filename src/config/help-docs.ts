@@ -269,7 +269,7 @@ export const helpDocs: HelpDoc[] = [
     icon: "solar:sale-linear",
     category: "catalogue",
     type: "walkthrough",
-    requiredPermissions: ["priceMarkup", "partMarkup"],
+    requiredPermissions: ["discounts", "priceMarkup", "partMarkup"],
     keywords: [
       "deal",
       "deals",

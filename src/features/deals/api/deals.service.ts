@@ -13,9 +13,11 @@ import type {
 /**
  * Deals data access.
  *
- * Every route below needs `priceMarkup:read` or `priceMarkup:write` — part
- * targets included, because the backend calls `setPartFlashSalePricing` itself
- * rather than making us hit the parts endpoint with `products:write`.
+ * Every route below needs `discounts:read` or `discounts:write` (ask 53; the
+ * old `priceMarkup:read`/`priceMarkup:write` still pass) — part targets
+ * included, because the backend calls `setPartFlashSalePricing` itself rather
+ * than making us hit the parts endpoint with `products:write`. The two
+ * markup-rule reads below accept `discounts:read` too, for the clash check.
  *
  * Path params take the deal's DB UUID (`id`), never the human `DEAL-XXXXXXXX`.
  * The client unwraps the response envelope (ADR-0007), so each call returns the

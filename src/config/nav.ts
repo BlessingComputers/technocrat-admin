@@ -107,7 +107,9 @@ export const navGroups: NavGroup[] = [
             href: "/pricing/deals",
             icon: "solar:sale-linear",
             iconActive: "solar:sale-bold",
-            requiredPermissions: ["priceMarkup", "partMarkup"],
+            // Ask 53: deal routes accept discounts:* or the priceMarkup:* they
+            // needed before. partMarkup stays for the part flash-sale route.
+            requiredPermissions: ["discounts", "priceMarkup", "partMarkup"],
           },
           {
             // Beside Deals because every drop is a Deal underneath. Gated on

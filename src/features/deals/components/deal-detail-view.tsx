@@ -61,7 +61,7 @@ export function DealDetailView({
   now: number;
 }) {
   const { can } = usePermissions();
-  const canWrite = can("priceMarkup:write");
+  const canWrite = can("discounts:write") || can("priceMarkup:write");
 
   const { data: deal, isLoading, isError, error, refetch } = useDeal(dealId);
   const startResult = useDealStartResult(dealId);
@@ -97,7 +97,7 @@ export function DealDetailView({
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
             {notFound
               ? "It may have been created against a different environment."
-              : "Reading a deal needs the priceMarkup:read permission."}
+              : "Reading a deal needs the discounts:read permission."}
           </p>
         </div>
         <div className="flex gap-3">

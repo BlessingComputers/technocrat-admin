@@ -58,7 +58,7 @@ export function DealFormView() {
   ]);
   const [error, setError] = useState<string | null>(null);
 
-  const canWrite = can("priceMarkup:write");
+  const canWrite = can("discounts:write") || can("priceMarkup:write");
   const atCap = targets.length >= DEAL_MAX_TARGETS;
 
   const payloadTargets = useMemo(
@@ -147,7 +147,7 @@ export function DealFormView() {
             </h3>
             <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
               Running a sale needs the{" "}
-              <code className="font-mono">priceMarkup:write</code> permission.
+              <code className="font-mono">discounts:write</code> permission.
               Ask a super admin to grant it.
             </p>
           </div>
