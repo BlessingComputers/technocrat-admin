@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import PageContainer from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,8 +19,8 @@ import { UploaderDetailHeader } from "./uploader-detail-header";
 import { UploaderItemsTabs } from "./uploader-items-tabs";
 import { UploaderItemsList } from "./uploader-items-list";
 import { UploaderUpdatesList } from "./uploader-updates-list";
-import type { UploaderItem } from "../types/upload-analytics";
-import { Card } from "@/components/ui/card";
+import { UploaderItemSheet } from "./uploader-item-sheet";
+import type { CatalogItemRef, UploaderItem } from "../types/upload-analytics";
 
 /** Per-uploader drill-down (route `/uploads/[staffId]`): header stats plus
  * the actual products and parts they created or updated in the selected window. */
@@ -27,6 +28,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
   const { range, tab, page, setRange, setTab, setPage } =
     useUploaderDetailFilters();
   const { canAnyInGroup } = usePermissions();
+  const [openItem, setOpenItem] = useState<CatalogItemRef | null>(null);
 
   const report = useUploaderAnalytics({
     startDate: range.startDate,
@@ -93,9 +95,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
       </PageHeader>
 
       <div className="space-y-6">
-        <Card className="gap-0 p-4 sm:p-5">
-          <UploaderDateRange range={range} onChange={setRange} />
-        </Card>
+        <UploaderDateRange range={range} onChange={setRange} />
 
         <UploaderDetailHeader uploader={uploader} isLoading={report.isLoading} />
 
@@ -114,6 +114,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
               isError={updatesQuery.isError}
               page={page}
               onPageChange={setPage}
+              onOpen={setOpenItem}
             />
           ) : (
             <UploaderItemsList
@@ -123,6 +124,14 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
               meta={active.data?.meta}
               page={page}
               onPageChange={setPage}
+              onOpen={(item) =>
+                setOpenItem({
+                  type: tab === "parts" ? "part" : "product",
+                  id: item.key,
+                  title: item.title,
+                  image: item.image,
+                })
+              }
               emptyLabel={
                 tab === "products"
                   ? "No products created in this period."
@@ -132,6 +141,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
           )}
         </div>
       </div>
+      <UploaderItemSheet item={openItem} onClose={() => setOpenItem(null)} />
     </PageContainer>
   );
 }

@@ -87,6 +87,7 @@ export function UploaderManagementView() {
             ) : (
               <UploadersTable
                 uploaders={uploaders}
+                range={params.range}
                 onEdit={canManageTargets ? setEditing : undefined}
               />
             )}

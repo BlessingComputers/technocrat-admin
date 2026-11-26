@@ -12,6 +12,7 @@ interface UploaderItemsListProps {
   page: number;
   onPageChange: (page: number) => void;
   emptyLabel: string;
+  onOpen: (item: UploaderItem) => void;
 }
 
 /** The active tab's item list: skeleton / error / empty / rows + pager. */
@@ -23,6 +24,7 @@ export function UploaderItemsList({
   page,
   onPageChange,
   emptyLabel,
+  onOpen,
 }: UploaderItemsListProps) {
   if (isLoading) {
     return (
@@ -50,7 +52,7 @@ export function UploaderItemsList({
     <div>
       <div className="divide-y divide-border">
         {items.map((item) => (
-          <UploaderItemRow key={item.key} item={item} />
+          <UploaderItemRow key={item.key} item={item} onOpen={() => onOpen(item)} />
         ))}
       </div>
       {meta && (

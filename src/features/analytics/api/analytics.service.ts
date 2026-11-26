@@ -15,6 +15,8 @@ import type {
   UploaderProductsResponse,
   UploaderUpdatesParams,
   UploaderUpdatesResponse,
+  CatalogProduct,
+  CatalogPart,
   UploadTarget,
   PriceAgeCounts,
 } from "../types/upload-analytics";
@@ -134,6 +136,14 @@ export const analyticsService = {
     api.get<UploaderPartsResponse>(API_ENDPOINTS.products.parts.list, {
       params: uploaderItemsQuery(params),
     }),
+
+  /** One product's full record for the uploader item sheet (DB UUID). */
+  getCatalogProduct: (id: string) =>
+    api.get<CatalogProduct>(`${API_ENDPOINTS.products.base}/${id}`),
+
+  /** One part's full record for the uploader item sheet (DB UUID). */
+  getCatalogPart: (id: string) =>
+    api.get<CatalogPart>(API_ENDPOINTS.products.parts.detail(id)),
 
   /** Items one uploader was credited for updating (the rows behind `updates`). */
   getUploaderUpdates: ({ staffId, startDate, endDate, page }: UploaderUpdatesParams) =>

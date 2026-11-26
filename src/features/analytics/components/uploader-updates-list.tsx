@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppIcon } from "@/components/shared/app-icon";
 import { UploaderItemsPagination } from "./uploader-items-pagination";
 import { UploaderAnalyticsEmpty } from "./uploader-analytics-empty";
+import { OPENABLE_ROW } from "./uploader-item-row";
 import {
   changedFieldLabels,
   UPDATES_COUNTED_FROM,
@@ -12,6 +12,7 @@ import {
 import type {
   UpdatedCatalogItem,
   UploaderUpdatesResponse,
+  CatalogItemRef,
 } from "../types/upload-analytics";
 
 const DATE_FMT = new Intl.DateTimeFormat("en-NG", {
@@ -31,15 +32,24 @@ const COUNTED_FROM = new Intl.DateTimeFormat("en-NG", {
 /** Chips shown per row before "+N more". */
 const MAX_FIELDS = 4;
 
-/** One product or part the uploader was credited for updating. */
-function UpdatedItemRow({ item }: { item: UpdatedCatalogItem }) {
-  const href = updatedItemHref(item);
+/**
+ * One product or part the uploader was credited for updating. Click opens the
+ * item sheet; a deleted item (no href) is a plain row.
+ */
+function UpdatedItemRow({
+  item,
+  onOpen,
+}: {
+  item: UpdatedCatalogItem;
+  onOpen: (ref: CatalogItemRef) => void;
+}) {
+  const deleted = updatedItemHref(item) === null;
   const labels = changedFieldLabels(item.changedFields);
   const shown = labels.slice(0, MAX_FIELDS);
   const hidden = labels.length - shown.length;
 
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
+  const content = (
+    <>
       <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -57,13 +67,8 @@ function UpdatedItemRow({ item }: { item: UpdatedCatalogItem }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        {href ? (
-          <Link
-            href={href}
-            className="block truncate text-sm font-semibold hover:text-primary-ink hover:underline"
-          >
-            {item.name}
-          </Link>
+        {!deleted ? (
+          <p className="truncate text-sm font-semibold">{item.name}</p>
         ) : (
           <p className="truncate text-sm font-semibold text-muted-foreground">
             Deleted item
@@ -102,7 +107,28 @@ function UpdatedItemRow({ item }: { item: UpdatedCatalogItem }) {
           </p>
         )}
       </div>
-    </div>
+      {!deleted && (
+        <AppIcon
+          icon="solar:alt-arrow-right-linear"
+          className="size-4 shrink-0 text-muted-foreground/60"
+        />
+      )}
+    </>
+  );
+
+  if (deleted) {
+    return <div className="flex items-center gap-3 px-4 py-3">{content}</div>;
+  }
+  return (
+    <button
+      type="button"
+      className={OPENABLE_ROW}
+      onClick={() =>
+        onOpen({ type: item.type, id: item.id, title: item.name, image: item.imageUrl ?? null })
+      }
+    >
+      {content}
+    </button>
   );
 }
 
@@ -112,6 +138,7 @@ interface UploaderUpdatesListProps {
   isError: boolean;
   page: number;
   onPageChange: (page: number) => void;
+  onOpen: (ref: CatalogItemRef) => void;
 }
 
 /** The "Updated" tab: skeleton / error / empty / rows + pager. */
@@ -121,6 +148,7 @@ export function UploaderUpdatesList({
   isError,
   page,
   onPageChange,
+  onOpen,
 }: UploaderUpdatesListProps) {
   if (isLoading) {
     return (
@@ -153,7 +181,7 @@ export function UploaderUpdatesList({
     <div>
       <div className="divide-y divide-border">
         {items.map((item) => (
-          <UpdatedItemRow key={`${item.type}:${item.id}`} item={item} />
+          <UpdatedItemRow key={`${item.type}:${item.id}`} item={item} onOpen={onOpen} />
         ))}
       </div>
       {data && (

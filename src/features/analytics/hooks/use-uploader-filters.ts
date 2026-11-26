@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { periodToDateRange } from "../utils/period-to-range";
-import type { UploaderSort } from "../utils/filter-sort-uploaders";
+import {
+  DEFAULT_UPLOADER_SORT,
+  parseUploaderSort,
+  type UploaderSort,
+} from "../utils/filter-sort-uploaders";
+import { DEFAULT_PERIOD, type DateRange } from "../model/upload-period";
 
 /**
  * URL-state for the Upload Management page. Per ADR-0005, the date range, search,
@@ -16,13 +21,6 @@ import type { UploaderSort } from "../utils/filter-sort-uploaders";
  * letting the TanStack Query fetch fire immediately.
  */
 const SEARCH_DEBOUNCE_MS = 300;
-const DEFAULT_SORT: UploaderSort = "today";
-const SORTS: UploaderSort[] = ["today", "total", "target", "name"];
-
-interface DateRange {
-  startDate: string;
-  endDate: string;
-}
 
 interface UploaderFilters {
   range: DateRange;
@@ -30,22 +28,16 @@ interface UploaderFilters {
   sort: UploaderSort;
 }
 
-function parseSort(value: string | null): UploaderSort {
-  return value && (SORTS as string[]).includes(value)
-    ? (value as UploaderSort)
-    : DEFAULT_SORT;
-}
-
-/** Parse the URL query into resolved filters (relative 30-day default applied). */
+/** Parse the URL query into resolved filters (rolling "this month" default applied). */
 function parseParams(sp: URLSearchParams): UploaderFilters {
-  const fallback = periodToDateRange("30d", null);
+  const fallback = periodToDateRange(DEFAULT_PERIOD, null);
   return {
     range: {
       startDate: sp.get("from") || fallback.startDate,
       endDate: sp.get("to") || fallback.endDate,
     },
     search: sp.get("search") || undefined,
-    sort: parseSort(sp.get("sort")),
+    sort: parseUploaderSort(sp.get("sort")),
   };
 }
 
@@ -55,7 +47,7 @@ function toQueryString(filters: UploaderFilters): string {
   if (filters.search) sp.set("search", filters.search);
   // Only pin explicit dates when they differ from today's rolling default, so an
   // untouched page keeps a clean URL but any chosen window is reproducible.
-  const def = periodToDateRange("30d", null);
+  const def = periodToDateRange(DEFAULT_PERIOD, null);
   if (
     filters.range.startDate !== def.startDate ||
     filters.range.endDate !== def.endDate
@@ -63,7 +55,7 @@ function toQueryString(filters: UploaderFilters): string {
     sp.set("from", filters.range.startDate);
     sp.set("to", filters.range.endDate);
   }
-  if (filters.sort !== DEFAULT_SORT) sp.set("sort", filters.sort);
+  if (filters.sort !== DEFAULT_UPLOADER_SORT) sp.set("sort", filters.sort);
   return sp.toString();
 }
 
