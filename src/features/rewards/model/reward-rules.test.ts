@@ -11,6 +11,7 @@ import {
   paidOnLabel,
   parseWholeNaira,
   previewFinalAmount,
+  staffHistory,
   staffName,
   uploadsOf,
   visibleTeamTabs,
@@ -130,5 +131,22 @@ describe("isAlreadyPaidError", () => {
   it("is false for other errors", () => {
     expect(isAlreadyPaidError(new ApiError("bad", 400, null))).toBe(false);
     expect(isAlreadyPaidError(new Error("x"))).toBe(false);
+  });
+});
+
+describe("staffHistory", () => {
+  const row = (month: string, staffId: string) => ({ month, staff: { id: staffId } });
+  const months = [
+    { statements: [row("2026-12", "a"), row("2026-12", "b")] },
+    { statements: [row("2026-11", "b")] },
+    { statements: [row("2026-10", "a")] },
+  ];
+
+  it("keeps one row per month for the uploader, in the given order", () => {
+    expect(staffHistory(months, "a").map((r) => r.month)).toEqual(["2026-12", "2026-10"]);
+  });
+  it("is empty for an uploader with no rows", () => {
+    expect(staffHistory(months, "zz")).toEqual([]);
+    expect(staffHistory([], "a")).toEqual([]);
   });
 });

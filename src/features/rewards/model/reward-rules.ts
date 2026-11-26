@@ -91,6 +91,17 @@ export function previewFinalAmount(computed: number, input: string): number | nu
   return Number.isInteger(n) ? computed + n : null;
 }
 
+/**
+ * One uploader's row from each loaded month, in the months' order (newest
+ * first). Months where they did no counted work have no row and drop out.
+ */
+export function staffHistory<R extends { staff: { id: string } }>(
+  months: { statements: R[] }[],
+  staffId: string,
+): R[] {
+  return months.flatMap((m) => m.statements.filter((r) => r.staff.id === staffId));
+}
+
 /** An empty list means no access: the team page shows the "No access" card. */
 export function visibleTeamTabs(perms: {
   can: (name: string) => boolean;
@@ -98,11 +109,6 @@ export function visibleTeamTabs(perms: {
 }): TeamTab[] {
   if (!perms.canAnyInGroup(["rewards"])) return [];
   return perms.can("rewards:manage") ? ["uploaders", "rates"] : ["uploaders"];
-}
-
-/** DOM id of an uploader's row, so `?staff=<id>` can scroll it into view. */
-export function rewardRowId(staffId: string): string {
-  return `reward-row-${staffId}`;
 }
 
 /** 409 = another manager adjusted or paid the row first. */

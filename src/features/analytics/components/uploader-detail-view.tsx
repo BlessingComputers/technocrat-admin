@@ -78,7 +78,7 @@ export function UploaderDetailView({ staffId }: { staffId: string }) {
       >
         {canAnyInGroup(["rewards"]) && (
           <Button asChild variant="outline" size="sm" className="font-medium">
-            <Link href={`/rewards/team?staff=${encodeURIComponent(staffId)}`}>
+            <Link href={`/rewards/team/${encodeURIComponent(staffId)}`}>
               <AppIcon icon="solar:hand-money-linear" className="mr-1.5 size-4" />
               View rewards
             </Link>

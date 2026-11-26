@@ -1,10 +1,12 @@
 import {
   keepPreviousData,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { staffHistory } from "../model/reward-rules";
 import { rewardsService } from "./rewards.service";
 import type {
   AdjustmentInput,
@@ -44,6 +46,36 @@ export function useRewardMonth(month: string | undefined, enabled: boolean) {
     // Keep the last month on screen while the picked one loads.
     placeholderData: keepPreviousData,
   });
+}
+
+/**
+ * Every month for one uploader, newest first. No backend route gives this yet
+ * (Technocrat ask 23, issue #311), so it loads each month and keeps the uploader's row.
+ * The open month uses the team page's cache entry (no month = open).
+ */
+export function useStaffRewardHistory(staffId: string, enabled: boolean) {
+  const months = useRewardMonths(enabled);
+  const monthQueries = useQueries({
+    queries: (months.data ?? []).map((m) => {
+      const month = m.closedAt ? m.month : undefined;
+      return {
+        queryKey: rewardKeys.month(month),
+        queryFn: () => rewardsService.getMonth(month),
+        enabled,
+      };
+    }),
+  });
+
+  const loaded = monthQueries.flatMap((q) => (q.data ? [q.data] : []));
+  return {
+    rows: staffHistory(loaded, staffId),
+    isLoading: months.isLoading || monthQueries.some((q) => q.isLoading),
+    isError: months.isError || monthQueries.some((q) => q.isError),
+    refetch: () => {
+      void months.refetch();
+      monthQueries.forEach((q) => void q.refetch());
+    },
+  };
 }
 
 export function useRewardRate(enabled: boolean) {

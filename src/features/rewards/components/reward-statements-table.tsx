@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,14 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
 
 import {
   formatAdjustment,
+  formatRewardMonth,
   isOpenForAction,
   paidOnLabel,
-  rewardRowId,
   staffName,
   uploadsOf,
 } from "../model/reward-rules";
@@ -27,8 +28,11 @@ interface RewardStatementsTableProps {
   rows: RewardRow[];
   canAdjust: boolean;
   canPay: boolean;
-  /** From `?staff=<id>`: this uploader's row is tinted. */
-  highlightStaffId?: string;
+  /**
+   * "uploader": one month, one row per uploader (team page), names link to
+   * each uploader's page. "month": one uploader, one row per month.
+   */
+  by?: "uploader" | "month";
   onAdjust: (row: RewardRow) => void;
   onPay: (row: RewardRow) => void;
 }
@@ -37,7 +41,7 @@ export function RewardStatementsTable({
   rows,
   canAdjust,
   canPay,
-  highlightStaffId,
+  by = "uploader",
   onAdjust,
   onPay,
 }: RewardStatementsTableProps) {
@@ -45,7 +49,7 @@ export function RewardStatementsTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Uploader</TableHead>
+          <TableHead>{by === "month" ? "Month" : "Uploader"}</TableHead>
           <TableHead className="text-right">Uploads</TableHead>
           <TableHead className="text-right">Updates</TableHead>
           <TableHead className="text-right">Computed</TableHead>
@@ -58,16 +62,21 @@ export function RewardStatementsTable({
       <TableBody>
         {rows.map((row) => {
           const actionable = isOpenForAction(row);
-          const highlighted = row.staff.id === highlightStaffId;
           return (
-            // Keyed by staff: open-month rows all have id null.
-            <TableRow
-              key={row.staff.id}
-              id={rewardRowId(row.staff.id)}
-              data-highlighted={highlighted || undefined}
-              className={cn(highlighted && "bg-primary/5")}
-            >
-              <TableCell className="font-medium">{staffName(row)}</TableCell>
+            // Not keyed by id: open-month rows all have id null.
+            <TableRow key={by === "month" ? row.month : row.staff.id}>
+              <TableCell className="font-medium">
+                {by === "month" ? (
+                  formatRewardMonth(row.month)
+                ) : (
+                  <Link
+                    href={`/rewards/team/${encodeURIComponent(row.staff.id)}`}
+                    className="hover:underline"
+                  >
+                    {staffName(row)}
+                  </Link>
+                )}
+              </TableCell>
               <TableCell className="text-right tabular-nums">{uploadsOf(row)}</TableCell>
               <TableCell className="text-right tabular-nums">{row.updates}</TableCell>
               <TableCell className="text-right tabular-nums">
