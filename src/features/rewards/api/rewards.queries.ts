@@ -6,6 +6,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { REWARDS_QUERY_KEY } from "@/lib/utils/catalog-edit-refresh";
+
 import { staffHistory } from "../model/reward-rules";
 import { rewardsService } from "./rewards.service";
 import type {
@@ -15,7 +17,7 @@ import type {
 } from "../types/rewards";
 
 export const rewardKeys = {
-  all: ["rewards"] as const,
+  all: REWARDS_QUERY_KEY,
   me: () => [...rewardKeys.all, "me"] as const,
   months: () => [...rewardKeys.all, "months"] as const,
   month: (month?: string) =>

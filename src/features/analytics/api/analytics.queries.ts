@@ -9,6 +9,7 @@ import { useStaffSession } from "@/lib/auth/session-context";
 import { isSuperAdmin } from "@/lib/auth/permissions";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
+import { ANALYTICS_QUERY_KEY } from "@/lib/utils/catalog-edit-refresh";
 import { analyticsService } from "./analytics.service";
 import type { AdminKpiParams } from "../types/analytics";
 import type {
@@ -19,7 +20,7 @@ import type {
 import type { AnalyticsPeriodParams } from "../types/chart-analytics";
 
 export const analyticsKeys = {
-  all: ["analytics"] as const,
+  all: ANALYTICS_QUERY_KEY,
   kpis: (params?: AdminKpiParams) =>
     [...analyticsKeys.all, "kpis", params] as const,
   staff: (id?: string) => [...analyticsKeys.all, "staff", id] as const,
