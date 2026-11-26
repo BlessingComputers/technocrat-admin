@@ -36,6 +36,7 @@ import { BulkHardDeleteResultModal } from "./bulk-hard-delete-result-modal";
 import { useProductFilters } from "../hooks/use-product-filters";
 import { useCatalogProductStats } from "../hooks/use-catalog-product-stats";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
+import { BULK_PRICE_MAX_ITEMS } from "@/lib/utils/bulk-price";
 import { ProductsStatsBar } from "./products-stats-bar";
 import { ProductsFilterBar } from "./products-filter-bar";
 import { ProductsTable } from "./products-table";
@@ -139,6 +140,14 @@ export function ProductBrowseView() {
       error: (err) => getErrorMessage(err, "Failed to confirm prices"),
     });
     promise.then(() => selection.clear()).catch(() => {});
+  };
+
+  const openBulkPrice = () => {
+    if (selection.count > BULK_PRICE_MAX_ITEMS) {
+      toast.error(`Select ${BULK_PRICE_MAX_ITEMS} or fewer products to update prices.`);
+      return;
+    }
+    router.push(`/catalogues/all/bulk-price?ids=${selection.ids.join(",")}`);
   };
 
   const confirmDelete = () => {
@@ -263,6 +272,7 @@ export function ProductBrowseView() {
         count={selection.count}
         noun="product"
         onEdit={() => setBulkEditOpen(true)}
+        onUpdatePrices={openBulkPrice}
         onDelete={() => setBulkDeleteOpen(true)}
         onDeletePermanently={() => setBulkHardDeleteOpen(true)}
         onConfirmPrices={confirmSelectedPrices}

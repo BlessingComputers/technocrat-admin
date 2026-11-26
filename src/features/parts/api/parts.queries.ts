@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
 import { refreshCatalogEditViews } from "@/lib/utils/catalog-edit-refresh";
+import { BULK_PRICE_CONCURRENCY, runLimited } from "@/lib/utils/bulk-price";
 import { partsService } from "./parts.service";
 import { partTaxonomyService } from "./taxonomy.service";
 import type {
@@ -363,4 +364,33 @@ export function useUnlinkPart() {
       });
     },
   });
+}
+
+/**
+ * Part details for the bulk price page, fetched a few at a time (the
+ * backend's per-IP cap). Settled results: one failed load does not hide the rest.
+ */
+export function useBulkPriceParts(ids: string[]) {
+  return useQuery({
+    queryKey: [...partKeys.all, "bulk-price", ids] as const,
+    queryFn: () => runLimited(ids, BULK_PRICE_CONCURRENCY, (id) => partsService.getPart(id)),
+    enabled: ids.length > 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** One part's new base price, from the bulk price page. */
+export function useSavePartPrice() {
+  const queryClient = useQueryClient();
+  return {
+    save: (partId: string, price: number) => partsService.updatePart(partId, { price }),
+    /** Refresh lists and details, but not the bulk page's own query. */
+    refresh: () => {
+      queryClient.invalidateQueries({
+        queryKey: partKeys.all,
+        predicate: (q) => q.queryKey[1] !== "bulk-price",
+      });
+      refreshCatalogEditViews(queryClient);
+    },
+  };
 }

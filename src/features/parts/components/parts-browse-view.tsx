@@ -20,6 +20,7 @@ import {
 import { AppIcon } from "@/components/shared/app-icon";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { useRowSelection } from "@/lib/hooks/use-row-selection";
+import { BULK_PRICE_MAX_ITEMS } from "@/lib/utils/bulk-price";
 
 import {
   useParts,
@@ -115,6 +116,14 @@ export function PartsBrowseView() {
         },
       );
     }
+  };
+
+  const openBulkPrice = () => {
+    if (selection.count > BULK_PRICE_MAX_ITEMS) {
+      toast.error(`Select ${BULK_PRICE_MAX_ITEMS} or fewer parts to update prices.`);
+      return;
+    }
+    router.push(`/catalogues/parts/bulk-price?ids=${selection.ids.join(",")}`);
   };
 
   const confirmDelete = () => {
@@ -246,6 +255,7 @@ export function PartsBrowseView() {
         count={selection.count}
         noun="part"
         onEdit={() => setBulkEditOpen(true)}
+        onUpdatePrices={openBulkPrice}
         onDelete={() => setBulkDeleteOpen(true)}
         onConfirmPrices={confirmSelectedPrices}
         onClear={selection.clear}

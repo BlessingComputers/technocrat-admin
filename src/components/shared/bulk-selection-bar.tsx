@@ -19,6 +19,8 @@ interface BulkSelectionBarProps {
   onDeletePermanently?: () => void;
   /** "Price still correct" for the selection (ask 42). Shown when passed. */
   onConfirmPrices?: () => void;
+  /** Opens the bulk price page for the selection. Shown when passed. */
+  onUpdatePrices?: () => void;
   onClear: () => void;
   disabled?: boolean;
 }
@@ -30,6 +32,7 @@ export function BulkSelectionBar({
   onDelete,
   onDeletePermanently,
   onConfirmPrices,
+  onUpdatePrices,
   onClear,
   disabled = false,
 }: BulkSelectionBarProps) {
@@ -55,6 +58,18 @@ export function BulkSelectionBar({
       </div>
 
       <div className="flex items-center gap-2">
+        {onUpdatePrices ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUpdatePrices}
+            disabled={disabled}
+            className="h-9 rounded-md font-medium"
+          >
+            <AppIcon icon="solar:tag-price-linear" className="mr-1.5 size-4" />
+            Update price
+          </Button>
+        ) : null}
         {onConfirmPrices ? (
           <Button
             variant="outline"
