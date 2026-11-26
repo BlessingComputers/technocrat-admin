@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
+import { clearedCookieNames } from "@/lib/auth/session-cookies";
 
 /**
  * Admin app middleware.
@@ -28,6 +29,17 @@ export function proxy(request: NextRequest) {
 
   // Login page: bounce to the dashboard (home) if already authenticated.
   if (pathname === "/login") {
+    // Only the fetch client's failed-refresh redirect adds `error=`. The
+    // session is dead by then, so clear it here instead of bouncing to `/`.
+    // Without this, a stale staffAccessToken loops `/login` → `/` forever
+    // whenever the refresh route did not clear it.
+    if (request.nextUrl.searchParams.has("error")) {
+      const response = NextResponse.next();
+      for (const name of clearedCookieNames()) {
+        response.cookies.delete(name);
+      }
+      return response;
+    }
     if (staffToken) {
       return NextResponse.redirect(new URL("/", request.url));
     }
