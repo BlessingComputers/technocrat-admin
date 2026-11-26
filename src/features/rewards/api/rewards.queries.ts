@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { rewardsService } from "./rewards.service";
 import type {
@@ -36,6 +41,8 @@ export function useRewardMonth(month: string | undefined, enabled: boolean) {
     queryKey: rewardKeys.month(month),
     queryFn: () => rewardsService.getMonth(month),
     enabled,
+    // Keep the last month on screen while the picked one loads.
+    placeholderData: keepPreviousData,
   });
 }
 

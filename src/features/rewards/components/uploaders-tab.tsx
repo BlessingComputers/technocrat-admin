@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePermissions } from "@/lib/auth/use-permissions";
+import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/format";
 
 import { useRewardMonth, useRewardMonths } from "../api/rewards.queries";
@@ -71,7 +72,8 @@ export function UploadersTab() {
               : `Month in progress. Figures are live and close on ${closesOnLabel(data.month)}.`}
           </p>
         </div>
-        <Select value={data.month} onValueChange={setMonth}>
+        {/* The picked month, even while the old month's rows are still shown. */}
+        <Select value={month ?? data.month} onValueChange={setMonth}>
           <SelectTrigger className="w-52" aria-label="Month">
             <SelectValue />
           </SelectTrigger>
@@ -86,32 +88,40 @@ export function UploadersTab() {
         </Select>
       </div>
 
-      {data.statements.length === 0 ? (
-        <Card className="py-10 text-center text-sm text-muted-foreground">
-          No counted uploads or updates in {label}.
-        </Card>
-      ) : (
-        <>
-          {highlightMissing && (
-            <p className="text-sm text-muted-foreground">
-              This uploader has no counted work in {label}.
-            </p>
-          )}
-          <Card className="gap-0 p-0">
-            <RewardStatementsTable
-              rows={data.statements}
-              canAdjust={can("rewards:manage")}
-              canPay={can("rewards:pay")}
-              highlightStaffId={highlightStaffId}
-              onAdjust={setAdjusting}
-              onPay={setPaying}
-            />
-            <p className="border-t px-4 py-3 text-right text-sm font-semibold text-foreground">
-              Total for {label}: {formatPrice(monthTotal(data.statements))}
-            </p>
+      <div
+        aria-busy={view.isPlaceholderData}
+        className={cn(
+          "space-y-4 transition-opacity",
+          view.isPlaceholderData && "pointer-events-none opacity-60",
+        )}
+      >
+        {data.statements.length === 0 ? (
+          <Card className="py-10 text-center text-sm text-muted-foreground">
+            No counted uploads or updates in {label}.
           </Card>
-        </>
-      )}
+        ) : (
+          <>
+            {highlightMissing && (
+              <p className="text-sm text-muted-foreground">
+                This uploader has no counted work in {label}.
+              </p>
+            )}
+            <Card className="gap-0 p-0">
+              <RewardStatementsTable
+                rows={data.statements}
+                canAdjust={can("rewards:manage")}
+                canPay={can("rewards:pay")}
+                highlightStaffId={highlightStaffId}
+                onAdjust={setAdjusting}
+                onPay={setPaying}
+              />
+              <p className="border-t px-4 py-3 text-right text-sm font-semibold text-foreground">
+                Total for {label}: {formatPrice(monthTotal(data.statements))}
+              </p>
+            </Card>
+          </>
+        )}
+      </div>
       <AdjustRewardDialog row={adjusting} onClose={() => setAdjusting(null)} />
       <MarkPaidDialog row={paying} onClose={() => setPaying(null)} />
     </div>
