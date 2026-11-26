@@ -48,6 +48,8 @@ const FIELD_LABELS: Record<string, string> = {
   isInStock: "In stock",
   sortOrder: "Sort order",
   images: "Images",
+  // Logged on the part when staff attach it to a product (ask 56).
+  compatibleProducts: "Attached to a product",
 };
 
 /** "warrantyMonths" → "Warranty months", for a field added after this map. */

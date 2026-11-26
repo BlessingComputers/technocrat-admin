@@ -16,6 +16,10 @@ describe("changedFieldLabels", () => {
     ]);
   });
 
+  it("labels a part attach (ask 56) as an attach, not a field edit", () => {
+    expect(changedFieldLabels(["compatibleProducts"])).toEqual(["Attached to a product"]);
+  });
+
   it("shows partType and partTypeId as one chip", () => {
     expect(changedFieldLabels(["partType", "partTypeId"])).toEqual(["Part type"]);
   });
