@@ -39,7 +39,7 @@ export const navGroups: NavGroup[] = [
     // Personal pages first (Linear's sidebar does the same). `:me` is filled
     // with the signed-in staff id by the sidebar (`ME_SEGMENT` in
     // `components/layouts/nav-active.ts`); without a session the row and this
-    // group drop out. Rewards may go here or under Users (decided at that build, ask 20).
+    // group drop out. "My rewards" (ask 20) sits here; the team page is under Users.
     label: "You",
     items: [
       {
@@ -47,6 +47,14 @@ export const navGroups: NavGroup[] = [
         href: "/uploads/:me",
         icon: "solar:upload-square-linear",
         iconActive: "solar:upload-square-bold",
+        requiredPermissions: ["products"],
+      },
+      {
+        // Every uploader sees their own rewards. Same gate as My uploads.
+        title: "My rewards",
+        href: "/rewards",
+        icon: "solar:hand-money-linear",
+        iconActive: "solar:hand-money-bold",
         requiredPermissions: ["products"],
       },
     ],
@@ -107,7 +115,9 @@ export const navGroups: NavGroup[] = [
             href: "/pricing/deals",
             icon: "solar:sale-linear",
             iconActive: "solar:sale-bold",
-            requiredPermissions: ["priceMarkup", "partMarkup"],
+            // Ask 53: deal routes accept discounts:* or the priceMarkup:* they
+            // needed before. partMarkup stays for the part flash-sale route.
+            requiredPermissions: ["discounts", "priceMarkup", "partMarkup"],
           },
           {
             // Beside Deals because every drop is a Deal underneath. Gated on
@@ -266,7 +276,8 @@ export const navGroups: NavGroup[] = [
       {
         // Parent only, no gate of its own (same as Payments): Staff answers to
         // `users`, Uploads to `products`, so an uploader sees Users with only
-        // Uploads under it. URLs stay flat (/users, /uploads).
+        // Uploads under it. URLs stay flat (/users, /uploads). Rewards answers
+        // to `rewards`.
         title: "Users",
         icon: "solar:users-group-rounded-linear",
         iconActive: "solar:users-group-rounded-bold",
@@ -284,6 +295,16 @@ export const navGroups: NavGroup[] = [
             icon: "solar:cloud-upload-linear",
             iconActive: "solar:cloud-upload-bold",
             requiredPermissions: ["products"],
+          },
+          {
+            // The team view (ask 20). Only `rewards:pay` / `rewards:manage`
+            // holders and SUPER_ADMIN see it; a super admin grants these on
+            // /users (no seeded role). Own rewards are "My rewards" under You.
+            title: "Rewards",
+            href: "/rewards/team",
+            icon: "solar:hand-money-linear",
+            iconActive: "solar:hand-money-bold",
+            requiredPermissions: ["rewards"],
           },
         ],
       },

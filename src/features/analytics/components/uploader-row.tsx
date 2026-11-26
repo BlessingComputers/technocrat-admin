@@ -6,6 +6,9 @@ import { AppIcon } from "@/components/shared/app-icon";
 import { UploadTargetProgress } from "./upload-target-progress";
 import type { UploaderSummary } from "../types/upload-analytics";
 
+/** Left rule that opens the "Selected period" column group. */
+export const PERIOD_START = "border-l border-border/60";
+
 function initials(name: string): string {
   return name
     .split(" ")
@@ -69,7 +72,7 @@ export function UploaderRow({ uploader, onEdit }: UploaderRowProps) {
           }}
         />
       </TableCell>
-      <TableCell className="text-right font-semibold tabular-nums">
+      <TableCell className={`${PERIOD_START} text-right font-semibold tabular-nums`}>
         {totals.products}
       </TableCell>
       <TableCell className="text-right font-semibold tabular-nums">

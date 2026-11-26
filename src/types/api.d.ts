@@ -1821,6 +1821,8 @@ export interface paths {
          *     both sections always force their own docType internally, so passing `?docType=PART` here does
          *     NOT turn this into a parts-only endpoint. Use `GET /products/parts` or
          *     `GET /products/parts/by-category` for an exact-match Prisma-backed parts filter instead.
+         *
+         *     **NEW — dollar pricing (ask 50):** every hit carries `fxLinked` (true when its price follows the dollar rate), and `fxLinked=true|false` filters products and parts. Linking or unlinking (POST /pricing/fx/link, or an update that changes `fxLinked`) reindexes the affected items, so hits follow within seconds. Items indexed before this shipped have no value until reindexed: they read `fxLinked: false` and match neither filter value. After deploy, run `POST /products/admin/sync` and `POST /products/parts/admin/sync` once.
          */
         get: {
             parameters: {
@@ -1843,6 +1845,7 @@ export interface paths {
                     createdFrom?: string;
                     createdTo?: string;
                     priceCheckedBefore?: string;
+                    fxLinked?: string;
                     sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
@@ -1884,8 +1887,8 @@ export interface paths {
                                     suggestions?: components["schemas"]["Product"][];
                                 };
                                 parts: {
-                                    /** @description Matching parts, in ProductListItem shape with docType:'PART' — see endpoint description. Each item also carries partId/partType/partNumber/ownerSku. */
-                                    data: unknown[];
+                                    /** @description Matching parts, in ProductListItem shape with docType:'PART' — see endpoint description. Each item also carries partId/partType/partNumber/ownerSku and fxLinked. */
+                                    data: components["schemas"]["PartSearchHit"][];
                                     meta: {
                                         total: number;
                                         page: number;
@@ -1949,6 +1952,8 @@ export interface paths {
          *     Parts-only queries require most of a multi-word query's words to match (one-word queries are
          *     unchanged), so results stay relevant past the first few. Items are in ProductListItem shape with
          *     `docType: 'PART'` and `partId`/`partType`/`partNumber` — link each to `/parts/{partId}`.
+         *
+         *     **NEW — dollar pricing (ask 50):** every hit carries `fxLinked` (true when its price follows the dollar rate), and `fxLinked=true|false` filters products and parts. Linking or unlinking (POST /pricing/fx/link, or an update that changes `fxLinked`) reindexes the affected items, so hits follow within seconds. Items indexed before this shipped have no value until reindexed: they read `fxLinked: false` and match neither filter value. After deploy, run `POST /products/admin/sync` and `POST /products/parts/admin/sync` once.
          */
         get: {
             parameters: {
@@ -1971,6 +1976,7 @@ export interface paths {
                     createdFrom?: string;
                     createdTo?: string;
                     priceCheckedBefore?: string;
+                    fxLinked?: string;
                     sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
@@ -1996,7 +2002,7 @@ export interface paths {
                         "application/json": {
                             success: boolean;
                             data: {
-                                data: unknown[];
+                                data: components["schemas"]["PartSearchHit"][];
                                 meta: {
                                     total: number;
                                     page: number;
@@ -2102,7 +2108,9 @@ export interface paths {
         };
         /**
          * List / filter products
-         * @description Postgres-backed product listing with full filter support. isActive defaults to true for public.
+         * @description OpenSearch-backed product listing with full filter support. isActive defaults to true for public.
+         *
+         *     **NEW — dollar pricing (ask 50):** every hit carries `fxLinked` (true when its price follows the dollar rate), and `fxLinked=true|false` filters products and parts. Linking or unlinking (POST /pricing/fx/link, or an update that changes `fxLinked`) reindexes the affected items, so hits follow within seconds. Items indexed before this shipped have no value until reindexed: they read `fxLinked: false` and match neither filter value. After deploy, run `POST /products/admin/sync` and `POST /products/parts/admin/sync` once.
          */
         get: {
             parameters: {
@@ -2125,6 +2133,7 @@ export interface paths {
                     createdFrom?: string;
                     createdTo?: string;
                     priceCheckedBefore?: string;
+                    fxLinked?: string;
                     sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
@@ -2264,6 +2273,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         put?: never;
@@ -2287,7 +2303,7 @@ export interface paths {
          *
          *     **Primary use case:** Internal admin dashboard — product browsing, filtering by category+brand, and selecting products for operations like markup rule application.
          *
-         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`. Use this endpoint for the price-age list: the OpenSearch-backed `GET /products` doesn't have `priceCheckedAt` and ignores `priceCheckedBefore` (as it does `createdFrom`/`createdTo`).
+         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`. Use this endpoint for the price-age list: the OpenSearch-backed `GET /products` doesn't have `priceCheckedAt` and ignores `priceCheckedBefore` (as it does `createdFrom`/`createdTo`). **NEW: dollar-rate pricing (ask 45):** every product carries public `fxLinked` (its price follows the dollar rate) and every variant `fxPricedAt` (when FX last moved its price, null = never); list rows carry `fxLinked` and `variantPrices[].fxPricedAt`. Filter with `fxLinked=true|false` (since ask 50 the OpenSearch routes `GET /products`, `/products/search` and `/products/search/parts` have it too). Create/update accept `fxLinked`; changing it needs SUPER_ADMIN.
          *
          *     **Frontend workflow for markup rules:**
          *     1. Staff navigates to the markup rules page
@@ -2348,6 +2364,7 @@ export interface paths {
                     createdFrom?: string;
                     createdTo?: string;
                     priceCheckedBefore?: string;
+                    fxLinked?: string;
                     sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     attr?: {
                         [key: string]: string;
@@ -2534,6 +2551,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Product not found */
                 404: {
                     headers: {
@@ -2584,6 +2608,13 @@ export interface paths {
                             data: components["schemas"]["Product"];
                         };
                     };
+                };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Not found */
                 404: {
@@ -6685,7 +6716,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -6758,7 +6789,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:read */
+                /** @description Insufficient permissions — requires discounts:read (or priceMarkup:read) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -6817,7 +6848,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -6868,7 +6899,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:read */
+                /** @description Insufficient permissions — requires discounts:read (or priceMarkup:read) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -6917,7 +6948,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -6991,7 +7022,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -7072,7 +7103,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -7112,7 +7143,7 @@ export interface paths {
         put?: never;
         /**
          * End a deal
-         * @description Resets every rule this deal started back to base price (same effect as `POST /flash-sales/.../cancel`, per rule) and marks the deal `ENDED` — terminal, create a new deal to run it again. Safe to call even if the expiry sweep already reset the underlying rules (e.g. via `expiresAt`): resetting an already-inactive rule is a no-op write, not an error.
+         * @description Resets every rule this deal started back to base price (same effect as `POST /flash-sales/.../cancel`, per rule) and marks the deal `ENDED` — terminal, create a new deal to run it again. Safe to call even if the expiry sweep already reset the underlying rules (e.g. via `expiresAt`): resetting an already-inactive rule is a no-op write, not an error. NEW (ask 51): an item another rule still covers moves to that rule instead of base price; it is counted in `variantsRepriced` / `partsRepriced`. Items back to normal price = `variantsReset + variantsRepriced` (parts: `partsReset + partsRepriced`).
          */
         post: {
             parameters: {
@@ -7133,10 +7164,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             success: boolean;
-                            data: components["schemas"]["Deal"] & {
-                                variantsReset: number;
-                                partsReset: number;
-                            };
+                            data: components["schemas"]["DealEndResult"];
                         };
                     };
                 };
@@ -7147,7 +7175,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires priceMarkup:write */
+                /** @description Insufficient permissions — requires discounts:write (or priceMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -7197,6 +7225,8 @@ export interface paths {
          *     - Associated brand name/slug (null if rule applies to all brands, or is product-scoped)
          *     - Associated product name/slug — **NEW** — populated only when the rule is scoped to one exact product
          *     - Staff member who created the rule
+         *
+         *     **Permission:** `priceMarkup:read` or `discounts:read` (read only, so the deals screen can warn about a clash with a standing rule before starting a deal; creating or changing rules still needs `priceMarkup:write`).
          */
         get: {
             parameters: {
@@ -7228,7 +7258,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permissions — requires products:write */
+                /** @description Insufficient permissions — requires priceMarkup:read or discounts:read */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -7606,12 +7636,13 @@ export interface paths {
          *        {
          *          "success": true,
          *          "data": {
-         *            "variantsReset": 24,
+         *            "variantsReset": 20,
+         *            "variantsRepriced": 4,
          *            "partsReset": 0
          *          }
          *        }
          *
-         *     6. Frontend shows: "24 variants reset to base price"
+         *     6. Frontend shows: "24 variants back to normal price" (20 to base, 4 to another rule)
          *        (partsReset is always 0 — product markup never affects product parts)
          *     7. Rule is now inactive in the table — staff can delete it or re-activate it later
          *     ```
@@ -7635,18 +7666,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             success: boolean;
-                            data: {
-                                /**
-                                 * @description Number of product variants whose price was reset to basePrice
-                                 * @example 24
-                                 */
-                                variantsReset: number;
-                                /**
-                                 * @description Always 0. Product markup never affects product parts — parts are priced by separate part markup rules (POST /products/parts/markup-rules). Field kept for backward compatibility.
-                                 * @example 0
-                                 */
-                                partsReset: number;
-                            };
+                            data: components["schemas"]["MarkupRuleCancelResult"];
                         };
                     };
                 };
@@ -7901,23 +7921,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             success: boolean;
-                            data: {
-                                /**
-                                 * @description Number of variants that would be affected
-                                 * @example 12
-                                 */
-                                totalVariants: number;
-                                /**
-                                 * @description Number of distinct products those variants belong to
-                                 * @example 4
-                                 */
-                                totalProducts: number;
-                                /** @example 15 */
-                                markupPercentage: number;
-                                /** @example PRICE */
-                                applyTo: string;
-                                variants: components["schemas"]["PreviewVariant"][];
-                            };
+                            data: components["schemas"]["MarkupPreviewResult"];
                         };
                     };
                 };
@@ -7994,14 +7998,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             success: boolean;
-                            data: {
-                                /**
-                                 * @description Number of variants updated
-                                 * @example 12
-                                 */
-                                updated: number;
-                                results: components["schemas"]["PricingResponse"][];
-                            };
+                            data: components["schemas"]["MarkupApplyResult"];
                         };
                     };
                 };
@@ -8414,7 +8411,11 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description `HUNT_ITEM_ALREADY_CLAIMED` — the treasure-hunt item in this cart was claimed by another order between the fast-path check and the atomic database claim. This is an expected outcome under concurrency, not a bug — render it as a "someone beat you to it" state, not a generic error. */
+                /**
+                 * @description `HUNT_ITEM_ALREADY_CLAIMED` — the treasure-hunt item in this cart was claimed by another order between the fast-path check and the atomic database claim. This is an expected outcome under concurrency, not a bug — render it as a "someone beat you to it" state, not a generic error.
+                 *
+                 *     `PRICE_CHANGED` (ask 46) — only when `expectedTotal` / `expectedPrices` was sent and the live prices differ. No order is created. `details: { changes: [{ variantId, productName, variantName, priceAtAdd, unitPrice, quantity }], expectedTotal, currentTotal }` (`priceAtAdd` = what the customer was shown). Show the price-change notice; after "Continue at the new price" call POST /cart/accept-prices and retry with the new total.
+                 */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -8511,7 +8512,12 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["OrderResponse"];
+                        };
+                    };
                 };
                 /** @description Not your order */
                 403: {
@@ -8623,12 +8629,17 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Order returned; `policyConsent` present only with `policy:consent:read`. */
+                /** @description Order returned; `policyConsent` present only with `policy:consent:read`. Each item carries `productId` (ask 49). */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["OrderResponse"];
+                        };
+                    };
                 };
                 /** @description Forbidden */
                 403: {
@@ -9230,6 +9241,57 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["CartErrorResponse"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cart/accept-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept current prices ("Continue at the new price")
+         * @description NEW (ask 46). Sets every line's priceAtAdd to the current variant price and returns the cart (priceChanged false everywhere). Call it when the customer presses "Continue at the new price", then send the new subtotal as expectedTotal on POST /orders or POST /checkout. If the price moves again before the order is created, that call answers 409 PRICE_CHANGED and the customer sees the notice again.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The cart, with snapshots moved to the live prices. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Customer authentication required */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description CART_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -16958,6 +17020,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/customers/{customerId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List one customer's live chats (every status)
+         * @description NEW (frontend ask 48). One customer's live-chat conversations, **every status** (WAITING, ACTIVE, RESOLVED, ABANDONED), newest first by `lastMessageAt`. For the admin customer page.
+         *
+         *     Same row as `GET /conversations`, plus `createdAt` and `resolvedAt`. Open a row with `GET /conversations/{id}` or the inbox link `/chat?c=<id>`.
+         *
+         *     `GET /conversations` itself is unchanged (WAITING/ACTIVE only).
+         *
+         *     Guest chats (no store account) are not linked to a customer, so they never appear. WhatsApp conversations are not included.
+         *
+         *     **Staff only.**
+         */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    customerId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The customer's chats, newest first. An empty array when they have none. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example true */
+                            success: boolean;
+                            data: components["schemas"]["CustomerConversationListItem"][];
+                        };
+                    };
+                };
+                /** @description No token provided or token invalid */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Staff authentication required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description customerId is not a UUID, or limit is not 1-50 */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/conversations/mine": {
         parameters: {
             query?: never;
@@ -21293,7 +21431,7 @@ export interface paths {
          *
          *     Every item includes a **`createdBy`** field (id, staffId, name, avatarUrl). Use `createdByStaffId` + `createdFrom`/`createdTo` to pull one uploader's parts within a specific day or week — the counts will match `GET /analytics/uploaders`.
          *
-         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`.
+         *     **NEW — price age (ask 42):** every item carries `priceCheckedAt`, when a person last set or confirmed its price. It moves when a staff save changes price, compareAtPrice or costPrice (one item or bulk), or on "Still correct". Sales, stock sync, markup/tax rules, bulk upload workers and other jobs never move it; a new item starts at its creation time. Filter with `priceCheckedBefore` (ISO 8601, e.g. now minus 30/60/90 days: items checked at or before it) and sort with `sortBy=price_checked_oldest`. **NEW: dollar-rate pricing (ask 45):** every part carries public `fxLinked` and `fxPricedAt` (when FX last moved its price, null = never). Filter with `fxLinked=true|false`. Create/update accept `fxLinked`; changing it needs SUPER_ADMIN.
          *
          *     **Query params:**
          *
@@ -21329,6 +21467,7 @@ export interface paths {
                     createdFrom?: string;
                     createdTo?: string;
                     priceCheckedBefore?: string;
+                    fxLinked?: "true" | "false";
                     sortBy?: "newest" | "oldest" | "price_asc" | "price_desc" | "rating" | "popularity" | "name_asc" | "name_desc" | "price_checked_oldest";
                     page?: number;
                     limit?: number;
@@ -21362,7 +21501,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Authentication required */
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -21631,6 +21770,13 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         put?: never;
@@ -21675,6 +21821,13 @@ export interface paths {
                             data: components["schemas"]["PartResponse"];
                         };
                     };
+                };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Part not found */
                 404: {
@@ -22121,6 +22274,13 @@ export interface paths {
                             data: components["schemas"]["PartsByCategory"];
                         };
                     };
+                };
+                /** @description NEW (ask 47). Only when a STAFF token is sent and it is expired, invalid, revoked or from an old session (`TOKEN_EXPIRED`, `INVALID_TOKEN`, `TOKEN_REVOKED`, `SESSION_INVALIDATED`): refresh and retry to get the staff shape (costPrice, createdBy). No token, or a customer token (even an expired one), is answered as a guest, as before. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Product not found */
                 404: {
@@ -22718,6 +22878,7 @@ export interface paths {
                             isFeatured?: boolean;
                             /** @default 0 */
                             sortOrder?: number;
+                            fxLinked?: boolean | ("true" | "false");
                             /** @default [] */
                             specifications?: {
                                 name: string;
@@ -23062,7 +23223,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Insufficient permission — requires partMarkup:write */
+                /** @description Insufficient permission — requires discounts:write (or partMarkup:write) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -23093,7 +23254,7 @@ export interface paths {
         };
         /**
          * List part markup rules
-         * @description Part markup is fully separate from product markup. Rules are keyed by category + brand + partType, or (NEW) by an exact partId. List responses include the resolved `part` relation ({ id, name, slug }) when a rule is part-scoped. NEW: every rule also carries `ruleType`: `'MARKUP'` (positive markupPercentage) or `'DISCOUNT'` (negative — a flash sale) — pass `?type=markup` or `?type=discount` to have the server pre-filter to just one instead of deriving it from the sign client-side. Permission: `products:read`.
+         * @description Part markup is fully separate from product markup. Rules are keyed by category + brand + partType, or (NEW) by an exact partId. List responses include the resolved `part` relation ({ id, name, slug }) when a rule is part-scoped. NEW: every rule also carries `ruleType`: `'MARKUP'` (positive markupPercentage) or `'DISCOUNT'` (negative — a flash sale) — pass `?type=markup` or `?type=discount` to have the server pre-filter to just one instead of deriving it from the sign client-side. Permission: `partMarkup:read` or `discounts:read` (read only, for the deal clash check; writes still need `partMarkup:write`).
          */
         get: {
             parameters: {
@@ -23122,6 +23283,13 @@ export interface paths {
                 };
                 /** @description Authentication required */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Insufficient permission — requires partMarkup:read or discounts:read */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -23240,7 +23408,12 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PartMarkupApplyResult"];
+                        };
+                    };
                 };
                 /** @description Rule not found */
                 404: {
@@ -23303,7 +23476,12 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PartMarkupPreviewResult"];
+                        };
+                    };
                 };
             };
         };
@@ -23484,7 +23662,12 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: components["schemas"]["PartMarkupCancelResult"];
+                        };
+                    };
                 };
                 /** @description Rule not found */
                 404: {
@@ -24345,6 +24528,19 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["ManualCheckoutError"];
                     };
+                };
+                /**
+                 * @description `PRICE_CHANGED` (ask 46) — only when `expectedTotal` / `expectedPrices` was sent and the live prices differ. No order is created. `details: { changes: [{ variantId, productName, variantName, priceAtAdd, unitPrice, quantity }], expectedTotal, currentTotal }` (`priceAtAdd` = what the customer was shown). Show the price-change notice; after "Continue at the new price" call POST /cart/accept-prices and retry with the new total.
+                 *
+                 *     `HUNT_ITEM_GATEWAY_ONLY` (ask 39(g)) — the cart has a treasure-hunt item inside its live slot. Hunts are gateway-only: the claim lock exists only in POST /orders. `details.productIds` lists the hunt items. Offer card payment, or ask the customer to remove the item. Outside its slot the product sells normally.
+                 *
+                 *     `HUNT_PRICE_NOT_AVAILABLE` — a hunt price whose drop is over is still being reset. Retry shortly (same as POST /orders).
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -26423,6 +26619,556 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards/rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current reward rates
+         * @description Monthly cash rewards for catalogue work: **uploadRate** naira per product or part uploaded and **updateRate** naira per update. Payroll pays outside the system; these routes record the figure, corrections and payment.
+         *
+         *     - Counts use exactly the rules of `GET /analytics/uploaders` over the month's UTC days: hidden and deleted items drop out, and updates follow the ask 40 rules.
+         *     - **Open month** (the current UTC month): computed live with the current rates, `id: null`, `adjustment: 0`; it cannot be adjusted or paid. A rate change applies to it from its first day.
+         *     - **Closed months**: closed automatically at 00:05 UTC on the 1st (and caught up when the worker starts). Each statement keeps the rates current at close time.
+         *     - `finalAmount` = `computedAmount + adjustment`, never below 0. Always show the backend's value.
+         *
+         *     **Permission:** `rewards:manage` (SUPER_ADMIN always).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The rates. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["RewardRate"];
+                        };
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:manage`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+            };
+        };
+        /**
+         * Set reward rates
+         * @description Applies to the open month from its first day. Closed statements keep their stored rates.
+         *
+         *     **Permission:** `rewards:manage`.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @example 100 */
+                        uploadRate: number;
+                        /** @example 50 */
+                        updateRate: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description The new rates. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["RewardRate"];
+                        };
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:manage`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description A rate is missing, not a whole number, or outside 0–100000. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards/months": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The open month and every closed month, newest first
+         * @description **Permission:** `rewards:manage` or `rewards:pay`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Months. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["RewardMonth"][];
+                        };
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:manage` and `rewards:pay`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All uploaders for a month
+         * @description Monthly cash rewards for catalogue work: **uploadRate** naira per product or part uploaded and **updateRate** naira per update. Payroll pays outside the system; these routes record the figure, corrections and payment.
+         *
+         *     - Counts use exactly the rules of `GET /analytics/uploaders` over the month's UTC days: hidden and deleted items drop out, and updates follow the ask 40 rules.
+         *     - **Open month** (the current UTC month): computed live with the current rates, `id: null`, `adjustment: 0`; it cannot be adjusted or paid. A rate change applies to it from its first day.
+         *     - **Closed months**: closed automatically at 00:05 UTC on the 1st (and caught up when the worker starts). Each statement keeps the rates current at close time.
+         *     - `finalAmount` = `computedAmount + adjustment`, never below 0. Always show the backend's value.
+         *
+         *     One row per uploader with at least one counted item, sorted by `finalAmount` descending. A month before `startMonth`, or in the future, returns an empty list. A past month whose close has not run yet is shown live (`id: null`).
+         *
+         *     **Permission:** `rewards:manage` or `rewards:pay`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    month?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Statements. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                month: string;
+                                /** Format: date-time */
+                                closedAt: string | null;
+                                statements: components["schemas"]["RewardRow"][];
+                            };
+                        };
+                    };
+                };
+                /** @description `INVALID_MONTH`: month is not YYYY-MM. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:manage` and `rewards:pay`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's rewards
+         * @description `openMonth` is always present (zero counts when there is nothing yet). `statements` are the caller's closed months, newest first.
+         *
+         *     **Permission:** any authenticated staff.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The caller's rewards. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                openMonth: components["schemas"]["RewardRow"];
+                                statements: components["schemas"]["RewardRow"][];
+                            };
+                        };
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not a staff token. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards/statements/{id}/adjustment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Adjust a closed statement
+         * @description Sets (replaces) the signed adjustment and its reason. Not allowed once paid.
+         *
+         *     **Permission:** `rewards:manage`.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Signed whole naira.
+                         * @example -200
+                         */
+                        adjustment: number;
+                        /** @example Two duplicates removed after review */
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The updated row. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["RewardRow"];
+                        };
+                    };
+                };
+                /** @description `REWARD_NEGATIVE_TOTAL`: computedAmount + adjustment would be below 0. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:manage`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description `REWARD_STATEMENT_NOT_FOUND`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description `REWARD_ALREADY_PAID`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description adjustment not a whole number, or reason missing / over 500 characters. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/analytics/rewards/statements/{id}/paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a closed statement paid
+         * @description Records that payroll paid it. A paid statement can no longer be adjusted or paid again.
+         *
+         *     **Permission:** `rewards:pay`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description YYYY-MM-DD. Default: today (UTC).
+                         * @example 2026-12-05
+                         */
+                        paidAt?: string;
+                        /** @example December payroll */
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The updated row. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["RewardRow"];
+                        };
+                    };
+                };
+                /** @description `INVALID_PAID_AT`: not a real date. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description No valid staff JWT. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing `rewards:pay`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description `REWARD_STATEMENT_NOT_FOUND`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description `REWARD_ALREADY_PAID`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RewardError"];
+                    };
+                };
+                /** @description paidAt not YYYY-MM-DD, or note over 500 characters. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29374,7 +30120,7 @@ export interface paths {
          *
          *     | Field | Type | Required | Description |
          *     |---|---|---|---|
-         *     | `files` | file (repeatable) | Yes | Desktop images — JPEG/PNG/WebP only, max **5 MB** each, max **20 files** per request |
+         *     | `files` | file (repeatable) | Yes | Desktop images — JPEG/PNG/WebP/GIF, max **5 MB** each, max **20 files** per request. **Animated GIF or WebP keeps its animation** (stored as animated WebP). Any other file type fails the whole request with 400 `UNSUPPORTED_FILE_TYPE` (NEW, ask 51) and no slides are created. |
          *     | `mobileFiles` | file (repeatable) | No | Mobile images. This is a **separate recomposed file, not a crop** of the desktop image — a wide banner with a headline does not survive being squeezed into a phone-shaped frame. Same limits as `files`. Does not need one entry per desktop file — it can be sparse. |
          *     | `mobileIndexes` | string (JSON array of integers) | Required if `mobileFiles` is sent | Explicit index mapping, **not positional**. `mobileIndexes[i]` names which `files[]` index `mobileFiles[i]` is the mobile version of. Example: `files` has 3 entries, only entries 0 and 2 have a mobile version → send `mobileFiles: [mobileForSlide0, mobileForSlide2]` and `mobileIndexes: "[0,2]"`. Each index must be unique and within range of `files`. |
          *     | `metadata` | string (JSON) | No | JSON array of metadata objects, **one per file in the same order**. If omitted, slides are created with no captions or links. |
@@ -29404,7 +30150,7 @@ export interface paths {
          *
          *     ### What happens to the images
          *
-         *     1. Both desktop and (if supplied) mobile images are compressed server-side (converted to WebP, max-width 1920px) and uploaded to Cloudinary or S3 depending on the server's `STORAGE_PROVIDER` setting.
+         *     1. Both desktop and (if supplied) mobile images are compressed server-side (longest side max 1920px) and uploaded. A still image keeps its format (PNG stays PNG, WebP stays WebP, anything else becomes JPEG). An **animated** GIF or WebP keeps every frame, its frame timing and loop, and is stored as **animated WebP** (each frame resized to fit 1920px). It is then uploaded to Cloudinary or S3 depending on the server's `STORAGE_PROVIDER` setting.
          *     2. New slides are appended **after** any existing slides on this promotion — they do not replace existing ones.
          *     3. Each slide gets an auto-incremented `order` value (can be changed later with PATCH or `/reorder`).
          *     4. A slide with no mobile file returns `mobileImageUrl: null` — the frontend should fall back to `imageUrl` at mobile widths.
@@ -29424,7 +30170,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "multipart/form-data": {
-                        /** @description Desktop image files (JPEG/PNG/WebP). Field name must be "files". */
+                        /** @description Desktop image files (JPEG/PNG/WebP/GIF; animated GIF/WebP stay animated, stored as animated WebP). Field name must be "files". */
                         files: unknown[];
                         /** @description Optional mobile recomposition files. Field name must be "mobileFiles". */
                         mobileFiles?: unknown[];
@@ -29455,7 +30201,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description No files uploaded, metadata/mobileIndexes is not valid JSON, mobileIndexes length mismatch, or an index is out of range/duplicated */
+                /** @description No files uploaded, metadata/mobileIndexes is not valid JSON, mobileIndexes length mismatch, or an index is out of range/duplicated. NEW (ask 51): `UNSUPPORTED_FILE_TYPE` when any file is not JPEG/PNG/WebP/GIF; `details: { fileName, mimeType, field, allowed }` names it, and no slides are created. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -29548,7 +30294,7 @@ export interface paths {
          *     Accepts **either** Content-Type:
          *
          *     - `application/json` — metadata-only edit, exactly as before this field set was added.
-         *     - `multipart/form-data` — same metadata fields as regular form fields, plus an optional `file` (replaces the desktop image) and/or `mobileFile` (replaces the mobile image). Omit either to leave that image untouched. When a replacement is supplied, the old storage object is deleted only after the new upload succeeds.
+         *     - `multipart/form-data` — same metadata fields as regular form fields, plus an optional `file` (replaces the desktop image) and/or `mobileFile` (replaces the mobile image). Same types and rules as on create: JPEG/PNG/WebP/GIF, animated GIF/WebP kept as animated WebP. Omit either to leave that image untouched. When a replacement is supplied, the old storage object is deleted only after the new upload succeeds.
          *
          *     Requires **`promotions:write`**.
          */
@@ -29611,6 +30357,13 @@ export interface paths {
                             data: components["schemas"]["PromotionSlide"];
                         };
                     };
+                };
+                /** @description NEW (ask 51): `UNSUPPORTED_FILE_TYPE` when `file` or `mobileFile` is not JPEG/PNG/WebP/GIF; `details` names the file. Nothing is changed. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description promotions:write permission required */
                 403: {
@@ -29928,6 +30681,8 @@ export interface paths {
          *
          *     - Every non-claimed item is **announced**: product + hunt price, always — the ask is explicit that customers know all the possible prizes and prices upfront; only WHEN each one drops is withheld.
          *     - **claimed** items switch to product identity + the winner's first name — safe to reveal once gone.
+         *     - NEW (ask 39(h)): an announced item whose slot ended unclaimed has `slotPassed: true` ("Not claimed"), and `dropsRemaining` counts the drops still to come or live now.
+         *     - NEW (ask 39(i)): `items` is sorted by product name, not by slot, so the order does not give away the drop schedule.
          *     - `nextReveal` is campaign-level, not attached to any item in `items` — set only while some hunt deal is inside its own reveal window, carrying just a timestamp ("a drop is coming, and when") and deliberately never naming which item, so every countdown could be the anchor prize.
          *
          *     Every response includes `serverTime` — browser clocks drift more than the margin a 5-minute drop races on, so clients should measure the offset from this rather than trust `Date.now()`.
@@ -30328,10 +31083,786 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pricing/fx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * FX pricing status
+         * @description Prices follow the dollar:
+         *
+         *     `pricing rate = official USD→NGN rate × (1 + gapPercent / 100)`
+         *     `Naira base = dollar anchor × pricing rate` → markup rules, flash sales, deals and hunts as before → **rounded** → selling price.
+         *
+         *     **Which items.** Only items a super admin has **linked** (`fxLinked`) follow the dollar. Nothing is linked by default; new items are created unlinked. Link by id, category (subcategories included) or brand with `POST /pricing/fx/link`.
+         *
+         *     **Dollar anchors.** Every FX-linked variant and part keeps a dollar anchor. The first run sets them from today's Naira prices, so nothing has to be typed in and prices don't move on set-up. When staff change a price by hand, the item is re-anchored from that price, so the edit is kept and follows the rate from then on.
+         *
+         *     **Schedule.** A Redis (BullMQ) job checks the rate at 08:00, 12:00 and 16:00 Lagos time, plus the evening check at 21:30, a **permanent** part of the schedule (without it nothing runs from 16:00 to 08:00; `FX_EXTRA_CHECK_CRON` overrides it, `off` removes it, not recommended). Sources: Open Exchange Rates (when `OPENEXCHANGERATES_APP_ID` is set) and ExchangeRate-API's open endpoint as backup and second opinion. Auto-update is **off** until a super admin turns it on.
+         *
+         *     **What a check does** (with auto-update on):
+         *     | Rate move vs the applied rate | Result |
+         *     |---|---|
+         *     | first rate ever | set up anchors, prices unchanged (`INITIALIZED`) |
+         *     | under `minChangePercent` (default 1%) | nothing (`SKIPPED`) |
+         *     | a fall with `allowDecrease` off | nothing (`SKIPPED`) |
+         *     | over `approvalThresholdPercent` (default 8%) | waits for a super admin (`PENDING_APPROVAL`), who is notified |
+         *     | otherwise | products and parts repriced (`APPLIED`) |
+         *     | sources differ by over `maxSourceGapPercent` (2%) | nothing, super admins notified (`HELD`) |
+         *     | no source for 24h | super admins notified once a day |
+         *
+         *     Orders already placed keep their price. `priceCheckedAt` is not moved. Hidden backing products follow their part. Products and parts are repriced separately; neither touches the other.
+         *
+         *     **Concurrent edits are safe.** A repricing run only writes an item if it still holds the prices the run read; a price staff or a markup run changed meanwhile is kept (counted as `skippedChanged` in the log). Three minutes after each run, a settle step fixes any item whose selling price a markup run worked out from the old base.
+         *
+         *     ### Rounding (`roundingStrategy`)
+         *
+         *     FX rounds **every Naira price it writes** to one step: `NONE` (2 decimals), `NEAREST_TEN`, `NEAREST_HUNDRED` (default) or `NEAREST_THOUSAND`.
+         *
+         *     | Field on the variant / part | Rounded by FX? | How |
+         *     |---|---|---|
+         *     | `basePrice` | yes | nearest step |
+         *     | `baseCompareAtPrice` | yes | nearest step |
+         *     | `price` (selling price, after the markup / deal rule) | **yes** | nearest step; never below the cost floor (see below) |
+         *     | `compareAtPrice` (after the rule) | **yes** | nearest step; dropped (`null`) if no longer above `price` |
+         *     | `costPrice` | no | kept to the kobo so margins stay exact |
+         *
+         *     Order of work for one item: dollar anchor × pricing rate → round base → apply the item's rule (markup %, flash sale, deal, hunt) → **round the result** → save.
+         *
+         *     Example, `NEAREST_HUNDRED`, 7.33% markup: base $500 × ₦1,680 = **₦840,000** → × 1.0733 = ₦901,572 → **₦901,600** (`price`).
+         *
+         *     **Cost floor.** Products are never priced below cost (except a live treasure hunt), as everywhere in pricing. If rounding to the nearest step would land below cost, the price is rounded **up** to the next step instead (cost ₦756,050 → ₦756,100, not ₦756,000). Parts have no cost floor.
+         *
+         *     **Compare-at.** If rounding leaves `compareAtPrice` equal to or below `price`, it is set to `null` (a "was" price must be higher than the price).
+         *
+         *     **When rounding happens.** Only when FX writes prices (a repricing run, an approved change, a manual rate, an undo). A price staff type by hand, or one the markup engine recalculates after a rule change, is saved as it comes out of the engine (not rounded) until the next FX run moves that item. FX never re-rounds a deliberate change in between.
+         *
+         *     **Frontend notes.**
+         *     - Show `price` and `compareAtPrice` as returned; no client-side rounding is needed or wanted.
+         *     - A discount % worked out as `(compareAtPrice − price) / compareAtPrice` (or from `basePrice`) can differ slightly from the rule's exact % because both prices are rounded; e.g. a 10% rule may show as 9.9% or 10.1%. Round the displayed % to whole numbers.
+         *     - `POST /pricing/fx/preview` returns prices **with** rounding applied (`topMovers[].newPrice`), so it shows exactly what customers would see.
+         *     - Changing `roundingStrategy` does not change any price by itself; it applies from the next run that moves an item.
+         *
+         *     Returns the settings, the schedule, which sources are configured, the latest fetched rates, any change waiting for approval and the last applied change. **Permission:** `products:read`
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Status returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not signed in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Needs products:read. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * FX pricing log
+         * @description Every decision, newest first: `QUEUED`, `PENDING_APPROVAL`, `APPROVED`, `APPLYING`, `APPLIED`, `INITIALIZED`, `SKIPPED`, `HELD`, `REJECTED`, `SUPERSEDED`, `FAILED`, `RECORDED`. `RECORDED` (ask 45) is a scheduled check while auto-update is off: nothing was repriced, and `summary.wouldDo` (`INITIALIZE`, `APPLY`, `SKIPPED`, `PENDING_APPROVAL`), `rateChangePercent` and `summary.reason` say what the rules would have done. `summary` holds the official rate, gap, sources, reason and, once applied, product/part counts and the biggest price moves. **Permission:** `products:read`
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description { data, meta } */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a rate (writes nothing)
+         * @description What a rate would do: the pricing rate (official + gap), the change from the applied rate, what the scheduled check would do with it (`scheduledAction`), and for products and parts how many would change plus the 20 biggest price moves. `topMovers[].newPrice` is the final selling price **after** the rule and rounding, i.e. exactly what customers would see. Leave `officialRate` out to use the latest fetched rate. Nothing is written. **Permission:** `products:read`
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        officialRate?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Preview returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No rate fetched yet and none sent. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change FX pricing settings
+         * @description Send only the settings to change. A change never moves a price by itself; it is used from the next check.
+         *
+         *     | Setting | Default | Allowed | Effect |
+         *     |---|---|---|---|
+         *     | `autoUpdateEnabled` | false | bool | Off: scheduled checks only record the rate. Manual check / apply / undo still work. |
+         *     | `gapPercent` | 0 | 0–100 | Added on top of the official rate. Changing it counts as a rate move at the next check (0 → 5 = a +5% move). |
+         *     | `minChangePercent` | 1 | 0–50 | Moves smaller than this (vs the applied rate) are ignored. |
+         *     | `approvalThresholdPercent` | 8 | 0.5–100, above the minimum | Bigger moves wait for a super admin. |
+         *     | `allowDecrease` | true | bool | Off: a falling rate never lowers prices in a check (a manual rate or undo still can). |
+         *     | `maxSourceGapPercent` | 2 | 0.1–20 | Rate sources further apart than this → nothing changes, super admins alerted. |
+         *     | `roundingStrategy` | NEAREST_HUNDRED | NONE, NEAREST_TEN, NEAREST_HUNDRED, NEAREST_THOUSAND | Rounds base, compare-at, **selling price** and selling compare-at (not cost). See below. |
+         *
+         *     ### Rounding (`roundingStrategy`)
+         *
+         *     FX rounds **every Naira price it writes** to one step: `NONE` (2 decimals), `NEAREST_TEN`, `NEAREST_HUNDRED` (default) or `NEAREST_THOUSAND`.
+         *
+         *     | Field on the variant / part | Rounded by FX? | How |
+         *     |---|---|---|
+         *     | `basePrice` | yes | nearest step |
+         *     | `baseCompareAtPrice` | yes | nearest step |
+         *     | `price` (selling price, after the markup / deal rule) | **yes** | nearest step; never below the cost floor (see below) |
+         *     | `compareAtPrice` (after the rule) | **yes** | nearest step; dropped (`null`) if no longer above `price` |
+         *     | `costPrice` | no | kept to the kobo so margins stay exact |
+         *
+         *     Order of work for one item: dollar anchor × pricing rate → round base → apply the item's rule (markup %, flash sale, deal, hunt) → **round the result** → save.
+         *
+         *     Example, `NEAREST_HUNDRED`, 7.33% markup: base $500 × ₦1,680 = **₦840,000** → × 1.0733 = ₦901,572 → **₦901,600** (`price`).
+         *
+         *     **Cost floor.** Products are never priced below cost (except a live treasure hunt), as everywhere in pricing. If rounding to the nearest step would land below cost, the price is rounded **up** to the next step instead (cost ₦756,050 → ₦756,100, not ₦756,000). Parts have no cost floor.
+         *
+         *     **Compare-at.** If rounding leaves `compareAtPrice` equal to or below `price`, it is set to `null` (a "was" price must be higher than the price).
+         *
+         *     **When rounding happens.** Only when FX writes prices (a repricing run, an approved change, a manual rate, an undo). A price staff type by hand, or one the markup engine recalculates after a rule change, is saved as it comes out of the engine (not rounded) until the next FX run moves that item. FX never re-rounds a deliberate change in between.
+         *
+         *     **Frontend notes.**
+         *     - Show `price` and `compareAtPrice` as returned; no client-side rounding is needed or wanted.
+         *     - A discount % worked out as `(compareAtPrice − price) / compareAtPrice` (or from `basePrice`) can differ slightly from the rule's exact % because both prices are rounded; e.g. a 10% rule may show as 9.9% or 10.1%. Round the displayed % to whole numbers.
+         *     - `POST /pricing/fx/preview` returns prices **with** rounding applied (`topMovers[].newPrice`), so it shows exactly what customers would see.
+         *     - Changing `roundingStrategy` does not change any price by itself; it applies from the next run that moves an item.
+         *
+         *     **SUPER_ADMIN only.**
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        autoUpdateEnabled?: boolean;
+                        allowDecrease?: boolean;
+                        gapPercent?: number;
+                        minChangePercent?: number;
+                        approvalThresholdPercent?: number;
+                        maxSourceGapPercent?: number;
+                        /** @enum {string} */
+                        roundingStrategy?: "NONE" | "NEAREST_TEN" | "NEAREST_HUNDRED" | "NEAREST_THOUSAND";
+                    };
+                };
+            };
+            responses: {
+                /** @description Settings saved. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description approvalThresholdPercent not above minChangePercent. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Super admins only. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check the rate now
+         * @description Queues a check, which does exactly what a scheduled check does (and still reprices when auto-update is off, since a person asked). Returns 202. **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Check queued. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the official rate by hand
+         * @description The gap is added and every FX-linked product and part is repriced to it in the background (rule applied, prices rounded per `roundingStrategy`), with no minimum, no-decrease or approval step (a super admin is choosing it). The first rate ever only sets up anchors. Returns the queued log (202). **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        officialRate: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Repricing queued. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/logs/{logId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a big rate change
+         * @description Queues the repricing for a change waiting for approval. **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    logId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Approved and queued. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not waiting for approval. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Log not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/logs/{logId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a big rate change
+         * @description Prices stay as they are. **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    logId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Rejected. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not waiting for approval. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Log not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo the last rate change
+         * @description Queues repricing back to the rate before the last applied change. **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Undo queued. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Nothing to undo. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn dollar pricing on or off for items
+         * @description Nothing follows the dollar by default: link the items you import (`linked: true`) and leave items bought in Naira unlinked. Pick items by id (up to 500 product ids and 500 part ids) and/or by `categoryIds` (subcategories included) and `brandIds` (up to 50 each; when both are sent an item must match both). Category/brand picks cover products and parts, and skip items already in the wanted state. Switching clears the item's dollar anchor, so it starts from its current Naira price.
+         *
+         *     **Standing link (ask 45):** send `standing: true` with `linked: true` and `categoryIds` and/or `brandIds` to also save the scope: products and parts **created later** in it start linked (subcategories included, every create path: single, bulk upload, queued). `appliesTo`: `ALL` (default), `PRODUCTS` or `PARTS`. List them with `GET /pricing/fx/standing-links`, remove with `DELETE /pricing/fx/standing-links/{id}` (removing unlinks nothing). Without a standing link, new items are created unlinked (or with the `fxLinked` sent on create). **SUPER_ADMIN only.**
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        productIds?: string[];
+                        partIds?: string[];
+                        categoryIds?: string[];
+                        brandIds?: string[];
+                        linked: boolean;
+                        standing?: boolean;
+                        /** @enum {string} */
+                        appliesTo?: "ALL" | "PRODUCTS" | "PARTS";
+                    };
+                };
+            };
+            responses: {
+                /** @description { products, parts, linked, standingLink } */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/standing-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Standing links (ask 45)
+         * @description Saved category/brand scopes whose NEW products and parts start linked. Each: `{ id, appliesTo, categories: [{ id, name, slug }], brands: [{ id, name, slug }], createdByStaffId, createdAt }`. **Permission:** `products:read`
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Standing links. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/fx/standing-links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a standing link
+         * @description New items in that scope are created unlinked again. Items already linked stay linked (unlink them with `POST /pricing/fx/link`). **SUPER_ADMIN only.**
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description { deleted: true } */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RewardStaff: {
+            /** Format: uuid */
+            id: string;
+            /** @example Ada */
+            firstName: string;
+            /** @example Obi */
+            lastName: string;
+            /** @example null */
+            avatarUrl: string | null;
+        };
+        RewardActor: {
+            /** Format: uuid */
+            id: string;
+            /** @example Grace */
+            firstName: string;
+            /** @example Eze */
+            lastName: string;
+        };
+        RewardRow: {
+            /**
+             * Format: uuid
+             * @description null for a month that is not closed yet (the open month). Only rows with an id can be adjusted or paid.
+             */
+            id: string | null;
+            /**
+             * @description YYYY-MM, UTC.
+             * @example 2026-12
+             */
+            month: string;
+            staff: components["schemas"]["RewardStaff"];
+            /** @example 40 */
+            products: number;
+            /** @example 12 */
+            parts: number;
+            /** @example 9 */
+            updates: number;
+            /**
+             * @description Naira per product or part. Closed months: the rate at close time. Open month: the current rate.
+             * @example 100
+             */
+            uploadRate: number;
+            /**
+             * @description Naira per update.
+             * @example 50
+             */
+            updateRate: number;
+            /**
+             * @description (products + parts) * uploadRate + updates * updateRate
+             * @example 5650
+             */
+            computedAmount: number;
+            /**
+             * @description Signed naira. Always 0 on the open month.
+             * @example -200
+             */
+            adjustment: number;
+            /** @example Two duplicates removed after review */
+            adjustmentReason: string | null;
+            adjustedBy: components["schemas"]["RewardActor"] & unknown;
+            /**
+             * Format: date-time
+             * @example 2026-12-02T09:10:00.000Z
+             */
+            adjustedAt: string | null;
+            /**
+             * @description computedAmount + adjustment, never below 0. Show this; never compute it on the client.
+             * @example 5450
+             */
+            finalAmount: number;
+            /**
+             * Format: date-time
+             * @description The payment date (midnight UTC of the day given).
+             * @example null
+             */
+            paidAt: string | null;
+            paidBy: components["schemas"]["RewardActor"] & unknown;
+            /** @example null */
+            paidNote: string | null;
+        };
+        RewardRate: {
+            /** @example 100 */
+            uploadRate: number;
+            /** @example 50 */
+            updateRate: number;
+            /**
+             * @description First month that closes (the month the feature went live). Earlier months never close.
+             * @example 2026-11
+             */
+            startMonth: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        RewardMonth: {
+            /** @example 2026-11 */
+            month: string;
+            /**
+             * Format: date-time
+             * @description null for the open month.
+             */
+            closedAt: string | null;
+        };
+        RewardError: {
+            /** @enum {boolean} */
+            success: false;
+            /** @enum {string} */
+            code: "INVALID_MONTH" | "INVALID_PAID_AT" | "REWARD_NEGATIVE_TOTAL" | "REWARD_ALREADY_PAID" | "REWARD_STATEMENT_NOT_FOUND" | "INSUFFICIENT_PERMISSION";
+            message: string;
+            /** @description REWARD_NEGATIVE_TOTAL: { computedAmount, adjustment, minAdjustment }. */
+            details?: {
+                [key: string]: unknown;
+            };
+        };
         GoogleOneTapResponse: {
             /** @description JWT access token */
             accessToken: string;
@@ -30548,7 +32079,8 @@ export interface components {
             compareAtPrice: number | null;
             basePrice: number | null;
             baseCompareAtPrice: number | null;
-            costPrice: number;
+            /** @description **Staff only.** Our buying price. On product detail (`/:productId`, `/slug/:slug`) it is returned only with a staff Bearer token. */
+            costPrice?: number;
             availabilityStatus: string;
             stockQuantity: number;
             reservedQuantity: number;
@@ -30605,6 +32137,8 @@ export interface components {
             isFeatured: boolean;
             /** @description On search results: true when at least one ACTIVE part is linked. Absent until the product has been reindexed once after this field shipped. */
             hasCompatibleParts?: boolean;
+            /** @description NEW (ask 50) on search results (GET /products, /products/search): true when the price follows the dollar rate. Drop "Prices are subject to change" when true. false on a hit not yet reindexed since the field shipped. */
+            fxLinked?: boolean;
             /** Format: date-time */
             publishedAt: string | null;
             category: {
@@ -30643,8 +32177,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            /** @description Staff member who uploaded this product. null if uploaded by system/bulk import. */
-            createdBy: {
+            /** @description **Staff only.** Staff member who uploaded this product (null if uploaded by system/bulk import). On product detail it is returned only with a staff Bearer token. */
+            createdBy?: {
                 /**
                  * Format: uuid
                  * @example a1b2c3d4-...
@@ -30660,6 +32194,39 @@ export interface components {
                  */
                 avatarUrl: string | null;
             } | null;
+        };
+        PartSearchHit: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            /** @enum {string} */
+            docType: "PART";
+            /**
+             * @description Route to /parts/{partId}
+             * @example PRT-1A626500
+             */
+            partId: string | null;
+            partType: string | null;
+            partNumber: string | null;
+            ownerSku: string | null;
+            /** @description NEW (ask 50). true when the price follows the dollar rate. */
+            fxLinked: boolean;
+            isActive: boolean;
+            isFeatured: boolean;
+            category: {
+                name: string;
+                slug: string;
+            };
+            brand: {
+                name: string;
+                slug: string;
+                logoUrl: string | null;
+            };
+            primaryImage: string | null;
+            lowestPrice: number | null;
+            highestPrice: number | null;
+            availabilityStatus: string;
         };
         CreateProductRequest: {
             /** Format: uuid */
@@ -30725,6 +32292,7 @@ export interface components {
             price?: number;
             compareAtPrice?: number | null;
             costPrice?: number;
+            fxLinked?: boolean | ("true" | "false");
         };
         UpdateProductRequest: {
             /** Format: uuid */
@@ -30742,6 +32310,7 @@ export interface components {
                 /** @default 0 */
                 sortOrder: number;
             }[];
+            fxLinked?: boolean | ("true" | "false");
         };
         BulkCreateRequest: {
             idempotencyKey: string;
@@ -30821,6 +32390,7 @@ export interface components {
                 price?: number;
                 compareAtPrice?: number | null;
                 costPrice?: number;
+                fxLinked?: boolean | ("true" | "false");
             }[];
         };
         BulkStatusUpdateRequest: {
@@ -31411,6 +32981,16 @@ export interface components {
                 notes?: string;
             })[];
         };
+        DealEndResult: components["schemas"]["Deal"] & {
+            /** @description Variants sent back to basePrice. */
+            variantsReset: number;
+            /** @description NEW (ask 51). Variants moved to the next rule that covers them. */
+            variantsRepriced: number;
+            /** @description Parts sent back to basePrice. */
+            partsReset: number;
+            /** @description NEW (ask 51). Parts moved to the next rule that covers them. */
+            partsRepriced: number;
+        };
         CreateMarkupRuleRequest: {
             /** Format: uuid */
             categoryId?: string;
@@ -31441,6 +33021,23 @@ export interface components {
             allowCouponStacking?: boolean;
             expiresAt?: string | null;
             replaceExisting?: boolean;
+        };
+        MarkupRuleCancelResult: {
+            /**
+             * @description Number of product variants whose price was reset to basePrice
+             * @example 20
+             */
+            variantsReset: number;
+            /**
+             * @description Variants moved to the next rule that covers them (another rule, not base price).
+             * @example 4
+             */
+            variantsRepriced: number;
+            /**
+             * @description Always 0. Product markup never affects product parts — parts are priced by separate part markup rules (POST /products/parts/markup-rules). Field kept for backward compatibility.
+             * @example 0
+             */
+            partsReset: number;
         };
         PreviewVariant: {
             /** Format: uuid */
@@ -31474,6 +33071,30 @@ export interface components {
              * @example 49.28
              */
             projectedMargin: number;
+            /** @description True when a more specific rule prices this product; Apply leaves it alone. */
+            coveredByOtherRule: boolean;
+        };
+        MarkupPreviewResult: {
+            /**
+             * @description Number of variants that would be affected
+             * @example 12
+             */
+            totalVariants: number;
+            /**
+             * @description Number of distinct products those variants belong to
+             * @example 4
+             */
+            totalProducts: number;
+            /**
+             * @description Variants a more specific rule prices; Apply leaves them alone.
+             * @example 2
+             */
+            coveredByOtherRuleCount: number;
+            /** @example 15 */
+            markupPercentage: number;
+            /** @example PRICE */
+            applyTo: string;
+            variants: components["schemas"]["PreviewVariant"][];
         };
         PreviewMarkupRequest: {
             /** Format: uuid */
@@ -31489,6 +33110,19 @@ export interface components {
             applyTo?: "PRICE" | "COMPARE_AT_PRICE" | "BOTH";
             productIds?: string[];
             variantIds?: string[];
+        };
+        MarkupApplyResult: {
+            /**
+             * @description Number of variants updated
+             * @example 12
+             */
+            updated: number;
+            results: components["schemas"]["PricingResponse"][];
+            /**
+             * @description Variants in scope left alone because a more specific rule prices them.
+             * @example 3
+             */
+            skippedByOtherRule: number;
         };
         ApplyMarkupNowRequest: {
             /** Format: uuid */
@@ -31571,6 +33205,87 @@ export interface components {
              * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
              */
             idempotencyKey?: string;
+            /**
+             * @description NEW (ask 46), optional. The items subtotal the customer confirmed (before delivery, coupon and tax). If the live prices give a different subtotal, the order is NOT created: 409 PRICE_CHANGED. Omit it to keep today's behaviour.
+             * @example 1850000
+             */
+            expectedTotal?: number;
+            /** @description NEW (ask 46), optional alternative: the unit price the customer confirmed per variant. Any difference → 409 PRICE_CHANGED. */
+            expectedPrices?: {
+                /** Format: uuid */
+                variantId: string;
+                unitPrice: number;
+            }[];
+        };
+        OrderAddressSnapshot: {
+            firstName: string;
+            lastName: string;
+            company: string | null;
+            addressLine1: string;
+            addressLine2: string | null;
+            city: string;
+            state: string;
+            postalCode: string;
+            country: string;
+            countryCode: string;
+            phone: string | null;
+        } | null;
+        OrderItemResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            variantId: string | null;
+            /**
+             * Format: uuid
+             * @description NEW (ask 49). The variant's product, for the admin link /catalogues/<productId>. null when the variant was deleted.
+             */
+            productId: string | null;
+            productName: string;
+            variantName: string;
+            sku: string;
+            imageUrl: string | null;
+            /** @enum {string} */
+            sourcingType: "INHOUSE" | "OUTSOURCED";
+            quantity: number;
+            unitPrice: number;
+            totalPrice: number;
+            taxRate: number;
+            taxAmount: number;
+            taxSource: string | null;
+        };
+        OrderResponse: {
+            /** Format: uuid */
+            id: string;
+            orderId: string;
+            orderNumber: string;
+            /** Format: uuid */
+            customerId: string;
+            /** @enum {string} */
+            orderType: "INHOUSE" | "OUTSOURCED";
+            orderStatus: string;
+            paymentStatus: string;
+            fulfillmentStatus: string;
+            deliveryMethod: string;
+            currency: string;
+            subtotalAmount: number;
+            discountAmount: number;
+            taxAmount: number;
+            shippingCost: number;
+            totalAmount: number;
+            shippingAddress: components["schemas"]["OrderAddressSnapshot"];
+            billingAddress: components["schemas"]["OrderAddressSnapshot"];
+            riderName: string | null;
+            riderPhone: string | null;
+            notes: string | null;
+            couponId: string | null;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+            completedAt: string | null;
+            createdAt: string;
+            updatedAt: string;
+            /** @description Omitted for staff without policy:consent:read. */
+            policyConsent?: Record<string, never> | null;
+            items: components["schemas"]["OrderItemResponse"][];
         };
         CancelOrderRequest: {
             reason: string;
@@ -31617,10 +33332,20 @@ export interface components {
              */
             imageUrl: string | null;
             /**
-             * @description Current variant price — refreshed on every cart read
+             * @description Current (live) variant price, what the order would be created at — refreshed on every cart read, cached carts included
              * @example 500000
              */
             unitPrice: number;
+            /**
+             * @description NEW (ask 46). The price when the customer added the item, or last accepted a new price with POST /cart/accept-prices. A quantity change does NOT move it. When it differs from unitPrice, show "The price of this item changed: ₦priceAtAdd → ₦unitPrice" with "Continue at the new price" (POST /cart/accept-prices) and "Review cart". A lower unitPrice is good news.
+             * @example 480000
+             */
+            priceAtAdd: number;
+            /**
+             * @description NEW (ask 46). unitPrice differs from priceAtAdd.
+             * @example true
+             */
+            priceChanged: boolean;
             /**
              * @description Variant's live base price, before pricing rules — refreshed on every cart read like unitPrice. When a pricing-rule deal applies, basePrice > unitPrice: show it as the struck "was" price and the % off. Ignore it when it is not above unitPrice (a markup). null if the variant has none. Same value as variants[].basePrice on GET /products/slug/{slug}.
              * @example 550000
@@ -32643,6 +34368,20 @@ export interface components {
              */
             aiEscalationReason: "CUSTOMER_REQUESTED" | "BLOCKED_TOPIC" | "CANNOT_ANSWER" | "FRUSTRATION" | "REPLY_CAP" | "ERROR" | null;
         };
+        CustomerConversationListItem: components["schemas"]["ConversationListItem"] & {
+            /** @enum {string} */
+            status?: "WAITING" | "ACTIVE" | "RESOLVED" | "ABANDONED";
+            /**
+             * Format: date-time
+             * @description When the chat started.
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description When it was resolved. null while open, and for an ABANDONED chat.
+             */
+            resolvedAt: string | null;
+        };
         ChatStaffSummary: {
             /** @example John */
             firstName: string;
@@ -33593,6 +35332,7 @@ export interface components {
             isFeatured: boolean;
             /** @default 0 */
             sortOrder: number;
+            fxLinked?: boolean | ("true" | "false");
             /** @default [] */
             specifications: {
                 name: string;
@@ -33763,6 +35503,11 @@ export interface components {
             price: number | null;
             /** @example 55000 */
             compareAtPrice: number | null;
+            /**
+             * @description **Staff only.** Our buying price. Returned only with a staff Bearer token; absent for customers and anonymous callers.
+             * @example 40000
+             */
+            costPrice?: number | null;
             /** @example 12 */
             stockQuantity: number;
             isInStock: boolean;
@@ -33798,8 +35543,8 @@ export interface components {
              * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
              */
             variantId: string | null;
-            /** @description Staff member who uploaded this part. null if uploaded by system/bulk import. */
-            createdBy: {
+            /** @description **Staff only.** Staff member who uploaded this part (null if uploaded by system/bulk import). Returned only with a staff Bearer token; absent for customers and anonymous callers. */
+            createdBy?: {
                 /**
                  * Format: uuid
                  * @example a1b2c3d4-...
@@ -33856,6 +35601,7 @@ export interface components {
                     sortOrder?: number;
                 };
             };
+            fxLinked?: boolean | ("true" | "false");
         };
         ProductPartEmbed: {
             /**
@@ -33938,6 +35684,40 @@ export interface components {
             updatedAt: string;
             /** @description Active parts of this type (matched by partTypeId, or by type name for legacy rows with no partTypeId). Returned by GET /parts/part-types only (backend-asks item 16). */
             partCount?: number;
+        };
+        PartMarkupApplyResult: {
+            /** @description Parts repriced. */
+            updated: number;
+            /** @description Parts in scope left alone because a more specific rule prices them. */
+            skippedByOtherRule: number;
+        };
+        PartPreviewItem: {
+            /** Format: uuid */
+            partId: string;
+            name: string;
+            currentPrice: number | null;
+            projectedPrice: number;
+            currentCompareAtPrice: number | null;
+            projectedCompareAtPrice: number | null;
+            costPrice: number;
+            projectedMargin: number;
+            /** @description True when a more specific rule prices this part; Apply leaves it alone. */
+            coveredByOtherRule: boolean;
+        };
+        PartMarkupPreviewResult: {
+            totalParts: number;
+            /** @description Parts a more specific rule prices; Apply leaves them alone. */
+            coveredByOtherRuleCount: number;
+            markupPercentage: number;
+            applyTo: string;
+            parts: components["schemas"]["PartPreviewItem"][];
+        };
+        PartMarkupCancelResult: {
+            /** @description Parts sent back to basePrice. */
+            partsReset: number;
+            /** @description Parts moved to the next rule that covers them. */
+            partsRepriced: number;
+            ruleDeactivated: boolean;
         };
         Address: {
             /** Format: uuid */
@@ -34157,6 +35937,17 @@ export interface components {
                 /** Format: date-time */
                 clientAcceptedAt?: string;
             };
+            /**
+             * @description NEW (ask 46), optional. The items subtotal the customer confirmed (before delivery, coupon and tax). If the live prices give a different subtotal, the order is NOT created: 409 PRICE_CHANGED. Omit it to keep today's behaviour.
+             * @example 1850000
+             */
+            expectedTotal?: number;
+            /** @description NEW (ask 46), optional alternative: the unit price the customer confirmed per variant. Any difference → 409 PRICE_CHANGED. */
+            expectedPrices?: {
+                /** Format: uuid */
+                variantId: string;
+                unitPrice: number;
+            }[];
         };
         /** @description Shipping address snapshot. null for SELF_PICKUP orders. */
         AddressSnapshot: {
@@ -34188,6 +35979,11 @@ export interface components {
             id: string;
             /** Format: uuid */
             variantId: string | null;
+            /**
+             * Format: uuid
+             * @description NEW (ask 49). The variant's product, for the admin link /catalogues/<productId>. null when the variant was deleted.
+             */
+            productId: string | null;
             /** @example MacBook Pro 14" */
             productName: string;
             /** @example Space Grey / 16GB / 512GB */
@@ -34202,6 +35998,12 @@ export interface components {
             unitPrice: number;
             /** @example 1850000 */
             totalPrice: number;
+            /** @example 7.5 */
+            taxRate: number;
+            /** @example 138750 */
+            taxAmount: number;
+            /** @example global */
+            taxSource: string | null;
         };
         StatusHistoryEntry: {
             /** Format: uuid */
@@ -35261,6 +37063,8 @@ export interface components {
             productName: string;
             huntPrice: number;
             currency: string;
+            /** @description NEW (ask 39(h)). true once this item's slot has ended unclaimed: show "Not claimed". false while its drop is still to come. */
+            slotPassed: boolean;
         };
         PublicHuntDealClaimed: {
             /**
@@ -35300,6 +37104,8 @@ export interface components {
             nextReveal: {
                 slotStart: string;
             } | null;
+            /** @description NEW (ask 39(h)). Drops still to come or live now (not claimed or held, slot not over). */
+            dropsRemaining: number;
             /** @description Measure your offset from this rather than trusting Date.now() — browser clocks drift more than the margin a 5-minute drop races on. */
             serverTime: string;
         };

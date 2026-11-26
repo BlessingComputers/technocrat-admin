@@ -9,6 +9,7 @@ import { useStaffSession } from "@/lib/auth/session-context";
 import { isSuperAdmin } from "@/lib/auth/permissions";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
+import { ANALYTICS_QUERY_KEY } from "@/lib/utils/catalog-edit-refresh";
 import { analyticsService } from "./analytics.service";
 import type { AdminKpiParams } from "../types/analytics";
 import type {
@@ -19,7 +20,7 @@ import type {
 import type { AnalyticsPeriodParams } from "../types/chart-analytics";
 
 export const analyticsKeys = {
-  all: ["analytics"] as const,
+  all: ANALYTICS_QUERY_KEY,
   kpis: (params?: AdminKpiParams) =>
     [...analyticsKeys.all, "kpis", params] as const,
   staff: (id?: string) => [...analyticsKeys.all, "staff", id] as const,
@@ -33,6 +34,8 @@ export const analyticsKeys = {
     [...analyticsKeys.all, "uploader-parts", params] as const,
   uploaderUpdates: (params: UploaderUpdatesParams) =>
     [...analyticsKeys.all, "uploader-updates", params] as const,
+  catalogItem: (type: "product" | "part", id: string) =>
+    [...analyticsKeys.all, "catalog-item", type, id] as const,
   revenue: (params?: AnalyticsPeriodParams) =>
     [...analyticsKeys.all, "revenue", params] as const,
   orders: (params?: AnalyticsPeriodParams) =>
@@ -248,5 +251,25 @@ export function useDeleteUploadTarget() {
     },
     onError: (error) =>
       toast.error(getErrorMessage(error, "Failed to reset target")),
+  });
+}
+
+/** One product's full record, fetched when the item sheet opens on it. */
+export function useCatalogProduct(id: string | null) {
+  return useQuery({
+    queryKey: analyticsKeys.catalogItem("product", id ?? ""),
+    queryFn: () => analyticsService.getCatalogProduct(id!),
+    enabled: !!id,
+    staleTime: 1000 * 60,
+  });
+}
+
+/** One part's full record, fetched when the item sheet opens on it. */
+export function useCatalogPart(id: string | null) {
+  return useQuery({
+    queryKey: analyticsKeys.catalogItem("part", id ?? ""),
+    queryFn: () => analyticsService.getCatalogPart(id!),
+    enabled: !!id,
+    staleTime: 1000 * 60,
   });
 }

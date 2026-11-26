@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { periodToDateRange } from "../utils/period-to-range";
+import { DEFAULT_PERIOD } from "../model/upload-period";
 import { parseUploaderTab, type UploaderTab } from "../model/uploader-work";
 
 /**
@@ -24,7 +25,7 @@ interface DetailFilters {
 }
 
 function parseParams(sp: URLSearchParams): DetailFilters {
-  const fallback = periodToDateRange("30d", null);
+  const fallback = periodToDateRange(DEFAULT_PERIOD, null);
   const page = Number(sp.get("page"));
   return {
     range: {
@@ -38,7 +39,7 @@ function parseParams(sp: URLSearchParams): DetailFilters {
 
 function toQueryString(filters: DetailFilters): string {
   const sp = new URLSearchParams();
-  const def = periodToDateRange("30d", null);
+  const def = periodToDateRange(DEFAULT_PERIOD, null);
   if (
     filters.range.startDate !== def.startDate ||
     filters.range.endDate !== def.endDate

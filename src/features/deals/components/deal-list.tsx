@@ -51,7 +51,7 @@ export function DealList(props: DealListProps) {
       <Card className="items-center gap-3 px-4 py-10 text-center">
         <AppIcon icon="solar:danger-circle-linear" className="size-8 text-destructive-ink" />
         <p className="text-sm font-semibold">Couldn’t load deals</p>
-        <p className="text-xs text-muted-foreground">This needs the priceMarkup:read permission.</p>
+        <p className="text-xs text-muted-foreground">This needs the discounts:read permission.</p>
         <Button variant="outline" onClick={props.onRetry}>
           Retry
         </Button>

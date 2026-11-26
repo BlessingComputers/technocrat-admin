@@ -26,7 +26,7 @@ import { DealOverview } from "./deal-overview";
 export function DealsWorkspace() {
   const selectedId = useSearchParams().get("deal");
   const { can } = usePermissions();
-  const canWrite = can("priceMarkup:write");
+  const canWrite = can("discounts:write") || can("priceMarkup:write");
   const queryClient = useQueryClient();
   // Read once per mount, like the markup page: refresh to move the clock.
   const [now] = useState(() => Date.now());

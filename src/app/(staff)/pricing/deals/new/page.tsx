@@ -10,7 +10,7 @@ export const metadata: Metadata = {
  * Create a deal. A route rather than a dialog because the target builder runs
  * to a hundred rows, and because a long form deserves its own URL.
  *
- * The view gates itself on `priceMarkup:write` and explains itself rather than
+ * The view gates itself on `discounts:write` (or `priceMarkup:write`) and explains itself rather than
  * bouncing, so a deep link from someone without it still reads.
  */
 export default function NewDealPage() {

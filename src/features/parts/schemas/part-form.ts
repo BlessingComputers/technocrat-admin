@@ -115,8 +115,10 @@ export function toFormDefaults(initial?: PartDetail): PartFormValues {
     brandId: initial.brandId ?? "",
     ownerSku: initial.ownerSku ?? "",
     description: initial.description ?? "",
-    price: formatNaira(initial.price),
-    compareAtPrice: formatNaira(initial.compareAtPrice),
+    // Base values: PATCH sets the base and the backend re-applies the markup
+    // rule, so prefilling the shelf `price`/`compareAtPrice` would compound it.
+    price: formatNaira(initial.basePrice ?? initial.price),
+    compareAtPrice: formatNaira(initial.baseCompareAtPrice ?? initial.compareAtPrice),
     costPrice: formatNaira(initial.costPrice),
     stockQuantity: Number(initial.stockQuantity) || 0,
     isInStock: initial.isInStock ?? true,

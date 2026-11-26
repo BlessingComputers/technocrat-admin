@@ -5,6 +5,7 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
+import { refreshCatalogEditViews } from "@/lib/utils/catalog-edit-refresh";
 import { partsService } from "./parts.service";
 import { partTaxonomyService } from "./taxonomy.service";
 import type {
@@ -111,6 +112,7 @@ export function useUpdatePart() {
       queryClient.invalidateQueries({
         queryKey: partKeys.detail(variables.id),
       });
+      refreshCatalogEditViews(queryClient);
     },
   });
 }
@@ -141,6 +143,7 @@ export function useBulkEditParts() {
     mutationFn: (data: BulkEditPartsInput) => partsService.bulkEditParts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: partKeys.lists() });
+      refreshCatalogEditViews(queryClient);
     },
   });
 }

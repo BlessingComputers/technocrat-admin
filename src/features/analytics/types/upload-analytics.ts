@@ -90,3 +90,20 @@ export interface PriceAgeCounts {
   products: number;
   parts: number;
 }
+
+// ── Drill-down: one item's full record, for the quick-look sheet ────
+
+/** GET /products/{id} (staff shape). Read here so analytics never imports `products`. */
+export type CatalogProduct = components["schemas"]["Product"];
+
+/** GET /products/parts/{id}. Read here so analytics never imports `parts`. */
+export type CatalogPart = components["schemas"]["PartResponse"];
+
+/** The row a staff member clicked: enough to title the sheet before the fetch lands. */
+export interface CatalogItemRef {
+  type: "product" | "part";
+  /** DB UUID. */
+  id: string;
+  title: string;
+  image: string | null;
+}

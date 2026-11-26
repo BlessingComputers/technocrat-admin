@@ -121,7 +121,11 @@ export function toFormDefaults(initial?: ProductDetail): ProductFormValues {
               (initial.variants[0]
                 .sourcingType as VariantFormValues["sourcingType"]) ||
               "OUTSOURCED",
-            price: formatNaira(initial.variants[0].price),
+            // Base price: PATCH `price` is the base and the backend re-applies
+            // the markup rule, so prefilling the shelf `price` would compound it.
+            price: formatNaira(
+              initial.variants[0].basePrice ?? initial.variants[0].price,
+            ),
             costPrice: formatNaira(initial.variants[0].costPrice),
             stockQuantity: Number(initial.variants[0].stockQuantity) || 0,
             lowStockThreshold:

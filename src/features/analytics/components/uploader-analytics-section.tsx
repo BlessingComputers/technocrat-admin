@@ -70,7 +70,7 @@ export function UploaderAnalyticsSection({
         ) : !data || data.uploaders.length === 0 ? (
           <UploaderAnalyticsEmpty message="No uploads recorded for this period." />
         ) : (
-          <UploadersTable uploaders={data.uploaders} onEdit={setEditing} />
+          <UploadersTable uploaders={data.uploaders} range={range} onEdit={setEditing} />
         )}
       </CardContent>
       <SetTargetDialog uploader={editing} onClose={() => setEditing(null)} />

@@ -2,16 +2,20 @@
 
 import { AppIcon } from "@/components/shared/app-icon";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils/cn";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UploaderDateRange } from "./uploader-date-range";
-import type { UploaderSort } from "../utils/filter-sort-uploaders";
-import { MetaLabel } from "@/components/shared/meta-label";
-import { Card } from "@/components/ui/card";
-
-interface DateRange {
-  startDate: string;
-  endDate: string;
-}
+import {
+  UPLOADER_SORTS,
+  parseUploaderSort,
+  type UploaderSort,
+} from "../utils/filter-sort-uploaders";
+import type { DateRange } from "../model/upload-period";
 
 interface UploaderManagementToolbarProps {
   range: DateRange;
@@ -22,14 +26,7 @@ interface UploaderManagementToolbarProps {
   onSortChange: (sort: UploaderSort) => void;
 }
 
-const SORTS: { id: UploaderSort; label: string }[] = [
-  { id: "today", label: "Today" },
-  { id: "total", label: "Period total" },
-  { id: "target", label: "Furthest behind" },
-  { id: "name", label: "Name" },
-];
-
-/** Date range (presets + custom) plus search and sort for the management table. */
+/** One filter row: period on the left; search and sort on the right. */
 export function UploaderManagementToolbar({
   range,
   onRangeChange,
@@ -39,10 +36,10 @@ export function UploaderManagementToolbar({
   onSortChange,
 }: UploaderManagementToolbarProps) {
   return (
-    <Card className="gap-0 space-y-4 p-4 sm:p-5">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
       <UploaderDateRange range={range} onChange={onRangeChange} />
-      <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:max-w-xs sm:flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative sm:w-60">
           <AppIcon
             icon="solar:magnifer-linear"
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -50,43 +47,31 @@ export function UploaderManagementToolbar({
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search uploaders…"
+            placeholder="Search name or staff ID…"
+            aria-label="Search uploaders"
             className="pl-9"
           />
         </div>
-        <SortPills sort={sort} onSortChange={onSortChange} />
-      </div>
-    </Card>
-  );
-}
-
-function SortPills({
-  sort,
-  onSortChange,
-}: {
-  sort: UploaderSort;
-  onSortChange: (sort: UploaderSort) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <MetaLabel className="shrink-0">
-        Sort
-      </MetaLabel>
-      <div className="flex flex-wrap gap-1 rounded-xl border border-border/40 bg-muted/20 p-1">
-        {SORTS.map((option) => (
-          <button
-            key={option.id}
-            onClick={() => onSortChange(option.id)}
-            className={cn(
-              "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
-              sort === option.id
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
+        <Select
+          value={sort}
+          onValueChange={(value) => onSortChange(parseUploaderSort(value))}
+        >
+          <SelectTrigger aria-label="Sort by" className="sm:w-68">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="text-muted-foreground">Sort by</span>
+              <span className="truncate font-medium">
+                <SelectValue />
+              </span>
+            </span>
+          </SelectTrigger>
+          <SelectContent position="popper" align="end">
+            {UPLOADER_SORTS.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

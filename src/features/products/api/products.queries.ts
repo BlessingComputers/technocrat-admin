@@ -7,6 +7,7 @@ import {
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/api/error-message";
 import { PRICE_AGE_QUERY_KEY } from "@/lib/utils/price-age";
+import { refreshCatalogEditViews } from "@/lib/utils/catalog-edit-refresh";
 import { productsService } from "./products.service";
 import type {
   BrandInput,
@@ -151,6 +152,7 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({
         queryKey: productKeys.detail(variables.id),
       });
+      refreshCatalogEditViews(queryClient);
     },
   });
 }
@@ -193,6 +195,7 @@ export function useBulkEditProducts() {
       productsService.bulkEditProducts(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      refreshCatalogEditViews(queryClient);
     },
   });
 }
