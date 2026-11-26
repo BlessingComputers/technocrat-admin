@@ -44,6 +44,9 @@ export type PartDetail = Part & {
   subcategoryId?: string | null;
   brandId?: string;
   costPrice?: number | null;
+  /** What PATCH `price` sets; `price` is this with the markup rule applied. */
+  basePrice?: number | null;
+  baseCompareAtPrice?: number | null;
   // `variantId` (purchasable handle) is now a real field on PartResponse.
 };
 

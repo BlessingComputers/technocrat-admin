@@ -135,7 +135,10 @@ export interface ProductDetailVariant {
   sku: string;
   condition: string;
   sourcingType: string;
+  /** Shelf price: `basePrice` with the markup rule applied. */
   price: number;
+  /** What PATCH `price` sets (the backend re-applies markup). Null on old rows. */
+  basePrice?: number | null;
   compareAtPrice: number;
   costPrice: number;
   availabilityStatus: string;
