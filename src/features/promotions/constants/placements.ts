@@ -4,7 +4,7 @@
  * **The storefront file is the source of truth**
  * (`technocrat/storefront/src/features/promotions/placements.ts`, spec
  * `docs/superpowers/specs/2026-11-09-promotion-banners-design.md` there).
- * The template sizes and the five keys are copied from it; change them there
+ * The template sizes and the seven keys are copied from it; change them there
  * first. Everything under "Admin-only additions" is derived, never retyped.
  *
  * Until 2026-11-09 this file held Blessing's thirteen slots, copied when the
@@ -14,13 +14,15 @@
  * against a key list (`CONTRACT.md` §1). This file is that list on our side.
  */
 
-export type TemplateKey = "band" | "strip";
+export type TemplateKey = "band" | "strip" | "tile";
 
 export type PlacementGroup = "home" | "listings";
 
 export type PlacementKey =
   // Home page, in page order.
+  | "home-hero"
   | "home-after-hero"
+  | "home-before-shelf"
   | "home-after-shelf"
   | "home-after-value"
   | "home-before-bike"
@@ -33,7 +35,7 @@ export interface TemplateSpec {
   /** Mobile export size, or `null` when one file serves both breakpoints. */
   mobile: { w: number; h: number } | null;
   shape: TemplateKey;
-  /** Always false on Technocrat: nothing moves on its own (home rule R6). */
+  /** True since 2026-11-26: several slides advance on their own (client request, replacing home rule R6). */
   autoplay: boolean;
   /** Slides past this are dropped by the storefront. */
   maxSlides: number;
@@ -44,14 +46,22 @@ export const TEMPLATES: Record<TemplateKey, TemplateSpec> = {
     desktop: { w: 2400, h: 1000 },
     mobile: { w: 1200, h: 900 },
     shape: "band",
-    autoplay: false,
+    autoplay: true,
     maxSlides: 5,
   },
   strip: {
     desktop: { w: 2400, h: 600 },
     mobile: { w: 1200, h: 600 },
     shape: "strip",
-    autoplay: false,
+    autoplay: true,
+    maxSlides: 3,
+  },
+  // The hero's right column, in place of the product stage. One file serves both breakpoints.
+  tile: {
+    desktop: { w: 1152, h: 1280 },
+    mobile: null,
+    shape: "tile",
+    autoplay: true,
     maxSlides: 3,
   },
 };
@@ -69,28 +79,41 @@ export interface PlacementSpec {
 }
 
 export const PLACEMENTS: Record<PlacementKey, PlacementSpec> = {
+  "home-hero": {
+    label: "Home — hero, right side (replaces the product picture)",
+    group: "home",
+    order: -1,
+    template: "tile",
+    aboveFold: true,
+  },
   "home-after-hero": {
     label: "Home — between the hero and Categories",
     group: "home",
     order: 0,
     template: "band",
   },
+  "home-before-shelf": {
+    label: "Home — between Categories and the shelf",
+    group: "home",
+    order: 1,
+    template: "band",
+  },
   "home-after-shelf": {
     label: 'Home — between the shelf and "Three middlemen"',
     group: "home",
-    order: 1,
+    order: 2,
     template: "band",
   },
   "home-after-value": {
     label: 'Home — between "Three middlemen" and After you pay',
     group: "home",
-    order: 2,
+    order: 3,
     template: "band",
   },
   "home-before-bike": {
     label: "Home — between Procurement and the bike section",
     group: "home",
-    order: 3,
+    order: 4,
     template: "band",
   },
   "listing-top": {
@@ -131,15 +154,16 @@ export const GROUP_LABEL: Record<PlacementGroup, string> = {
 export const TEMPLATE_LABEL: Record<TemplateKey, string> = {
   band: "Band",
   strip: "Strip",
+  tile: "Tile",
 };
 
 /**
  * Banner count per surface before the admin warns. Nothing is blocked. Home
- * has four slots; a listing banner shows on every listing page, so one is
+ * has six slots; a listing banner shows on every listing page, so one is
  * already a lot.
  */
 export const DENSITY_THRESHOLD: Record<PlacementGroup, number> = {
-  home: 4,
+  home: 6,
   listings: 1,
 };
 
