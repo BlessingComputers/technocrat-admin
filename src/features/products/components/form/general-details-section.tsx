@@ -91,7 +91,12 @@ export function GeneralDetailsSection({
             <FormItem>
               <FormLabel>Category*</FormLabel>
               <Select
+                // Same Radix "" reset as Subcategory below: on edit, ProductForm
+                // swaps in the parent id in the render the category list lands,
+                // before Radix has its <option>, so Radix reports "". Taking it
+                // emptied Category (and Subcategory with it).
                 onValueChange={(v) => {
+                  if (!v) return;
                   field.onChange(v);
                   // Changing category invalidates the old subcategory — clear it.
                   setValue("subcategoryId", "");
